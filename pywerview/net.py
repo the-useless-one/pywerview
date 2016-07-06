@@ -1,3 +1,5 @@
+# -*- coding: utf8 -*-
+
 # This file is part of PywerView.
 
 # PywerView is free software: you can redistribute it and/or modify
@@ -440,7 +442,7 @@ def get_netgroupmember(domain_controller, domain, user, password=str(),
     return results
 
 def get_netsession(domain, user, password, lmhash, nthash, target_computername):
-    dce = build_srvs_dce(domain, user, password, lmhash, nthash, target_computername)
+    dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
     resp = srvs.hNetrSessionEnum(dce, '\x00', NULL, 10)
 
     results = list()
@@ -450,7 +452,7 @@ def get_netsession(domain, user, password, lmhash, nthash, target_computername):
     return results
 
 def get_netshare(domain, user, password, lmhash, nthash, target_computername):
-    dce = build_srvs_dce(domain, user, password, lmhash, nthash, target_computername)
+    dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
     resp = srvs.hNetrShareEnum(dce, 1)
 
     results = list()
@@ -460,7 +462,7 @@ def get_netshare(domain, user, password, lmhash, nthash, target_computername):
     return results
 
 def get_netloggedon(domain, user, password, lmhash, nthash, target_computername):
-    dce = build_wkssvc_dce(domain, user, password, lmhash, nthash, target_computername)
+    dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\wkssvc')
     resp = wkst.hNetrWkstaUserEnum(dce, 1)
 
     results = list()
@@ -475,7 +477,7 @@ def get_netlocalgroup(domain_controller, domain, user, password, lmhash, nthash,
     results = list()
 
     # We first get a handle to the server
-    dce = build_samr_dce(domain, user, password, lmhash, nthash, target_computername)
+    dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\samr')
     resp = samr.hSamrConnect(dce)
     server_handle = resp['ServerHandle']
 

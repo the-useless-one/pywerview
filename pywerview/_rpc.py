@@ -1,3 +1,5 @@
+# -*- coding: utf8 -*-
+
 # This file is part of PywerView.
 
 # PywerView is free software: you can redistribute it and/or modify
@@ -17,34 +19,20 @@
 
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr
 
-def _build_dce(domain, user, password, lmhash, nthash, string_binding):
-    # TODO: try to fallback to TCP/139 if tcp/445 is closed
-    rpctransport = transport.DCERPCTransportFactory(string_binding)
+def build_dce(domain, user, password, lmhash, nthash, target_computer, pipe):
+    binding_strings = dict()
+    binding_strings['srvsvc'] = srvs.MSRPC_UUID_SRVS
+    binding_strings['wkssvc'] = wkst.MSRPC_UUID_WKST
+    binding_strings['samr'] = samr.MSRPC_UUID_SAMR
 
-    if hasattr(rpctransport, 'set_credentials'):
-        rpctransport.set_credentials(user, password, domain, lmhash, nthash)
+    # TODO: try to fallback to TCP/139 if tcp/445 is closed
+    rpctransport = transport.SMBTransport(target_computer, 445, pipe,
+            username=user, password=password, domain=domain, lmhash=lmhash,
+            nthash=nthash)
 
     dce = rpctransport.get_dce_rpc()
     dce.connect()
-
-    if 'srvsvc' in string_binding:
-        dce.bind(srvs.MSRPC_UUID_SRVS)
-    elif 'wkssvc' in string_binding:
-        dce.bind(wkst.MSRPC_UUID_WKST)
-    elif 'samr' in string_binding:
-        dce.bind(samr.MSRPC_UUID_SAMR)
+    dce.bind(binding_strings[pipe[1:]])
 
     return dce
-
-def build_srvs_dce(domain, user, password, lmhash, nthash, target_computername):
-    string_srvs_binding = r'ncacn_np:{}[\PIPE\srvsvc]'.format(target_computername)
-    return _build_dce(domain, user, password, lmhash, nthash, string_srvs_binding)
-
-def build_wkssvc_dce(domain, user, password, lmhash, nthash, target_computername):
-    string_wkssvc_binding = r'ncacn_np:{}[\PIPE\wkssvc]'.format(target_computername)
-    return _build_dce(domain, user, password, lmhash, nthash, string_wkssvc_binding)
-
-def build_samr_dce(domain, user, password, lmhash, nthash, target_computername):
-    string_samr_binding = r'ncacn_np:{}[\PIPE\samr]'.format(target_computername)
-    return _build_dce(domain, user, password, lmhash, nthash, string_samr_binding)
 
