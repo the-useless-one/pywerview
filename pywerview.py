@@ -21,6 +21,7 @@
 import argparse
 from pywerview.net import *
 from pywerview.gpo import *
+from pywerview.misc import *
 
 if __name__ == '__main__':
     # Main parser
@@ -252,6 +253,13 @@ if __name__ == '__main__':
             help='If the group member is a domain group, try to resolve its members as well')
     get_netlocalgroup_parser.set_defaults(func=get_netlocalgroup)
 
+    # Parser for the invoke-checklocaladminaccess command
+    invoke_checklocaladminaccess_parser = subparsers.add_parser('invoke-checklocaladminaccess', help='Checks '\
+            'if the given user has local admin acces on the given host', parents=[credentials_parser])
+    invoke_checklocaladminaccess_parser.add_argument('--computername', dest='target_computername',
+            help='Computer to test local admin access on')
+    invoke_checklocaladminaccess_parser.set_defaults(func=invoke_checklocaladminaccess)
+
     args = parser.parse_args()
     if args.hashes:
         args.lmhash, args.nthash = args.hashes.split(':')
@@ -273,5 +281,8 @@ if __name__ == '__main__':
         #print >>sys.stderr, repr(e)
         #sys.exit(-1)
 
-    print '\n\n'.join(str(x) for x in results)
+    try:
+        print '\n\n'.join(str(x) for x in results)
+    except TypeError:
+        print results
 

@@ -17,13 +17,14 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
-from impacket.dcerpc.v5 import transport, wkst, srvs, samr
+from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr
 
 def build_dce(domain, user, password, lmhash, nthash, target_computer, pipe):
     binding_strings = dict()
     binding_strings['srvsvc'] = srvs.MSRPC_UUID_SRVS
     binding_strings['wkssvc'] = wkst.MSRPC_UUID_WKST
     binding_strings['samr'] = samr.MSRPC_UUID_SAMR
+    binding_strings['svcctl'] = scmr.MSRPC_UUID_SCMR
 
     # TODO: try to fallback to TCP/139 if tcp/445 is closed
     rpctransport = transport.SMBTransport(target_computer, 445, pipe,

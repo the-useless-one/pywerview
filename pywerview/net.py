@@ -452,7 +452,7 @@ def get_netsession(target_computername, domain, user, password=str(), lmhash=str
     return results
 
 def get_netshare(target_computername, domain, user, password=str(),
-        lmhash=str(), nthash=str(), target_computername):
+        lmhash=str(), nthash=str()):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
     resp = srvs.hNetrShareEnum(dce, 1)
 

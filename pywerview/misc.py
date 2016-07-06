@@ -21,7 +21,9 @@ import socket
 import sys
 
 from impacket.ldap import ldap, ldapasn1
+import impacket.dcerpc.v5.rpcrt
 import pywerview.net
+from pywerview._rpc import *
 
 def build_domain_connection(domain_controller, domain, user, password=str(),
         lmhash=str(), nthash=str(), queried_domain=str(),
@@ -79,4 +81,16 @@ def get_domainsid(domain_controller, domain, user, password=str(),
         domain_sid = None
 
     return domain_sid
+
+def invoke_checklocaladminaccess(target_computername, domain, user,
+        password=str(), lmhash=str(), nthash=str()):
+
+    dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\svcctl')
+
+    try:
+        ans = scmr.hROpenSCManagerW(dce)
+    except impacket.dcerpc.v5.rpcrt.DCERPCException:
+        return False
+
+    return True
 
