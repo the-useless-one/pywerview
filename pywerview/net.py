@@ -248,8 +248,8 @@ def get_netfileserver(domain_controller, domain, user, password=str(),
 
     return results
 
-def get_netou(domain_controller, domain, user, password,
-        lmhash, nthash, queried_domain=str(), queried_ouname='*',
+def get_netou(domain_controller, domain, user, password=str(),
+        lmhash=str(), nthash=str(), queried_domain=str(), queried_ouname='*',
         queried_guid=str(), ads_path=str(), full_data=False):
 
     domain_connection = build_domain_connection(domain_controller, domain, user,
@@ -286,8 +286,8 @@ def get_netou(domain_controller, domain, user, password,
 
     return results
 
-def get_netsite(domain_controller, domain, user, password,
-        lmhash, nthash, queried_domain=str(), queried_sitename=str(),
+def get_netsite(domain_controller, domain, user, password=str(),
+        lmhash=str(), nthash=str(), queried_domain=str(), queried_sitename=str(),
         queried_guid=str(), ads_path=str(), full_data=False):
 
     domain_connection = build_domain_connection(domain_controller, domain, user,
@@ -324,8 +324,8 @@ def get_netsite(domain_controller, domain, user, password,
 
     return results
 
-def get_netsubnet(domain_controller, domain, user, password,
-        lmhash, nthash, queried_domain=str(), queried_sitename=str(),
+def get_netsubnet(domain_controller, domain, user, password=str(),
+        lmhash=str(), nthash=str(), queried_domain=str(), queried_sitename=str(),
         ads_path=str(), full_data=False):
 
     domain_connection = build_domain_connection(domain_controller, domain, user,
@@ -441,7 +441,7 @@ def get_netgroupmember(domain_controller, domain, user, password=str(),
 
     return results
 
-def get_netsession(domain, user, password, lmhash, nthash, target_computername):
+def get_netsession(target_computername, domain, user, password=str(), lmhash=str(), nthash=str()):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
     resp = srvs.hNetrSessionEnum(dce, '\x00', NULL, 10)
 
@@ -451,7 +451,8 @@ def get_netsession(domain, user, password, lmhash, nthash, target_computername):
 
     return results
 
-def get_netshare(domain, user, password, lmhash, nthash, target_computername):
+def get_netshare(target_computername, domain, user, password=str(),
+        lmhash=str(), nthash=str(), target_computername):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
     resp = srvs.hNetrShareEnum(dce, 1)
 
@@ -461,7 +462,7 @@ def get_netshare(domain, user, password, lmhash, nthash, target_computername):
 
     return results
 
-def get_netloggedon(domain, user, password, lmhash, nthash, target_computername):
+def get_netloggedon(target_computername, domain, user, password=str(), lmhash=str(), nthash=str()):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\wkssvc')
     resp = wkst.hNetrWkstaUserEnum(dce, 1)
 
@@ -471,8 +472,9 @@ def get_netloggedon(domain, user, password, lmhash, nthash, target_computername)
 
     return results
 
-def get_netlocalgroup(domain_controller, domain, user, password, lmhash, nthash, target_computername,
-        queried_groupname=str(), list_groups=False, recurse=False):
+def get_netlocalgroup(target_computername, domain_controller, domain, user,
+        password=str(), lmhash=str(), nthash=str(), queried_groupname=str(),
+        list_groups=False, recurse=False):
     from impacket.nt_errors import STATUS_MORE_ENTRIES
     results = list()
 
