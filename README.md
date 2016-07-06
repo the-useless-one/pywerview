@@ -51,18 +51,18 @@ Also, blah blah blah, don't use it for evil purposes.
 
     $ python pywerview.py -h
     usage: pywerview.py [-h]
-                        {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-netshare,get-netloggedon,get-netlocalgroup}
+                        {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess}
                         ...
-    
+
     Rewriting of some PowerView's functionalities in Python
-    
+
     optional arguments:
       -h, --help            show this help message and exit
-    
+
     Subcommands:
       Available subcommands
-    
-      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-netshare,get-netloggedon,get-netlocalgroup}
+
+      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess}
         get-adobject        Takes a domain SID, samAccountName or name, and return
                             the associated object
         get-netuser         Queries information about a domain user
@@ -92,6 +92,9 @@ Also, blah blah blah, don't use it for evil purposes.
                             or returns every local group. You can use local
                             credentials instead of domain credentials, however,
                             domain credentials are needed to resolve domain SIDs.
+        invoke-checklocaladminaccess
+                            Checks if the given user has local admin acces on the
+                            given host
 
 ### get-adobject
     usage: pywerview.py get-adobject [-h] [-w DOMAIN] -u USER [-p PASSWORD]
@@ -502,6 +505,24 @@ Also, blah blah blah, don't use it for evil purposes.
       --allow-delegation    Return user accounts that are not marked as 'sensitive
                             and not allowed for delegation'
       --spn                 Query only users with not-null Service Principal Names
+
+### invoke-checklocaladminaccess
+    usage: pywerview.py invoke-checklocaladminaccess [-h] [-w DOMAIN] -u USER
+                                                     [-p PASSWORD]
+                                                     [--hashes LMHASH:NTHASH]
+                                                     [--computername TARGET_COMPUTERNAME]
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -w DOMAIN, --workgroup DOMAIN
+                            Name of the domain we authenticate with
+      -u USER, --user USER  Username used to connect to the Domain Controller
+      -p PASSWORD, --password PASSWORD
+                            Password associated to the username
+      --hashes LMHASH:NTHASH
+                            NTLM hashes, format is LMHASH:NTHASH
+      --computername TARGET_COMPUTERNAME
+                            Computer to test local admin access on
 
 ## TODO
 
