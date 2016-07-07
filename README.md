@@ -1,11 +1,11 @@
 # PywerView
-      ____                        __     ___               
+      ____                        __     ___
      |  _ \ _   ___      _____ _ _\ \   / (_) _____      __
      | |_) | | | \ \ /\ / / _ \ '__\ \ / /| |/ _ \ \ /\ / /
-     |  __/| |_| |\ V  V /  __/ |   \ V / | |  __/\ V  V / 
-     |_|    \__, | \_/\_/ \___|_|    \_/  |_|\___| \_/\_/  
-            |___/                                          
-            
+     |  __/| |_| |\ V  V /  __/ |   \ V / | |  __/\ V  V /
+     |_|    \__, | \_/\_/ \___|_|    \_/  |_|\___| \_/\_/
+            |___/
+
 A (partial) Python rewriting of [PowerSploit](https://github.com/PowerShellMafia/PowerSploit)'s
 [PowerView](https://github.com/PowerShellMafia/PowerSploit/tree/master/Recon).
 
@@ -48,6 +48,13 @@ Also, blah blah blah, don't use it for evil purposes.
 * impacket 0.9.15
 
 ## USAGE
+
+*Attention:* in every command, the used domain name must be the post-Win2k UPN,
+and not the Win2k compatible name.
+
+For example, my domain name is `uselessdomain.local`. The Win2K compatible name
+is `USELESSDOMAIN`. In every command,  I must use __`uselessdomain.local`__ as
+an argument, and __not__ `USELESSDOMAIN`.
 
     $ python pywerview.py -h
     usage: pywerview.py [-h]
@@ -103,7 +110,7 @@ Also, blah blah blah, don't use it for evil purposes.
                                      [--sam-account-name QUERIED_SAM_ACCOUNT_NAME]
                                      [--name QUERIED_NAME] [-d QUERIED_DOMAIN]
                                      [-a ADS_PATH]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -133,7 +140,7 @@ Also, blah blah blah, don't use it for evil purposes.
                                         [-spn QUERIED_SPN] [-d QUERIED_DOMAIN]
                                         [-a ADS_PATH] [--printers]
                                         [--unconstrained] [--ping] [--full-data]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -172,7 +179,7 @@ Also, blah blah blah, don't use it for evil purposes.
                                                 [--hashes LMHASH:NTHASH] -t
                                                 DOMAIN_CONTROLLER
                                                 [-d QUERIED_DOMAIN]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -193,7 +200,7 @@ Also, blah blah blah, don't use it for evil purposes.
                                           DOMAIN_CONTROLLER
                                           [--target-users TARGET_USER [TARGET_USER ...]]
                                           [-d QUERIED_DOMAIN]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -217,7 +224,7 @@ Also, blah blah blah, don't use it for evil purposes.
                                    [--gponame QUERIED_GPONAME]
                                    [--displayname QUERIED_DISPLAYNAME]
                                    [-d QUERIED_DOMAIN] [-a ADS_PATH]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -246,7 +253,7 @@ Also, blah blah blah, don't use it for evil purposes.
                                      [--username QUERIED_USERNAME]
                                      [-d QUERIED_DOMAIN] [-a ADS_PATH]
                                      [--full-data] [--admin-count]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -280,7 +287,7 @@ Also, blah blah blah, don't use it for evil purposes.
                                            [--sid QUERIED_SID] [-d QUERIED_DOMAIN]
                                            [-a ADS_PATH] [-r]
                                            [--use-matching-rule] [--full-data]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -315,7 +322,7 @@ Also, blah blah blah, don't use it for evil purposes.
                                           [--groupname QUERIED_GROUPNAME]
                                           [--list-groups] [-t DOMAIN_CONTROLLER]
                                           [-r]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -342,7 +349,7 @@ Also, blah blah blah, don't use it for evil purposes.
     usage: pywerview.py get-netloggedon [-h] [-w DOMAIN] -u USER [-p PASSWORD]
                                         [--hashes LMHASH:NTHASH]
                                         [--computername TARGET_COMPUTERNAME]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -360,7 +367,7 @@ Also, blah blah blah, don't use it for evil purposes.
                                   [--hashes LMHASH:NTHASH] -t DOMAIN_CONTROLLER
                                   [--ouname QUERIED_OUNAME] [--guid QUERIED_GUID]
                                   [-d QUERIED_DOMAIN] [-a ADS_PATH] [--full-data]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -387,7 +394,7 @@ Also, blah blah blah, don't use it for evil purposes.
     usage: pywerview.py get-netsession [-h] [-w DOMAIN] -u USER [-p PASSWORD]
                                        [--hashes LMHASH:NTHASH]
                                        [--computername TARGET_COMPUTERNAME]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -404,7 +411,7 @@ Also, blah blah blah, don't use it for evil purposes.
     usage: pywerview.py get-netshare [-h] [-w DOMAIN] -u USER [-p PASSWORD]
                                      [--hashes LMHASH:NTHASH]
                                      [--computername TARGET_COMPUTERNAME]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -423,7 +430,7 @@ Also, blah blah blah, don't use it for evil purposes.
                                     [--sitename QUERIED_SITENAME]
                                     [--guid QUERIED_GUID] [-d QUERIED_DOMAIN]
                                     [-a ADS_PATH] [--full-data]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -453,7 +460,7 @@ Also, blah blah blah, don't use it for evil purposes.
                                       [--sitename QUERIED_SITENAME]
                                       [-d QUERIED_DOMAIN] [-a ADS_PATH]
                                       [--full-data]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -482,7 +489,7 @@ Also, blah blah blah, don't use it for evil purposes.
                                     [-d QUERIED_DOMAIN] [-a ADS_PATH]
                                     [--unconstrained] [--admin-count]
                                     [--allow-delegation] [--spn]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -w DOMAIN, --workgroup DOMAIN
@@ -531,7 +538,7 @@ Also, blah blah blah, don't use it for evil purposes.
 * Support Kerberos authentication
 * Perform range cycling in `get-netgroupmember`
 * Manage ADS path starting with `GC://`
-* Try to fall back to `tcp/139` for RPC communications if `tcp/445` is closed 
+* Try to fall back to `tcp/139` for RPC communications if `tcp/445` is closed
 * Comment and document the code
 
 ## THANKS
@@ -546,16 +553,16 @@ PywerView - A Python rewriting of PowerSploit's PowerView
 
 Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
-This program is free software: you can redistribute it and/or modify it 
-under the terms of the GNU General Public License as published by the 
-Free Software Foundation, either version 3 of the License, or (at your 
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
 option) any later version.
 
 This program is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of 
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General 
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
 Public License for more details.
 
-You should have received a copy of the GNU General Public License along 
+You should have received a copy of the GNU General Public License along
 with this program. If not, see
 [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
