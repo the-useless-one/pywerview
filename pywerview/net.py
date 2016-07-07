@@ -226,7 +226,7 @@ def get_netfileserver(domain_controller, domain, user, password=str(),
             return split_path[2]
 
     domain_connection = build_domain_connection(domain_controller, domain, user,
-            password, lmhash, nthash, queried_domain, ads_path=ads_path)
+            password, lmhash, nthash, queried_domain)
 
     users = get_netuser(domain_controller, domain, user, password,
             lmhash, nthash, queried_domain)

@@ -218,14 +218,14 @@ if __name__ == '__main__':
     get_netsession_parser= subparsers.add_parser('get-netsession', help='Queries a host to return a '\
         'list of active sessions on the host (you can use local credentials instead of domain credentials)', parents=[credentials_parser])
     get_netsession_parser.add_argument('--computername', dest='target_computername',
-            help='Computer to list sessions on')
+            required=True, help='Computer to list sessions on')
     get_netsession_parser.set_defaults(func=get_netsession)
 
     # Parser for the get-netshare command
     get_netshare_parser= subparsers.add_parser('get-netshare', help='Queries a host to return a '\
         'list of available shares on the host (you can use local credentials instead of domain credentials)', parents=[credentials_parser])
     get_netshare_parser.add_argument('--computername', dest='target_computername',
-            help='Computer to list shares on')
+            required=True, help='Computer to list shares on')
     get_netshare_parser.set_defaults(func=get_netshare)
 
     # Parser for the get-netloggedon command
@@ -233,7 +233,7 @@ if __name__ == '__main__':
         'execute the NetWkstaUserEnum RPC call ti query a given host for actively logged on '\
         'users', parents=[credentials_parser])
     get_netloggedon_parser.add_argument('--computername', dest='target_computername',
-            help='Computer to list logged on users on')
+            required=True, help='Computer to list logged on users on')
     get_netloggedon_parser.set_defaults(func=get_netloggedon)
 
     # Parser for the get-netlocalgroup command
@@ -242,7 +242,7 @@ if __name__ == '__main__':
         'credentials instead of domain credentials, however, domain credentials are needed to '\
         'resolve domain SIDs.', parents=[credentials_parser])
     get_netlocalgroup_parser.add_argument('--computername', dest='target_computername',
-            help='Computer to list the local groups on')
+            required=True, help='Computer to list the local groups on')
     get_netlocalgroup_parser.add_argument('--groupname', dest='queried_groupname',
             help='Group to list the members of (defaults to the local \'Administrators\' group')
     get_netlocalgroup_parser.add_argument('--list-groups', action='store_true',
@@ -257,7 +257,7 @@ if __name__ == '__main__':
     invoke_checklocaladminaccess_parser = subparsers.add_parser('invoke-checklocaladminaccess', help='Checks '\
             'if the given user has local admin acces on the given host', parents=[credentials_parser])
     invoke_checklocaladminaccess_parser.add_argument('--computername', dest='target_computername',
-            help='Computer to test local admin access on')
+            required=True, help='Computer to test local admin access on')
     invoke_checklocaladminaccess_parser.set_defaults(func=invoke_checklocaladminaccess)
 
     args = parser.parse_args()
@@ -268,7 +268,7 @@ if __name__ == '__main__':
 
     if not args.password and not args.hashes:
         from getpass import getpass
-        password = getpass('Password:')
+        args.password = getpass('Password:')
 
     parsed_args = dict()
     for k, v in vars(args).iteritems():
