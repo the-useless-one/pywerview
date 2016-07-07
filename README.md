@@ -30,7 +30,7 @@ library.
 
 ## DISCLAIMER
 
-This tool is fare for complete (as you'll see in the TODO section)! I still
+This tool is far from complete (as you'll see in the TODO section)! I still
 have a lot more awesome PowerView functionalities to implement (the user
 hunting functions, the GPO functions, the local process enumeration, etc.),
 but I still think it can be useful as is.
