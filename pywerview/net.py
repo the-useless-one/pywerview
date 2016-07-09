@@ -34,6 +34,7 @@ def get_adobject(domain_controller, domain, user, password=str(),
     domain_connection = build_domain_connection(domain_controller, domain, user,
             password, lmhash, nthash, queried_domain, ads_path=ads_path)
 
+    object_filter = build_substrings_filter('objectSid', '*')
     for attr_desc, attr_value in (('objectSid', queried_sid), ('name', queried_name),
             ('samAccountName', queried_sam_account_name)):
         if attr_value:
@@ -42,9 +43,6 @@ def get_adobject(domain_controller, domain, user, password=str(),
             else:
                 object_filter = build_equality_match_filter(attr_desc, attr_value)
             break
-    else:
-        raise ValueError('[!] Must give at least one argument in '\
-                '(queried_sid, queried_name, queried_sam_account_name)')
 
     results = list()
     for obj in domain_connection.search(searchFilter=object_filter, attributes=list()):
