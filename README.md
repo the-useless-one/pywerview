@@ -56,9 +56,9 @@ For example, my domain name is `uselessdomain.local`. The Win2K compatible name
 is `USELESSDOMAIN`. In every command,  I must use __`uselessdomain.local`__ as
 an argument, and __not__ `USELESSDOMAIN`.
 
-    $ python pywerview.py -h
+    $ ./pywerview.py --help
     usage: pywerview.py [-h]
-                        {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess}
+                        {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess}
                         ...
 
     Rewriting of some PowerView's functionalities in Python
@@ -69,7 +69,7 @@ an argument, and __not__ `USELESSDOMAIN`.
     Subcommands:
       Available subcommands
 
-      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess}
+      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess}
         get-adobject        Takes a domain SID, samAccountName or name, and return
                             the associated object
         get-netuser         Queries information about a domain user
@@ -81,6 +81,8 @@ an argument, and __not__ `USELESSDOMAIN`.
         get-netfileserver   Return a list of file servers, extracted from the
                             domain users' homeDirectory, scriptPath, and
                             profilePath fields
+        get-dfsshare        Return a list of all fault tolerant distributed file
+                            systems for a given domain
         get-netou           Get a list of all current OUs in the domain
         get-netsite         Get a list of all current sites in the domain
         get-netsubnet       Get a list of all current subnets in the domain
@@ -242,6 +244,31 @@ an argument, and __not__ `USELESSDOMAIN`.
                             Display name to query for (wildcards accepted)
       -d QUERIED_DOMAIN, --domain QUERIED_DOMAIN
                             Domain to query
+      -a ADS_PATH, --ads-path ADS_PATH
+                            Additional ADS path
+
+### get-dfsshare
+    usage: pywerview.py get-dfsshare [-h] [-w DOMAIN] -u USER [-p PASSWORD]
+                                     [--hashes LMHASH:NTHASH] -t DOMAIN_CONTROLLER
+                                     [-d QUERIED_DOMAIN]
+                                     [-v {v1,v2} [{v1,v2} ...]] [-a ADS_PATH]
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -w DOMAIN, --workgroup DOMAIN
+                            Name of the domain we authenticate with
+      -u USER, --user USER  Username used to connect to the Domain Controller
+      -p PASSWORD, --password PASSWORD
+                            Password associated to the username
+      --hashes LMHASH:NTHASH
+                            NTLM hashes, format is LMHASH:NTHASH
+      -t DOMAIN_CONTROLLER, --dc-ip DOMAIN_CONTROLLER
+                            IP address of the Domain Controller to target
+      -d QUERIED_DOMAIN, --domain QUERIED_DOMAIN
+                            Domain to query
+      -v {v1,v2} [{v1,v2} ...], --version {v1,v2} [{v1,v2} ...]
+                            The version of DFS to query for servers: v1, v2 or all
+                            (default: all)
       -a ADS_PATH, --ads-path ADS_PATH
                             Additional ADS path
 

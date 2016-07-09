@@ -140,11 +140,12 @@ if __name__ == '__main__':
     get_netfileserver_parser.set_defaults(func=get_netfileserver)
 
     # Parser for the get-dfsshare command
-    # TODO: add arguments for version of DFS to query
     get_dfsshare_parser= subparsers.add_parser('get-dfsshare', help='Return a list of '\
         'all fault tolerant distributed file systems for a given domain', parents=[ad_parser])
     get_dfsshare_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
+    get_dfsshare_parser.add_argument('-v', '--version', nargs='+', choices=['v1', 'v2'],
+            default=['v1', 'v2'], help='The version of DFS to query for servers: v1, v2 or all (default: all)')
     get_dfsshare_parser.add_argument('-a', '--ads-path', dest='ads_path',
             help='Additional ADS path')
     get_dfsshare_parser.set_defaults(func=get_dfsshare)

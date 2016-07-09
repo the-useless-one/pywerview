@@ -261,12 +261,17 @@ def get_dfsshare(domain_controller, domain, user, password=str(), lmhash=str(),
 
         results = list()
         for dfs in domain_connection.search(searchFilter=dfs_search_filter,
-                attributes=list()):
+                attributes=['remoteservername', 'name']):
             if not isinstance(dfs, ldapasn1.SearchResultEntry):
                 continue
 
-            # TODO: add DFS share v1 to the test domain
-            results.append(adobj.DFS(dfs['attributes']))
+            for remote_server in dfs['attributes'][1]['vals']:
+                remote_server = str(remote_server)
+                if '\\' in remote_server:
+                    attributes = list()
+                    attributes.append({'type': 'name', 'vals': dfs['attributes'][0]['vals']})
+                    attributes.append({'type': 'remoteserver', 'vals': [remote_server.split('\\')[2]]})
+                    results.append(adobj.DFS(attributes))
 
         return results
 
