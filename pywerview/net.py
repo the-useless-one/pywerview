@@ -414,12 +414,16 @@ def get_netgroupmember(domain_controller, domain, user, password=str(),
             is_group = (member.samaccounttype != '805306368')
 
             attributes = list()
-            attributes.append({'type': 'groupdomain', 'vals': [queried_domain]})
+            if queried_domain:
+                attributes.append({'type': 'groupdomain', 'vals': [queried_domain]})
+            else:
+                attributes.append({'type': 'groupdomain', 'vals': [domain]})
             attributes.append({'type': 'groupname', 'vals': [group.name]})
-            attributes.append({'type': 'membername', 'vals': [member.cn]})
+            attributes.append({'type': 'membername', 'vals': [member.samaccountname]})
             attributes.append({'type': 'memberdomain', 'vals': [member_domain]})
             attributes.append({'type': 'isgroup', 'vals': [is_group]})
             attributes.append({'type': 'memberdn', 'vals': [member_dn]})
+            attributes.append({'type': 'membersid', 'vals': [member.objectsid]})
 
             final_member.add_attributes(attributes)
 
