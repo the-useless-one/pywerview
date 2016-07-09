@@ -101,6 +101,9 @@ class Group(ADObject):
 class Computer(ADObject):
     pass
 
+class DFS(ADObject):
+    pass
+
 class OU(ADObject):
     def __init__(self, attributes):
         ADObject.__init__(self, attributes)

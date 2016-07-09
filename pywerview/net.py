@@ -20,6 +20,7 @@
 from impacket.ldap import ldapasn1
 from impacket.dcerpc.v5.ndr import NULL
 import impacket.dcerpc.v5.samr
+from bs4 import BeautifulSoup
 
 import pywerview.adobjects as adobj
 import pywerview.rpcobjects as rpcobj
@@ -245,6 +246,63 @@ def get_netfileserver(domain_controller, domain, user, password=str(),
             results.append(split_path(user.scriptpath))
         if user.profilepath:
             results.append(split_path(user.profilepath))
+
+    return results
+
+def get_dfsshare(domain_controller, domain, user, password=str(), lmhash=str(),
+        nthash=str(), version=['v1', 'v2'], queried_domain=str(),
+        ads_path=str()):
+
+    domain_connection = build_domain_connection(domain_controller, domain, user,
+            password, lmhash, nthash, queried_domain, ads_path=ads_path)
+
+    def _get_dfssharev1():
+        dfs_search_filter = build_equality_match_filter('objectClass', 'fTDfs')
+
+        results = list()
+        for dfs in domain_connection.search(searchFilter=dfs_search_filter,
+                attributes=list()):
+            if not isinstance(dfs, ldapasn1.SearchResultEntry):
+                continue
+
+            # TODO: add DFS share v1 to the test domain
+            results.append(adobj.DFS(dfs['attributes']))
+
+        return results
+
+    def _get_dfssharev2():
+        dfs_search_filter = build_equality_match_filter('objectClass',
+                'msDFS-Linkv2')
+
+        results = list()
+        for dfs in domain_connection.search(searchFilter=dfs_search_filter,
+                attributes=['msdfs-linkpathv2','msDFS-TargetListv2']):
+            if not isinstance(dfs, ldapasn1.SearchResultEntry):
+                continue
+
+            attributes = list()
+
+            share_name = dfs['attributes'][1]['vals'][0]
+
+            xml_target_list = str(dfs['attributes'][0]['vals'][0])[2:].decode('utf-16le')
+            soup_target_list = BeautifulSoup(xml_target_list, 'xml')
+            for target in soup_target_list.targets.contents:
+                if '\\' in target.string:
+                    server_name, dfs_root = target.string.split('\\')[2:4]
+                    attributes.append({'type': 'remoteservername',
+                        'vals': [server_name]})
+                    attributes.append({'type': 'name',
+                        'vals': ['{}{}'.format(dfs_root, share_name)]})
+
+            results.append(adobj.DFS(attributes))
+
+        return results
+
+    version_to_function = {'v1': _get_dfssharev1, 'v2': _get_dfssharev2}
+    results = list()
+
+    for v in version:
+        results += version_to_function[v]()
 
     return results
 
