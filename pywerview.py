@@ -131,13 +131,24 @@ if __name__ == '__main__':
     get_netdomaincontroller_parser.set_defaults(func=get_netdomaincontroller)
     
     # Parser for the get-netfileserver command
-    get_fileserver_parser= subparsers.add_parser('get-netfileserver', help='Return a list of '\
+    get_netfileserver_parser= subparsers.add_parser('get-netfileserver', help='Return a list of '\
         'file servers, extracted from the domain users\' homeDirectory, scriptPath, and profilePath fields', parents=[ad_parser])
-    get_fileserver_parser.add_argument('--target-users', nargs='+',
+    get_netfileserver_parser.add_argument('--target-users', nargs='+',
             metavar='TARGET_USER', help='A list of users to target to find file servers (wildcards accepted)')
-    get_fileserver_parser.add_argument('-d', '--domain', dest='queried_domain',
+    get_netfileserver_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
-    get_fileserver_parser.set_defaults(func=get_netfileserver)
+    get_netfileserver_parser.set_defaults(func=get_netfileserver)
+
+    # Parser for the get-dfsshare command
+    get_dfsshare_parser= subparsers.add_parser('get-dfsshare', help='Return a list of '\
+        'all fault tolerant distributed file systems for a given domain', parents=[ad_parser])
+    get_dfsshare_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_dfsshare_parser.add_argument('-v', '--version', nargs='+', choices=['v1', 'v2'],
+            default=['v1', 'v2'], help='The version of DFS to query for servers: v1, v2 or all (default: all)')
+    get_dfsshare_parser.add_argument('-a', '--ads-path', dest='ads_path',
+            help='Additional ADS path')
+    get_dfsshare_parser.set_defaults(func=get_dfsshare)
 
     # Parser for the get-netou command
     get_netou_parser= subparsers.add_parser('get-netou', help='Get a list of all current '\
