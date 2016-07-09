@@ -590,17 +590,23 @@ def get_netlocalgroup(target_computername, domain_controller, domain, user,
             # It's a domain member
             else:
                 attributes['isdomain'] = True
-                print domain_controller
                 if domain_controller:
-                    ad_object = get_adobject(domain_controller, domain, user,
-                            password, lmhash, nthash, queried_sid=member_sid)[0]
-                    member_dn = ad_object.distinguishedname
-                    member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
-                    attributes['name'] = '{}/{}'.format(member_domain, ad_object.name)
-                    attributes['isgroup'] = ad_object.isgroup
                     try:
-                        attributes['lastlogin'] = ad_object.lastlogon
-                    except AttributeError:
+                        ad_object = get_adobject(domain_controller, domain, user,
+                                password, lmhash, nthash, queried_sid=member_sid)[0]
+                        member_dn = ad_object.distinguishedname
+                        member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
+                        attributes['name'] = '{}/{}'.format(member_domain, ad_object.name)
+                        attributes['isgroup'] = ad_object.isgroup
+                        try:
+                            attributes['lastlogin'] = ad_object.lastlogon
+                        except AttributeError:
+                            attributes['lastlogin'] = str()
+                    except IndexError:
+                        # We did not manage to resolve this SID against the DC
+                        attributes['isdomain'] = False
+                        attributes['isgroup'] = False
+                        attributes['name'] = attributes['sid']
                         attributes['lastlogin'] = str()
 
             results.append(rpcobj.RPCObject(attributes))
