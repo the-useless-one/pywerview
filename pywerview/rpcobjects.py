@@ -17,6 +17,8 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
+from __future__ import unicode_literals
+
 import inspect
 
 class RPCObject:
@@ -49,7 +51,7 @@ class RPCObject:
             if not member[0].startswith('_'):
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member[1])
 
-        s = s[:-1]
+        s = s[:-1].encode('utf-8')
         return s
 
     def __repr__(self):

@@ -282,7 +282,11 @@ if __name__ == '__main__':
         #sys.exit(-1)
 
     try:
-        print '\n\n'.join(str(x) for x in results)
+        for x in results:
+            x = str(x)
+            print x
+            if '\n' in x:
+                print ''
     except TypeError:
         print results
 
