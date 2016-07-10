@@ -80,7 +80,7 @@ def convert_sidtont4(sid, domain_controller, domain, user, password=str(),
                 lmhash=lmhash, nthash=nthash)
     dce = build_dce(domain, user, password, lmhash, nthash, domain_controller, r'\drsuapi')
 
-    # We get a DRS handle
+    # We get a DRS handle, shamelessly stolen from secretsdump.py
     request = drsuapi.DRSBind()
     request['puuidClientDsa'] = drsuapi.NTDSAPI_CLIENT_GUID
     drs = drsuapi.DRS_EXTENSIONS_INT()
