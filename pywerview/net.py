@@ -213,7 +213,7 @@ def get_netdomaincontroller(domain_controller, domain, user, password=str(),
             'userAccountControl', '8192')
 
     return get_netcomputer(domain_controller, domain, user, password,
-            lmhash, nthash, queried_domain, full_data=True,
+            lmhash, nthash, queried_domain=queried_domain, full_data=True,
             custom_filter=domain_controller_filter)
 
 def get_netfileserver(domain_controller, domain, user, password=str(),
