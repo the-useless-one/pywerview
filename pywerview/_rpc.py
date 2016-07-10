@@ -17,7 +17,8 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
-from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr
+from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
+from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
 
 def build_dce(domain, user, password, lmhash, nthash, target_computer, pipe):
     binding_strings = dict()
@@ -25,13 +26,23 @@ def build_dce(domain, user, password, lmhash, nthash, target_computer, pipe):
     binding_strings['wkssvc'] = wkst.MSRPC_UUID_WKST
     binding_strings['samr'] = samr.MSRPC_UUID_SAMR
     binding_strings['svcctl'] = scmr.MSRPC_UUID_SCMR
+    binding_strings['drsuapi'] = drsuapi.MSRPC_UUID_DRSUAPI
 
     # TODO: try to fallback to TCP/139 if tcp/445 is closed
-    rpctransport = transport.SMBTransport(target_computer, 445, pipe,
-            username=user, password=password, domain=domain, lmhash=lmhash,
-            nthash=nthash)
+    if pipe == r'\drsuapi':
+        string_binding = epm.hept_map(target_computer, drsuapi.MSRPC_UUID_DRSUAPI,
+                                     protocol='ncacn_ip_tcp')
+        rpctransport = transport.DCERPCTransportFactory(string_binding)
+        rpctransport.set_credentials(username=user, password=password, domain=domain,
+                lmhash=lmhash, nthash=nthash)
+    else:
+        rpctransport = transport.SMBTransport(target_computer, 445, pipe,
+                username=user, password=password, domain=domain, lmhash=lmhash,
+                nthash=nthash)
 
     dce = rpctransport.get_dce_rpc()
+    if pipe == r'\drsuapi':
+        dce.set_auth_level(RPC_C_AUTHN_LEVEL_PKT_PRIVACY)
     dce.connect()
     dce.bind(binding_strings[pipe[1:]])
 
