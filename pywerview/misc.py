@@ -68,6 +68,40 @@ def build_domain_connection(domain_controller, domain, user, password=str(),
 
     return domain_connection
 
+def convert_sidtont4(sid, domain_controller, domain, user, password=str(),
+        lmhash=str(), nthash=str()):
+
+    stringBinding = epm.hept_map(domain_controller, drsuapi.MSRPC_UUID_DRSUAPI,
+                                 protocol='ncacn_ip_tcp')
+    rpc = transport.DCERPCTransportFactory(stringBinding)
+    if hasattr(rpc, 'set_credentials'):
+        # This method exists only for selected protocol sequences.
+        rpc.set_credentials(username=user, password=password, domain=domain,
+                lmhash=lmhash, nthash=nthash)
+    dce = build_dce(domain, user, password, lmhash, nthash, domain_controller, r'\drsuapi')
+
+    # We get a DRS handle
+    request = drsuapi.DRSBind()
+    request['puuidClientDsa'] = drsuapi.NTDSAPI_CLIENT_GUID
+    drs = drsuapi.DRS_EXTENSIONS_INT()
+    drs['cb'] = len(drs) #- 4
+    drs['dwFlags'] = drsuapi.DRS_EXT_GETCHGREQ_V6 | drsuapi.DRS_EXT_GETCHGREPLY_V6 | drsuapi.DRS_EXT_GETCHGREQ_V8 | \
+                     drsuapi.DRS_EXT_STRONG_ENCRYPTION
+    drs['SiteObjGuid'] = drsuapi.NULLGUID
+    drs['Pid'] = 0
+    drs['dwReplEpoch'] = 0
+    drs['dwFlagsExt'] = 0
+    drs['ConfigObjGUID'] = drsuapi.NULLGUID
+    drs['dwExtCaps'] = 0xffffffff
+    request['pextClient']['cb'] = len(drs)
+    request['pextClient']['rgb'] = list(str(drs))
+
+    hdrs = dce.request(request)['phDrs']
+
+    resp = drsuapi.hDRSCrackNames(dce, hdrs, 0x0, 11, 2, (sid,))
+
+    return resp['pmsgOut']['V1']['pResult']['rItems'][0]['pName']
+
 def get_domainsid(domain_controller, domain, user, password=str(),
         lmhash=str(), nthash=str(), queried_domain=str()):
 
