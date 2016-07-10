@@ -268,7 +268,7 @@ def get_dfsshare(domain_controller, domain, user, password=str(), lmhash=str(),
                 if '\\' in remote_server:
                     attributes = list()
                     attributes.append({'type': 'name', 'vals': dfs['attributes'][0]['vals']})
-                    attributes.append({'type': 'remoteserver', 'vals': [remote_server.split('\\')[2]]})
+                    attributes.append({'type': 'remoteservername', 'vals': [remote_server.split('\\')[2]]})
                     results.append(adobj.DFS(attributes))
 
         return results
