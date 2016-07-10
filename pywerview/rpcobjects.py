@@ -57,6 +57,9 @@ class RPCObject:
     def __repr__(self):
         return str(self)
 
+class TargetUser(RPCObject):
+    pass
+
 class Session(RPCObject):
     pass
 
