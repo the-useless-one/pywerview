@@ -22,7 +22,7 @@ import random
 from pywerview.net import get_netdomaincontroller, get_dfsshare, get_netfileserver, \
         get_netcomputer, get_netlocalgroup, get_netuser, get_netgroupmember, \
         get_netsession, get_netloggedon
-from pywerview.misc import invoke_checklocaladminaccess
+from pywerview.misc import convert_sidtont4, get_domainsid, invoke_checklocaladminaccess
 import pywerview.rpcobjects as rpcobj
 
 def invoke_userhunter(domain_controller, domain, user, password=str(),
@@ -32,7 +32,7 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
         queried_username=str(), queried_useradspath=str(), queried_userfile=None,
         admin_count=False, allow_delegation=False, stop_on_success=False,
         check_access=True, queried_domain=str(), stealth=False,
-        stealth_source=['dfs', 'dc', 'file'], show_all=False):
+        stealth_source=['dfs', 'dc', 'file'], show_all=False, foreign_users=False):
 
     # TODO: implement forest search
     if not queried_domain:
@@ -72,9 +72,15 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
 
     # Now, we build the target users
     target_users = list()
-    if show_all:
+    domain_short_name = None
+    if show_all or foreign_users:
         attributes = {'memberdomain': str(), 'membername': str()}
         target_users.append(rpcobj.TargetUser(attributes))
+        if foreign_users:
+            domain_sid = get_domainsid(domain_controller, domain, user, password,
+                    lmhash, nthash)
+            domain_short_name = convert_sidtont4(domain_sid, domain_controller,
+                    domain, user, password, lmhash, nthash).split('\\')[0]
     elif target_server:
         for x in get_netlocalgroup(target_server, domain_controller, domain,
                 user, password, lmhash, nthash, recurse=True):
@@ -115,19 +121,23 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
 
     target_users = list(set(target_users))
 
-    if (not show_all) and (not target_users):
+    if (not show_all) and (not foreign_users) and (not target_users):
         raise ValueError('No users to search for')
 
     results = list()
     # TODO: implement multiprocessing on user hunting
-    # TODO: implement search for foreign users
+    # TODO: test foreign user hunting
     for target_computer in queried_computername:
-        distant_sessions = get_netsession(target_computer, domain, user, password,
-                lmhash, nthash)
+        # First, we get every distant session on the target computer
+        distant_sessions = list()
+        if not foreign_users:
+            distant_sessions += get_netsession(target_computer, domain, user, password,
+                    lmhash, nthash)
         if not stealth:
-            distant_sessions += get_netloggedon(target_computer, domain, user,
-                    password, lmhash, nthash)
+            distant_sessions += get_netloggedon(target_computer, domain, user, password,
+                    lmhash, nthash)
 
+        # For every session, we get information on the remote user
         for session in distant_sessions:
             try:
                 username = session.sesi10_username
@@ -139,9 +149,18 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
                 username = session.wkui1_username
                 userdomain = session.wkui1_logon_domain
                 session_from = str()
+
+            # If we found a user
             if username:
+                # We see if it's in our target user group
                 for target_user in target_users:
                     if target_user.membername.lower() in username.lower():
+
+                        # If we fall in this branch, we're looking for foreign users
+                        # and found a user in the same domain
+                        if domain_short_name and domain_short_name.lower() == userdomain.lower():
+                            continue
+
                         attributes = dict()
                         if userdomain:
                             attributes['userdomain'] = userdomain
@@ -150,6 +169,7 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
                         attributes['username'] = username
                         attributes['computername'] = target_computer
                         attributes['sessionfrom'] = session_from
+
                         if check_access:
                             attributes['localadmin'] = invoke_checklocaladminaccess(target_computer,
                                     domain, user, password, lmhash, nthash)

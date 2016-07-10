@@ -312,8 +312,8 @@ if __name__ == '__main__':
                     'or \'file\' (file server) (default: all)')
     invoke_userhunter_parser.add_argument('--show-all', action='store_true',
             help='Return all user location results')
-    #invoke_userhunter_parser.add_argument('--foreign-users', action='store_true',
-            #help='Only return users that are not part of the searched domain')
+    invoke_userhunter_parser.add_argument('--foreign-users', action='store_true',
+            help='Only return users that are not part of the searched domain')
     invoke_userhunter_parser.set_defaults(func=invoke_userhunter)
 
     args = parser.parse_args()

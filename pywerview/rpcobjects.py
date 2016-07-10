@@ -37,7 +37,7 @@ class RPCObject:
                 #value = value[:-1]
             #else:
                 #value = str(value)
-            setattr(self, key.lower(), value)
+            setattr(self, key.lower(), value.rstrip('\x00'))
 
     def __str__(self):
         s = str()
