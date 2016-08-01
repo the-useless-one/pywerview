@@ -232,6 +232,18 @@ def main():
             required=True, help='Computer to list sessions on')
     get_netsession_parser.set_defaults(func=get_netsession)
 
+    #Parser for the get-localdisks command
+    get_localdisks_parser = subparsers.add_parser('get-localdisks', help='Queries a host to return a '\
+        'list of active disks on the host (you can use local credentials instead of domain credentials)', parents=[credentials_parser])
+    get_localdisks_parser.add_argument('--computername', dest='target_computername',
+            required=True, help='Computer to list disks on')
+    get_localdisks_parser.set_defaults(func=get_localdisks)
+
+    #Parser for the get-netdomain command
+    get_netdomain_parser = subparsers.add_parser('get-netdomain', help='Queries a host for available domains',
+        parents=[ad_parser])
+    get_netdomain_parser.set_defaults(func=get_netdomain)
+
     # Parser for the get-netshare command
     get_netshare_parser= subparsers.add_parser('get-netshare', help='Queries a host to return a '\
         'list of available shares on the host (you can use local credentials instead of domain credentials)', parents=[credentials_parser])
@@ -266,7 +278,7 @@ def main():
 
     # Parser for the invoke-checklocaladminaccess command
     invoke_checklocaladminaccess_parser = subparsers.add_parser('invoke-checklocaladminaccess', help='Checks '\
-            'if the given user has local admin acces on the given host', parents=[credentials_parser])
+            'if the given user has local admin access on the given host', parents=[credentials_parser])
     invoke_checklocaladminaccess_parser.add_argument('--computername', dest='target_computername',
             required=True, help='Computer to test local admin access on')
     invoke_checklocaladminaccess_parser.set_defaults(func=invoke_checklocaladminaccess)

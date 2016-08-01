@@ -527,6 +527,32 @@ def get_netshare(target_computername, domain, user, password=str(),
 
     return results
 
+def get_localdisks(target_computername, domain, user, password=str(),
+        lmhash=str(), nthash=str()):
+    dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
+    resp = srvs.hNetrServerDiskEnum(dce, 1)
+
+    results = list()
+    for disk in resp['DiskInfoStruct']['Buffer']:
+        results.append(rpcobj.Disk(disk))
+
+    return results
+
+def get_netdomain(domain_controller, domain, user, password=str(),
+        lmhash=str(), nthash=str()):
+    dce= build_dce(domain, user, password, lmhash, nthash, domain_controller, r'\samr')
+    resp = samr.hSamrConnect(dce)
+    server_handle = resp['ServerHandle']
+
+    # We first list every domain in the SAM
+    resp = samr.hSamrEnumerateDomainsInSamServer(dce, server_handle)
+
+    results = list()
+    for domain in resp['Buffer']['Buffer']:
+        results.append(domain['Name'])
+
+    return results
+
 def get_netloggedon(target_computername, domain, user, password=str(), lmhash=str(), nthash=str()):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\wkssvc')
     resp = wkst.hNetrWkstaUserEnum(dce, 1)

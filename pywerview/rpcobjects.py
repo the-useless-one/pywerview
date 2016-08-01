@@ -69,3 +69,5 @@ class WkstaUser(RPCObject):
 class Group(RPCObject):
     pass
 
+class Disk(RPCObject):
+    pass
