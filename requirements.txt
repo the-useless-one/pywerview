@@ -1,0 +1,5 @@
+impacket
+pyasn1
+pycrypto
+bs4
+pyopenssl

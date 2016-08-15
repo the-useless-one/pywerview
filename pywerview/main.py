@@ -23,7 +23,7 @@ from pywerview.net import *
 from pywerview.gpo import *
 from pywerview.misc import *
 
-if __name__ == '__main__':
+def main():
     # Main parser
     parser = argparse.ArgumentParser(description='Rewriting of some PowerView\'s functionalities in Python')
     subparsers = parser.add_subparsers(title='Subcommands', description='Available subcommands')
