@@ -452,17 +452,13 @@ def get_netgroupmember(domain_controller, domain, user, password=str(),
                     lmhash, nthash, custom_filter=group_memberof_filter)
         else:
             # TODO: range cycling
-            try:
-                for member in group.member:
-                    dn_filter = build_equality_match_filter('distinguishedname',
-                            member)
-                    members += get_netuser(domain_controller, domain, user, password,
-                        lmhash, nthash, custom_filter=dn_filter)
-                    members += get_netgroup(domain_controller, domain, user, password,
-                        lmhash, nthash, custom_filter=dn_filter, full_data=True)
-            # The group doesn't have any members
-            except AttributeError:
-                return list()
+            for member in group.member:
+                dn_filter = build_equality_match_filter('distinguishedname',
+                        member)
+                members += get_netuser(domain_controller, domain, user, password,
+                    lmhash, nthash, custom_filter=dn_filter)
+                members += get_netgroup(domain_controller, domain, user, password,
+                    lmhash, nthash, custom_filter=dn_filter, full_data=True)
 
         final_members = list()
         for member in members:
