@@ -515,7 +515,10 @@ def get_netsession(target_computername, domain, user, password=str(), lmhash=str
     if dce is None:
         return list()
 
-    resp = srvs.hNetrSessionEnum(dce, '\x00', NULL, 10)
+    try:
+        resp = srvs.hNetrSessionEnum(dce, '\x00', NULL, 10)
+    except impacket.dcerpc.v5.rpcrt.DCERPCException:
+        return list()
 
     results = list()
     for session in resp['InfoStruct']['SessionInfo']['Level10']['Buffer']:
@@ -575,7 +578,10 @@ def get_netloggedon(target_computername, domain, user, password=str(), lmhash=st
     if dce is None:
         return list()
 
-    resp = wkst.hNetrWkstaUserEnum(dce, 1)
+    try:
+        resp = wkst.hNetrWkstaUserEnum(dce, 1)
+    except impacket.dcerpc.v5.rpcrt.DCERPCException:
+        return list()
 
     results = list()
     for wksta_user in resp['UserInfo']['WkstaUserInfo']['Level1']['Buffer']:

@@ -83,6 +83,8 @@ def convert_sidtont4(sid, domain_controller, domain, user, password=str(),
         rpc.set_credentials(username=user, password=password, domain=domain,
                 lmhash=lmhash, nthash=nthash)
     dce = build_dce(domain, user, password, lmhash, nthash, domain_controller, r'\drsuapi')
+    if dce is None:
+        return list()
 
     # We get a DRS handle, shamelessly stolen from secretsdump.py
     request = drsuapi.DRSBind()
@@ -124,6 +126,8 @@ def invoke_checklocaladminaccess(target_computername, domain, user,
         password=str(), lmhash=str(), nthash=str()):
 
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\svcctl')
+    if dce is None:
+        return list()
 
     try:
         # 0xF003F - SC_MANAGER_ALL_ACCESS
