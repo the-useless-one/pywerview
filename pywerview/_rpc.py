@@ -17,6 +17,7 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
+import socket
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
 
@@ -43,7 +44,11 @@ def build_dce(domain, user, password, lmhash, nthash, target_computer, pipe):
     dce = rpctransport.get_dce_rpc()
     if pipe == r'\drsuapi':
         dce.set_auth_level(RPC_C_AUTHN_LEVEL_PKT_PRIVACY)
-    dce.connect()
+    try:
+        dce.connect()
+    except socket.error:
+        return None
+
     dce.bind(binding_strings[pipe[1:]])
 
     return dce

@@ -21,6 +21,7 @@ import socket
 import sys
 
 from impacket.ldap import ldap, ldapasn1
+from impacket.smbconnection import SMBConnection
 import impacket.dcerpc.v5.rpcrt
 import pywerview.net
 from pywerview._rpc import *
@@ -28,6 +29,9 @@ from pywerview._rpc import *
 def build_domain_connection(domain_controller, domain, user, password=str(),
         lmhash=str(), nthash=str(), queried_domain=str(),
         ads_prefix=str(), ads_path=str()):
+
+    if not domain:
+        domain = _get_netfqdn(domain_controller)
 
     if not queried_domain:
         queried_domain = domain
@@ -122,9 +126,17 @@ def invoke_checklocaladminaccess(target_computername, domain, user,
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\svcctl')
 
     try:
-        ans = scmr.hROpenSCManagerW(dce)
+        # 0xF003F - SC_MANAGER_ALL_ACCESS
+        # http://msdn.microsoft.com/en-us/library/windows/desktop/ms685981(v=vs.85).aspx
+        ans = scmr.hROpenSCManagerW(dce, '{}\x00'.format(target_computername), 'ServicesActive\x00', 0xF003F)
     except impacket.dcerpc.v5.rpcrt.DCERPCException:
         return False
 
     return True
+
+def _get_netfqdn(target_computername):
+    smb = SMBConnection(target_computername, target_computername)
+    smb.login('', '')
+
+    return smb.getServerDNSDomainName()
 

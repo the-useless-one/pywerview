@@ -1,0 +1,5 @@
+impacket>=0.9.15
+pyasn1
+pycrypto
+bs4
+pyopenssl

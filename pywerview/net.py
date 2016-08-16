@@ -452,13 +452,17 @@ def get_netgroupmember(domain_controller, domain, user, password=str(),
                     lmhash, nthash, custom_filter=group_memberof_filter)
         else:
             # TODO: range cycling
-            for member in group.member:
-                dn_filter = build_equality_match_filter('distinguishedname',
-                        member)
-                members += get_netuser(domain_controller, domain, user, password,
-                    lmhash, nthash, custom_filter=dn_filter)
-                members += get_netgroup(domain_controller, domain, user, password,
-                    lmhash, nthash, custom_filter=dn_filter, full_data=True)
+            try:
+                for member in group.member:
+                    dn_filter = build_equality_match_filter('distinguishedname',
+                            member)
+                    members += get_netuser(domain_controller, domain, user, password,
+                        lmhash, nthash, custom_filter=dn_filter)
+                    members += get_netgroup(domain_controller, domain, user, password,
+                        lmhash, nthash, custom_filter=dn_filter, full_data=True)
+            # The group doesn't have any members
+            except AttributeError:
+                return list()
 
         final_members = list()
         for member in members:
@@ -508,6 +512,9 @@ def get_netgroupmember(domain_controller, domain, user, password=str(),
 
 def get_netsession(target_computername, domain, user, password=str(), lmhash=str(), nthash=str()):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
+    if dce is None:
+        return list()
+
     resp = srvs.hNetrSessionEnum(dce, '\x00', NULL, 10)
 
     results = list()
@@ -519,6 +526,9 @@ def get_netsession(target_computername, domain, user, password=str(), lmhash=str
 def get_netshare(target_computername, domain, user, password=str(),
         lmhash=str(), nthash=str()):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
+    if dce is None:
+        return list()
+
     resp = srvs.hNetrShareEnum(dce, 1)
 
     results = list()
@@ -527,8 +537,44 @@ def get_netshare(target_computername, domain, user, password=str(),
 
     return results
 
+def get_localdisks(target_computername, domain, user, password=str(),
+        lmhash=str(), nthash=str()):
+    dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
+    if dce is None:
+        return list()
+
+    resp = srvs.hNetrServerDiskEnum(dce, 0)
+
+    results = list()
+    for disk in resp['DiskInfoStruct']['Buffer']:
+        if disk['Disk'] != '\x00':
+            results.append(rpcobj.Disk(disk))
+
+    return results
+
+def get_netdomain(domain_controller, domain, user, password=str(),
+        lmhash=str(), nthash=str()):
+    dce= build_dce(domain, user, password, lmhash, nthash, domain_controller, r'\samr')
+    if dce is None:
+        return list()
+
+    resp = samr.hSamrConnect(dce)
+    server_handle = resp['ServerHandle']
+
+    # We first list every domain in the SAM
+    resp = samr.hSamrEnumerateDomainsInSamServer(dce, server_handle)
+
+    results = list()
+    for domain in resp['Buffer']['Buffer']:
+        results.append(domain['Name'])
+
+    return results
+
 def get_netloggedon(target_computername, domain, user, password=str(), lmhash=str(), nthash=str()):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\wkssvc')
+    if dce is None:
+        return list()
+
     resp = wkst.hNetrWkstaUserEnum(dce, 1)
 
     results = list()
@@ -545,6 +591,9 @@ def get_netlocalgroup(target_computername, domain_controller, domain, user,
 
     # We first get a handle to the server
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\samr')
+    if dce is None:
+        return list()
+
     resp = samr.hSamrConnect(dce)
     server_handle = resp['ServerHandle']
 
