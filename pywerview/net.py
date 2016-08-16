@@ -512,6 +512,9 @@ def get_netgroupmember(domain_controller, domain, user, password=str(),
 
 def get_netsession(target_computername, domain, user, password=str(), lmhash=str(), nthash=str()):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
+    if dce is None:
+        return list()
+
     resp = srvs.hNetrSessionEnum(dce, '\x00', NULL, 10)
 
     results = list()
@@ -523,6 +526,9 @@ def get_netsession(target_computername, domain, user, password=str(), lmhash=str
 def get_netshare(target_computername, domain, user, password=str(),
         lmhash=str(), nthash=str()):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
+    if dce is None:
+        return list()
+
     resp = srvs.hNetrShareEnum(dce, 1)
 
     results = list()
@@ -534,6 +540,9 @@ def get_netshare(target_computername, domain, user, password=str(),
 def get_localdisks(target_computername, domain, user, password=str(),
         lmhash=str(), nthash=str()):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
+    if dce is None:
+        return list()
+
     resp = srvs.hNetrServerDiskEnum(dce, 0)
 
     results = list()
@@ -546,6 +555,9 @@ def get_localdisks(target_computername, domain, user, password=str(),
 def get_netdomain(domain_controller, domain, user, password=str(),
         lmhash=str(), nthash=str()):
     dce= build_dce(domain, user, password, lmhash, nthash, domain_controller, r'\samr')
+    if dce is None:
+        return list()
+
     resp = samr.hSamrConnect(dce)
     server_handle = resp['ServerHandle']
 
@@ -560,6 +572,9 @@ def get_netdomain(domain_controller, domain, user, password=str(),
 
 def get_netloggedon(target_computername, domain, user, password=str(), lmhash=str(), nthash=str()):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\wkssvc')
+    if dce is None:
+        return list()
+
     resp = wkst.hNetrWkstaUserEnum(dce, 1)
 
     results = list()
@@ -576,6 +591,9 @@ def get_netlocalgroup(target_computername, domain_controller, domain, user,
 
     # We first get a handle to the server
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\samr')
+    if dce is None:
+        return list()
+
     resp = samr.hSamrConnect(dce)
     server_handle = resp['ServerHandle']
 
