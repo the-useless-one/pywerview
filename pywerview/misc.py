@@ -31,7 +31,7 @@ def build_domain_connection(domain_controller, domain, user, password=str(),
         ads_prefix=str(), ads_path=str()):
 
     if not domain:
-        domain = get_netfqdn(domain_controller)
+        domain = _get_netfqdn(domain_controller)
 
     if not queried_domain:
         queried_domain = domain
@@ -120,12 +120,6 @@ def get_domainsid(domain_controller, domain, user, password=str(),
 
     return domain_sid
 
-def get_netfqdn(target_computername):
-    smb = SMBConnection(target_computername, target_computername)
-    smb.login('', '')
-
-    return smb.getServerDNSDomainName()
-
 def invoke_checklocaladminaccess(target_computername, domain, user,
         password=str(), lmhash=str(), nthash=str()):
 
@@ -134,10 +128,15 @@ def invoke_checklocaladminaccess(target_computername, domain, user,
     try:
         # 0xF003F - SC_MANAGER_ALL_ACCESS
         # http://msdn.microsoft.com/en-us/library/windows/desktop/ms685981(v=vs.85).aspx
-
         ans = scmr.hROpenSCManagerW(dce, '{}\x00'.format(target_computername), 'ServicesActive\x00', 0xF003F)
     except impacket.dcerpc.v5.rpcrt.DCERPCException:
         return False
 
     return True
+
+def _get_netfqdn(target_computername):
+    smb = SMBConnection(target_computername, target_computername)
+    smb.login('', '')
+
+    return smb.getServerDNSDomainName()
 

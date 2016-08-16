@@ -534,11 +534,12 @@ def get_netshare(target_computername, domain, user, password=str(),
 def get_localdisks(target_computername, domain, user, password=str(),
         lmhash=str(), nthash=str()):
     dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\srvsvc')
-    resp = srvs.hNetrServerDiskEnum(dce, 1)
+    resp = srvs.hNetrServerDiskEnum(dce, 0)
 
     results = list()
     for disk in resp['DiskInfoStruct']['Buffer']:
-        results.append(rpcobj.Disk(disk))
+        if disk['Disk'] != '\x00':
+            results.append(rpcobj.Disk(disk))
 
     return results
 
