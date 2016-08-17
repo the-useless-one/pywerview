@@ -138,6 +138,7 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
         map_function = map
         kwargs = dict()
 
+    # TODO: implement stop on success
     for result in map_function(partial_enumerate_sessions, queried_computername, **kwargs):
         results += result
 
@@ -146,6 +147,7 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
 # TODO: test foreign user hunting
 def _enumerate_sessions(foreign_users, domain, user, password, lmhash, nthash,
         stealth, target_users, domain_short_name, check_access, target_computer):
+    # TODO: implement ping of target
     results = list()
     # First, we get every distant session on the target computer
     distant_sessions = list()
