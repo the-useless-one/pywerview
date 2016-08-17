@@ -18,6 +18,8 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
 import socket
+import impacket.smb
+import impacket.smbconnection
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
 
@@ -46,7 +48,7 @@ def build_dce(domain, user, password, lmhash, nthash, target_computer, pipe):
         dce.set_auth_level(RPC_C_AUTHN_LEVEL_PKT_PRIVACY)
     try:
         dce.connect()
-    except socket.error:
+    except (socket.error, impacket.smb.SessionError, impacket.smbconnection.SessionError):
         return None
 
     dce.bind(binding_strings[pipe[1:]])
