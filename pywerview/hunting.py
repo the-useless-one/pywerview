@@ -17,7 +17,9 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
+import functools
 import random
+import multiprocessing
 
 from pywerview.net import get_netdomaincontroller, get_dfsshare, get_netfileserver, \
         get_netcomputer, get_netlocalgroup, get_netuser, get_netgroupmember, \
@@ -30,8 +32,8 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
         queried_computerfile=None, queried_computeradspath=str(),
         unconstrained=False, queried_groupname=str(), target_server=str(),
         queried_username=str(), queried_useradspath=str(), queried_userfile=None,
-        admin_count=False, allow_delegation=False, stop_on_success=False,
-        check_access=True, queried_domain=str(), stealth=False,
+        threads=1, admin_count=False, allow_delegation=False, stop_on_success=False,
+        check_access=False, queried_domain=str(), stealth=False,
         stealth_source=['dfs', 'dc', 'file'], show_all=False, foreign_users=False):
 
     # TODO: implement forest search
@@ -125,58 +127,76 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
         raise ValueError('No users to search for')
 
     results = list()
-    # TODO: implement multiprocessing on user hunting
-    # TODO: test foreign user hunting
-    for target_computer in queried_computername:
-        # First, we get every distant session on the target computer
-        distant_sessions = list()
-        if not foreign_users:
-            distant_sessions += get_netsession(target_computer, domain, user, password,
-                    lmhash, nthash)
-        if not stealth:
-            distant_sessions += get_netloggedon(target_computer, domain, user, password,
-                    lmhash, nthash)
+    partial_enumerate_sessions = functools.partial(_enumerate_sessions,
+            foreign_users, domain, user, password, lmhash, nthash, stealth,
+            target_users, domain_short_name, check_access)
+    if threads > 1:
+        pool = multiprocessing.Pool(threads)
+        map_function = pool.imap_unordered
+        kwargs = {'chunksize': len(queried_computername)/threads + 1}
+    else:
+        map_function = map
+        kwargs = dict()
 
-        # For every session, we get information on the remote user
-        for session in distant_sessions:
-            try:
-                username = session.sesi10_username
-                userdomain = str()
-                session_from = session.sesi10_cname
-                if session_from.startswith('\\'):
-                    session_from = session_from.lstrip('\\')
-            except AttributeError:
-                username = session.wkui1_username
-                userdomain = session.wkui1_logon_domain
-                session_from = str()
+    for result in map_function(partial_enumerate_sessions, queried_computername, **kwargs):
+        results += result
 
-            # If we found a user
-            if username:
-                # We see if it's in our target user group
-                for target_user in target_users:
-                    if target_user.membername.lower() in username.lower():
+    return results
 
-                        # If we fall in this branch, we're looking for foreign users
-                        # and found a user in the same domain
-                        if domain_short_name and domain_short_name.lower() == userdomain.lower():
-                            continue
+# TODO: test foreign user hunting
+def _enumerate_sessions(foreign_users, domain, user, password, lmhash, nthash,
+        stealth, target_users, domain_short_name, check_access, target_computer):
+    results = list()
+    # First, we get every distant session on the target computer
+    distant_sessions = list()
+    if not foreign_users:
+        distant_sessions += get_netsession(target_computer, domain, user, password,
+                lmhash, nthash)
+    if not stealth:
+        distant_sessions += get_netloggedon(target_computer, domain, user, password,
+                lmhash, nthash)
 
-                        attributes = dict()
-                        if userdomain:
-                            attributes['userdomain'] = userdomain
-                        else:
-                            attributes['userdomain'] = target_user.memberdomain
-                        attributes['username'] = username
-                        attributes['computername'] = target_computer
-                        attributes['sessionfrom'] = session_from
+    # For every session, we get information on the remote user
+    for session in distant_sessions:
+        try:
+            username = session.sesi10_username
+            userdomain = str()
+            session_from = session.sesi10_cname
+            if session_from.startswith('\\'):
+                session_from = session_from.lstrip('\\')
+        except AttributeError:
+            username = session.wkui1_username
+            userdomain = session.wkui1_logon_domain
+            session_from = str()
 
-                        if check_access:
-                            attributes['localadmin'] = invoke_checklocaladminaccess(target_computer,
-                                    domain, user, password, lmhash, nthash)
-                        else:
-                            attributes['localadmin'] = str()
+        # If we found a user
+        if username:
+            # We see if it's in our target user group
+            for target_user in target_users:
+                if target_user.membername.lower() in username.lower():
 
-                        results.append(rpcobj.RPCObject(attributes))
+                    # If we fall in this branch, we're looking for foreign users
+                    # and found a user in the same domain
+                    if domain_short_name and domain_short_name.lower() == userdomain.lower():
+                        continue
+
+                    attributes = dict()
+                    if userdomain:
+                        attributes['userdomain'] = userdomain
+                    else:
+                        attributes['userdomain'] = target_user.memberdomain
+                    attributes['username'] = username
+                    attributes['computername'] = target_computer
+                    attributes['sessionfrom'] = session_from
+
+                    if check_access:
+                        attributes['localadmin'] = invoke_checklocaladminaccess(target_computer,
+                                domain, user, password, lmhash, nthash)
+                    else:
+                        attributes['localadmin'] = str()
+
+                    results.append(rpcobj.RPCObject(attributes))
+                    #print results[-1], '\n'
 
     return results
 
