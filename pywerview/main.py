@@ -336,7 +336,7 @@ def main():
     else:
         args.lmhash = args.nthash = str()
 
-    if not args.password and not args.hashes:
+    if args.password is None and not args.hashes:
         from getpass import getpass
         args.password = getpass('Password:')
 
