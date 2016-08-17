@@ -227,17 +227,18 @@ def get_netfileserver(domain_controller, domain, user, password=str(),
     domain_connection = build_domain_connection(domain_controller, domain, user,
             password, lmhash, nthash, queried_domain)
 
-    users = get_netuser(domain_controller, domain, user, password,
-            lmhash, nthash, queried_domain)
 
     results = list()
+    if target_users:
+        users = list()
+        for target_user in target_users:
+            users += get_netuser(domain_controller, domain, user, password,
+                lmhash, nthash, target_user, queried_domain)
+    else:
+        users = get_netuser(domain_controller, domain, user, password,
+                lmhash, nthash, queried_domain=queried_domain)
+
     for user in users:
-        if target_users:
-            for target_user in target_users:
-                if user.samaccountname in target_user:
-                    break
-            else:
-                continue
         if user.homedirectory:
             results.append(split_path(user.homedirectory))
         if user.scriptpath:
