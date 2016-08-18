@@ -22,6 +22,7 @@ import argparse
 from pywerview.net import *
 from pywerview.gpo import *
 from pywerview.misc import *
+from pywerview.hunting import *
 
 def main():
     # Main parser
@@ -282,6 +283,54 @@ def main():
     invoke_checklocaladminaccess_parser.add_argument('--computername', dest='target_computername',
             required=True, help='Computer to test local admin access on')
     invoke_checklocaladminaccess_parser.set_defaults(func=invoke_checklocaladminaccess)
+
+    # Parser for the invoke-userhunter command
+    invoke_userhunter_parser = subparsers.add_parser('invoke-userhunter', help='Finds '\
+            'which machines domain users are logged into', parents=[ad_parser])
+    invoke_userhunter_parser.add_argument('--computername', dest='queried_computername',
+            nargs='+', default=list(), help='Host to enumerate against')
+    invoke_userhunter_parser.add_argument('--computerfile', dest='queried_computerfile',
+            type=argparse.FileType('r'), help='File of hostnames/IPs to search')
+    invoke_userhunter_parser.add_argument('--computer-adspath', dest='queried_computeradspath',
+            type=str, help='ADS path used to search computers against the DC')
+    invoke_userhunter_parser.add_argument('--unconstrained', action='store_true',
+            help='Query only computers with unconstrained delegation')
+    invoke_userhunter_parser.add_argument('--groupname', dest='queried_groupname',
+            help='Group name to query for target users')
+    invoke_userhunter_parser.add_argument('--targetserver', dest='target_server',
+            help='Hunt for users who are effective local admins on this target server')
+    invoke_userhunter_parser.add_argument('--username', dest='queried_username',
+            help='Hunt for a specific user name')
+    invoke_userhunter_parser.add_argument('--user-adspath', dest='queried_useradspath',
+            type=str, help='ADS path used to search users against the DC')
+    invoke_userhunter_parser.add_argument('--userfile', dest='queried_userfile',
+            type=argparse.FileType('r'), help='File of user names to target')
+    invoke_userhunter_parser.add_argument('--threads', type=int,
+            default=1, help='Number of threads to use (default: %(default)s)')
+    invoke_userhunter_parser.add_argument('-v', '--verbose', action='store_true',
+            help='Displays results as they are found')
+    invoke_userhunter_parser.add_argument('--admin-count', action='store_true',
+            help='Query only users with adminCount=1')
+    invoke_userhunter_parser.add_argument('--allow-delegation', action='store_true',
+            help='Return user accounts that are not marked as \'sensitive and '\
+                    'not allowed for delegation\'')
+    invoke_userhunter_parser.add_argument('--stop-on-success', action='store_true',
+            help='Stop hunting after finding target user')
+    invoke_userhunter_parser.add_argument('--check-access', action='store_true',
+            help='Check if the current user has local admin access to the target servers')
+    invoke_userhunter_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query for machines')
+    invoke_userhunter_parser.add_argument('--stealth', action='store_true',
+            help='Only enumerate sessions from commonly used target servers')
+    invoke_userhunter_parser.add_argument('--stealth-source', nargs='+', choices=['dfs', 'dc', 'file'],
+            default=['dfs', 'dc', 'file'], help='The source of target servers to use, '\
+                    '\'dfs\' (distributed file server), \'dc\' (domain controller), '\
+                    'or \'file\' (file server) (default: all)')
+    invoke_userhunter_parser.add_argument('--show-all', action='store_true',
+            help='Return all user location results')
+    invoke_userhunter_parser.add_argument('--foreign-users', action='store_true',
+            help='Only return users that are not part of the searched domain')
+    invoke_userhunter_parser.set_defaults(func=invoke_userhunter)
 
     args = parser.parse_args()
     if args.hashes:

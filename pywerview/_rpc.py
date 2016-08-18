@@ -40,6 +40,7 @@ def build_dce(domain, user, password, lmhash, nthash, target_computer, pipe):
                 username=user, password=password, domain=domain, lmhash=lmhash,
                 nthash=nthash)
 
+    rpctransport.set_connect_timeout(10)
     dce = rpctransport.get_dce_rpc()
     if pipe == r'\drsuapi':
         dce.set_auth_level(RPC_C_AUTHN_LEVEL_PKT_PRIVACY)
