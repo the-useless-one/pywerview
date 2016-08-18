@@ -58,7 +58,7 @@ an argument, and __not__ `USELESSDOMAIN`.
 
     $ ./pywerview.py --help
     usage: pywerview.py [-h]
-                        {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess}
+                        {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,invoke-userhunter}
                         ...
 
     Rewriting of some PowerView's functionalities in Python
@@ -69,7 +69,7 @@ an argument, and __not__ `USELESSDOMAIN`.
     Subcommands:
       Available subcommands
 
-      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess}
+      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,invoke-userhunter}
         get-adobject        Takes a domain SID, samAccountName or name, and return
                             the associated object
         get-netuser         Queries information about a domain user
@@ -91,6 +91,10 @@ an argument, and __not__ `USELESSDOMAIN`.
         get-netsession      Queries a host to return a list of active sessions on
                             the host (you can use local credentials instead of
                             domain credentials)
+        get-localdisks      Queries a host to return a list of active disks on the
+                            host (you can use local credentials instead of domain
+                            credentials)
+        get-netdomain       Queries a host for available domains
         get-netshare        Queries a host to return a list of available shares on
                             the host (you can use local credentials instead of
                             domain credentials)
@@ -102,8 +106,9 @@ an argument, and __not__ `USELESSDOMAIN`.
                             credentials instead of domain credentials, however,
                             domain credentials are needed to resolve domain SIDs.
         invoke-checklocaladminaccess
-                            Checks if the given user has local admin acces on the
+                            Checks if the given user has local admin access on the
                             given host
+        invoke-userhunter   Finds which machines domain users are logged into
 
 ### get-adobject
     usage: pywerview.py get-adobject [-h] [-w DOMAIN] -u USER [-p PASSWORD]
@@ -132,6 +137,71 @@ an argument, and __not__ `USELESSDOMAIN`.
                             Domain to query
       -a ADS_PATH, --ads-path ADS_PATH
                             Additional ADS path
+
+### get-netuser
+    usage: pywerview.py get-netuser [-h] [-w DOMAIN] -u USER [-p PASSWORD]
+                                    [--hashes LMHASH:NTHASH] -t DOMAIN_CONTROLLER
+                                    [--username QUERIED_USERNAME]
+                                    [-d QUERIED_DOMAIN] [-a ADS_PATH]
+                                    [--unconstrained] [--admin-count]
+                                    [--allow-delegation] [--spn]
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -w DOMAIN, --workgroup DOMAIN
+                            Name of the domain we authenticate with
+      -u USER, --user USER  Username used to connect to the Domain Controller
+      -p PASSWORD, --password PASSWORD
+                            Password associated to the username
+      --hashes LMHASH:NTHASH
+                            NTLM hashes, format is LMHASH:NTHASH
+      -t DOMAIN_CONTROLLER, --dc-ip DOMAIN_CONTROLLER
+                            IP address of the Domain Controller to target
+      --username QUERIED_USERNAME
+                            Username to query (wildcards accepted)
+      -d QUERIED_DOMAIN, --domain QUERIED_DOMAIN
+                            Domain to query
+      -a ADS_PATH, --ads-path ADS_PATH
+                            Additional ADS path
+      --unconstrained       Query only users with unconstrained delegation
+      --admin-count         Query only users with adminCount=1
+      --allow-delegation    Return user accounts that are not marked as 'sensitive
+                            and not allowed for delegation'
+      --spn                 Query only users with not-null Service Principal Names
+
+### get-netgroup
+    usage: pywerview.py get-netgroup [-h] [-w DOMAIN] -u USER [-p PASSWORD]
+                                     [--hashes LMHASH:NTHASH] -t DOMAIN_CONTROLLER
+                                     [--groupname QUERIED_GROUPNAME]
+                                     [--sid QUERIED_SID]
+                                     [--username QUERIED_USERNAME]
+                                     [-d QUERIED_DOMAIN] [-a ADS_PATH]
+                                     [--full-data] [--admin-count]
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -w DOMAIN, --workgroup DOMAIN
+                            Name of the domain we authenticate with
+      -u USER, --user USER  Username used to connect to the Domain Controller
+      -p PASSWORD, --password PASSWORD
+                            Password associated to the username
+      --hashes LMHASH:NTHASH
+                            NTLM hashes, format is LMHASH:NTHASH
+      -t DOMAIN_CONTROLLER, --dc-ip DOMAIN_CONTROLLER
+                            IP address of the Domain Controller to target
+      --groupname QUERIED_GROUPNAME
+                            Group to query (wildcards accepted)
+      --sid QUERIED_SID     Group SID to query
+      --username QUERIED_USERNAME
+                            Username to query: will list the groups this user is a
+                            member of (wildcards accepted)
+      -d QUERIED_DOMAIN, --domain QUERIED_DOMAIN
+                            Domain to query
+      -a ADS_PATH, --ads-path ADS_PATH
+                            Additional ADS path
+      --full-data           If set, returns full information on the groups,
+                            otherwise, just the samAccountName
+      --admin-count         Query only users with adminCount=1
 
 ### get-netcomputer
     usage: pywerview.py get-netcomputer [-h] [-w DOMAIN] -u USER [-p PASSWORD]
@@ -220,33 +290,6 @@ an argument, and __not__ `USELESSDOMAIN`.
       -d QUERIED_DOMAIN, --domain QUERIED_DOMAIN
                             Domain to query
 
-### get-netgpo
-    usage: pywerview.py get-netgpo [-h] [-w DOMAIN] -u USER [-p PASSWORD]
-                                   [--hashes LMHASH:NTHASH] -t DOMAIN_CONTROLLER
-                                   [--gponame QUERIED_GPONAME]
-                                   [--displayname QUERIED_DISPLAYNAME]
-                                   [-d QUERIED_DOMAIN] [-a ADS_PATH]
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      -w DOMAIN, --workgroup DOMAIN
-                            Name of the domain we authenticate with
-      -u USER, --user USER  Username used to connect to the Domain Controller
-      -p PASSWORD, --password PASSWORD
-                            Password associated to the username
-      --hashes LMHASH:NTHASH
-                            NTLM hashes, format is LMHASH:NTHASH
-      -t DOMAIN_CONTROLLER, --dc-ip DOMAIN_CONTROLLER
-                            IP address of the Domain Controller to target
-      --gponame QUERIED_GPONAME
-                            GPO name to query for (wildcards accepted)
-      --displayname QUERIED_DISPLAYNAME
-                            Display name to query for (wildcards accepted)
-      -d QUERIED_DOMAIN, --domain QUERIED_DOMAIN
-                            Domain to query
-      -a ADS_PATH, --ads-path ADS_PATH
-                            Additional ADS path
-
 ### get-dfsshare
     usage: pywerview.py get-dfsshare [-h] [-w DOMAIN] -u USER [-p PASSWORD]
                                      [--hashes LMHASH:NTHASH] -t DOMAIN_CONTROLLER
@@ -271,123 +314,6 @@ an argument, and __not__ `USELESSDOMAIN`.
                             (default: all)
       -a ADS_PATH, --ads-path ADS_PATH
                             Additional ADS path
-
-### get-netgroup
-    usage: pywerview.py get-netgroup [-h] [-w DOMAIN] -u USER [-p PASSWORD]
-                                     [--hashes LMHASH:NTHASH] -t DOMAIN_CONTROLLER
-                                     [--groupname QUERIED_GROUPNAME]
-                                     [--sid QUERIED_SID]
-                                     [--username QUERIED_USERNAME]
-                                     [-d QUERIED_DOMAIN] [-a ADS_PATH]
-                                     [--full-data] [--admin-count]
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      -w DOMAIN, --workgroup DOMAIN
-                            Name of the domain we authenticate with
-      -u USER, --user USER  Username used to connect to the Domain Controller
-      -p PASSWORD, --password PASSWORD
-                            Password associated to the username
-      --hashes LMHASH:NTHASH
-                            NTLM hashes, format is LMHASH:NTHASH
-      -t DOMAIN_CONTROLLER, --dc-ip DOMAIN_CONTROLLER
-                            IP address of the Domain Controller to target
-      --groupname QUERIED_GROUPNAME
-                            Group to query (wildcards accepted)
-      --sid QUERIED_SID     Group SID to query
-      --username QUERIED_USERNAME
-                            Username to query: will list the groups this user is a
-                            member of (wildcards accepted)
-      -d QUERIED_DOMAIN, --domain QUERIED_DOMAIN
-                            Domain to query
-      -a ADS_PATH, --ads-path ADS_PATH
-                            Additional ADS path
-      --full-data           If set, returns full information on the groups,
-                            otherwise, just the samAccountName
-      --admin-count         Query only users with adminCount=1
-
-### get-netgroupmember
-    usage: pywerview.py get-netgroupmember [-h] [-w DOMAIN] -u USER [-p PASSWORD]
-                                           [--hashes LMHASH:NTHASH] -t
-                                           DOMAIN_CONTROLLER
-                                           [--groupname QUERIED_GROUPNAME]
-                                           [--sid QUERIED_SID] [-d QUERIED_DOMAIN]
-                                           [-a ADS_PATH] [-r]
-                                           [--use-matching-rule] [--full-data]
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      -w DOMAIN, --workgroup DOMAIN
-                            Name of the domain we authenticate with
-      -u USER, --user USER  Username used to connect to the Domain Controller
-      -p PASSWORD, --password PASSWORD
-                            Password associated to the username
-      --hashes LMHASH:NTHASH
-                            NTLM hashes, format is LMHASH:NTHASH
-      -t DOMAIN_CONTROLLER, --dc-ip DOMAIN_CONTROLLER
-                            IP address of the Domain Controller to target
-      --groupname QUERIED_GROUPNAME
-                            Group to query, defaults to the 'Domain Admins' group
-                            (wildcards accepted)
-      --sid QUERIED_SID     SID to query
-      -d QUERIED_DOMAIN, --domain QUERIED_DOMAIN
-                            Domain to query
-      -a ADS_PATH, --ads-path ADS_PATH
-                            Additional ADS path
-      -r, --recurse         If the group member is a group, try to resolve its
-                            members as well
-      --use-matching-rule   Use LDAP_MATCHING_RULE_IN_CHAIN in the LDAP search
-                            query when -Recurse is specified. Much faster than
-                            manual recursion, but doesn't reveal cross-domain
-                            groups
-      --full-data           If set, returns full information on the members
-
-### get-netlocalgroup
-    usage: pywerview.py get-netlocalgroup [-h] [-w DOMAIN] -u USER [-p PASSWORD]
-                                          [--hashes LMHASH:NTHASH]
-                                          [--computername TARGET_COMPUTERNAME]
-                                          [--groupname QUERIED_GROUPNAME]
-                                          [--list-groups] [-t DOMAIN_CONTROLLER]
-                                          [-r]
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      -w DOMAIN, --workgroup DOMAIN
-                            Name of the domain we authenticate with
-      -u USER, --user USER  Username used to connect to the Domain Controller
-      -p PASSWORD, --password PASSWORD
-                            Password associated to the username
-      --hashes LMHASH:NTHASH
-                            NTLM hashes, format is LMHASH:NTHASH
-      --computername TARGET_COMPUTERNAME
-                            Computer to list the local groups on
-      --groupname QUERIED_GROUPNAME
-                            Group to list the members of (defaults to the local
-                            'Administrators' group
-      --list-groups         If set, returns a list of the local groups on the
-                            targets
-      -t DOMAIN_CONTROLLER, --dc-ip DOMAIN_CONTROLLER
-                            IP address of the Domain Controller (used to resolve
-                            domain SIDs)
-      -r, --recurse         If the group member is a domain group, try to resolve
-                            its members as well
-
-### get-netloggedon
-    usage: pywerview.py get-netloggedon [-h] [-w DOMAIN] -u USER [-p PASSWORD]
-                                        [--hashes LMHASH:NTHASH]
-                                        [--computername TARGET_COMPUTERNAME]
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      -w DOMAIN, --workgroup DOMAIN
-                            Name of the domain we authenticate with
-      -u USER, --user USER  Username used to connect to the Domain Controller
-      -p PASSWORD, --password PASSWORD
-                            Password associated to the username
-      --hashes LMHASH:NTHASH
-                            NTLM hashes, format is LMHASH:NTHASH
-      --computername TARGET_COMPUTERNAME
-                            Computer to list logged on users on
 
 ### get-netou
     usage: pywerview.py get-netou [-h] [-w DOMAIN] -u USER [-p PASSWORD]
@@ -416,40 +342,6 @@ an argument, and __not__ `USELESSDOMAIN`.
                             Additional ADS path
       --full-data           If set, returns full information on the OUs,
                             otherwise, just the adspath
-
-### get-netsession
-    usage: pywerview.py get-netsession [-h] [-w DOMAIN] -u USER [-p PASSWORD]
-                                       [--hashes LMHASH:NTHASH]
-                                       [--computername TARGET_COMPUTERNAME]
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      -w DOMAIN, --workgroup DOMAIN
-                            Name of the domain we authenticate with
-      -u USER, --user USER  Username used to connect to the Domain Controller
-      -p PASSWORD, --password PASSWORD
-                            Password associated to the username
-      --hashes LMHASH:NTHASH
-                            NTLM hashes, format is LMHASH:NTHASH
-      --computername TARGET_COMPUTERNAME
-                            Computer to list sessions on
-
-### get-netshare
-    usage: pywerview.py get-netshare [-h] [-w DOMAIN] -u USER [-p PASSWORD]
-                                     [--hashes LMHASH:NTHASH]
-                                     [--computername TARGET_COMPUTERNAME]
-
-    optional arguments:
-      -h, --help            show this help message and exit
-      -w DOMAIN, --workgroup DOMAIN
-                            Name of the domain we authenticate with
-      -u USER, --user USER  Username used to connect to the Domain Controller
-      -p PASSWORD, --password PASSWORD
-                            Password associated to the username
-      --hashes LMHASH:NTHASH
-                            NTLM hashes, format is LMHASH:NTHASH
-      --computername TARGET_COMPUTERNAME
-                            Computer to list shares on
 
 ### get-netsite
     usage: pywerview.py get-netsite [-h] [-w DOMAIN] -u USER [-p PASSWORD]
@@ -509,13 +401,12 @@ an argument, and __not__ `USELESSDOMAIN`.
       --full-data           If set, returns full information on the subnets,
                             otherwise, just the name
 
-### get-netuser
-    usage: pywerview.py get-netuser [-h] [-w DOMAIN] -u USER [-p PASSWORD]
-                                    [--hashes LMHASH:NTHASH] -t DOMAIN_CONTROLLER
-                                    [--username QUERIED_USERNAME]
-                                    [-d QUERIED_DOMAIN] [-a ADS_PATH]
-                                    [--unconstrained] [--admin-count]
-                                    [--allow-delegation] [--spn]
+### get-netgpo
+    usage: pywerview.py get-netgpo [-h] [-w DOMAIN] -u USER [-p PASSWORD]
+                                   [--hashes LMHASH:NTHASH] -t DOMAIN_CONTROLLER
+                                   [--gponame QUERIED_GPONAME]
+                                   [--displayname QUERIED_DISPLAYNAME]
+                                   [-d QUERIED_DOMAIN] [-a ADS_PATH]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -528,23 +419,172 @@ an argument, and __not__ `USELESSDOMAIN`.
                             NTLM hashes, format is LMHASH:NTHASH
       -t DOMAIN_CONTROLLER, --dc-ip DOMAIN_CONTROLLER
                             IP address of the Domain Controller to target
-      --username QUERIED_USERNAME
-                            Username to query (wildcards accepted)
+      --gponame QUERIED_GPONAME
+                            GPO name to query for (wildcards accepted)
+      --displayname QUERIED_DISPLAYNAME
+                            Display name to query for (wildcards accepted)
       -d QUERIED_DOMAIN, --domain QUERIED_DOMAIN
                             Domain to query
       -a ADS_PATH, --ads-path ADS_PATH
                             Additional ADS path
-      --unconstrained       Query only users with unconstrained delegation
-      --admin-count         Query only users with adminCount=1
-      --allow-delegation    Return user accounts that are not marked as 'sensitive
-                            and not allowed for delegation'
-      --spn                 Query only users with not-null Service Principal Names
+
+### get-netgroupmember
+    usage: pywerview.py get-netgroupmember [-h] [-w DOMAIN] -u USER [-p PASSWORD]
+                                           [--hashes LMHASH:NTHASH] -t
+                                           DOMAIN_CONTROLLER
+                                           [--groupname QUERIED_GROUPNAME]
+                                           [--sid QUERIED_SID] [-d QUERIED_DOMAIN]
+                                           [-a ADS_PATH] [-r]
+                                           [--use-matching-rule] [--full-data]
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -w DOMAIN, --workgroup DOMAIN
+                            Name of the domain we authenticate with
+      -u USER, --user USER  Username used to connect to the Domain Controller
+      -p PASSWORD, --password PASSWORD
+                            Password associated to the username
+      --hashes LMHASH:NTHASH
+                            NTLM hashes, format is LMHASH:NTHASH
+      -t DOMAIN_CONTROLLER, --dc-ip DOMAIN_CONTROLLER
+                            IP address of the Domain Controller to target
+      --groupname QUERIED_GROUPNAME
+                            Group to query, defaults to the 'Domain Admins' group
+                            (wildcards accepted)
+      --sid QUERIED_SID     SID to query
+      -d QUERIED_DOMAIN, --domain QUERIED_DOMAIN
+                            Domain to query
+      -a ADS_PATH, --ads-path ADS_PATH
+                            Additional ADS path
+      -r, --recurse         If the group member is a group, try to resolve its
+                            members as well
+      --use-matching-rule   Use LDAP_MATCHING_RULE_IN_CHAIN in the LDAP search
+                            query when -Recurse is specified. Much faster than
+                            manual recursion, but doesn't reveal cross-domain
+                            groups
+      --full-data           If set, returns full information on the members
+
+### get-netsession
+    usage: pywerview.py get-netsession [-h] [-w DOMAIN] -u USER [-p PASSWORD]
+                                       [--hashes LMHASH:NTHASH] --computername
+                                       TARGET_COMPUTERNAME
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -w DOMAIN, --workgroup DOMAIN
+                            Name of the domain we authenticate with
+      -u USER, --user USER  Username used to connect to the Domain Controller
+      -p PASSWORD, --password PASSWORD
+                            Password associated to the username
+      --hashes LMHASH:NTHASH
+                            NTLM hashes, format is LMHASH:NTHASH
+      --computername TARGET_COMPUTERNAME
+                            Computer to list sessions on
+
+### get-localdisks
+    usage: pywerview.py get-localdisks [-h] [-w DOMAIN] -u USER [-p PASSWORD]
+                                       [--hashes LMHASH:NTHASH] --computername
+                                       TARGET_COMPUTERNAME
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -w DOMAIN, --workgroup DOMAIN
+                            Name of the domain we authenticate with
+      -u USER, --user USER  Username used to connect to the Domain Controller
+      -p PASSWORD, --password PASSWORD
+                            Password associated to the username
+      --hashes LMHASH:NTHASH
+                            NTLM hashes, format is LMHASH:NTHASH
+      --computername TARGET_COMPUTERNAME
+                            Computer to list disks on
+
+### get-netdomain
+    usage: pywerview.py get-netdomain [-h] [-w DOMAIN] -u USER [-p PASSWORD]
+                                      [--hashes LMHASH:NTHASH] -t
+                                      DOMAIN_CONTROLLER
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -w DOMAIN, --workgroup DOMAIN
+                            Name of the domain we authenticate with
+      -u USER, --user USER  Username used to connect to the Domain Controller
+      -p PASSWORD, --password PASSWORD
+                            Password associated to the username
+      --hashes LMHASH:NTHASH
+                            NTLM hashes, format is LMHASH:NTHASH
+      -t DOMAIN_CONTROLLER, --dc-ip DOMAIN_CONTROLLER
+                            IP address of the Domain Controller to target
+
+### get-netshare
+    usage: pywerview.py get-netshare [-h] [-w DOMAIN] -u USER [-p PASSWORD]
+                                     [--hashes LMHASH:NTHASH] --computername
+                                     TARGET_COMPUTERNAME
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -w DOMAIN, --workgroup DOMAIN
+                            Name of the domain we authenticate with
+      -u USER, --user USER  Username used to connect to the Domain Controller
+      -p PASSWORD, --password PASSWORD
+                            Password associated to the username
+      --hashes LMHASH:NTHASH
+                            NTLM hashes, format is LMHASH:NTHASH
+      --computername TARGET_COMPUTERNAME
+                            Computer to list shares on
+
+### get-netloggedon
+    usage: pywerview.py get-netloggedon [-h] [-w DOMAIN] -u USER [-p PASSWORD]
+                                        [--hashes LMHASH:NTHASH] --computername
+                                        TARGET_COMPUTERNAME
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -w DOMAIN, --workgroup DOMAIN
+                            Name of the domain we authenticate with
+      -u USER, --user USER  Username used to connect to the Domain Controller
+      -p PASSWORD, --password PASSWORD
+                            Password associated to the username
+      --hashes LMHASH:NTHASH
+                            NTLM hashes, format is LMHASH:NTHASH
+      --computername TARGET_COMPUTERNAME
+                            Computer to list logged on users on
+
+### get-netlocalgroup
+    usage: pywerview.py get-netlocalgroup [-h] [-w DOMAIN] -u USER [-p PASSWORD]
+                                          [--hashes LMHASH:NTHASH] --computername
+                                          TARGET_COMPUTERNAME
+                                          [--groupname QUERIED_GROUPNAME]
+                                          [--list-groups] [-t DOMAIN_CONTROLLER]
+                                          [-r]
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -w DOMAIN, --workgroup DOMAIN
+                            Name of the domain we authenticate with
+      -u USER, --user USER  Username used to connect to the Domain Controller
+      -p PASSWORD, --password PASSWORD
+                            Password associated to the username
+      --hashes LMHASH:NTHASH
+                            NTLM hashes, format is LMHASH:NTHASH
+      --computername TARGET_COMPUTERNAME
+                            Computer to list the local groups on
+      --groupname QUERIED_GROUPNAME
+                            Group to list the members of (defaults to the local
+                            'Administrators' group
+      --list-groups         If set, returns a list of the local groups on the
+                            targets
+      -t DOMAIN_CONTROLLER, --dc-ip DOMAIN_CONTROLLER
+                            IP address of the Domain Controller (used to resolve
+                            domain SIDs)
+      -r, --recurse         If the group member is a domain group, try to resolve
+                            its members as well
 
 ### invoke-checklocaladminaccess
     usage: pywerview.py invoke-checklocaladminaccess [-h] [-w DOMAIN] -u USER
                                                      [-p PASSWORD]
                                                      [--hashes LMHASH:NTHASH]
-                                                     [--computername TARGET_COMPUTERNAME]
+                                                     --computername
+                                                     TARGET_COMPUTERNAME
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -557,6 +597,75 @@ an argument, and __not__ `USELESSDOMAIN`.
                             NTLM hashes, format is LMHASH:NTHASH
       --computername TARGET_COMPUTERNAME
                             Computer to test local admin access on
+
+### invoke-userhunter
+    usage: pywerview.py invoke-userhunter [-h] [-w DOMAIN] -u USER [-p PASSWORD]
+                                          [--hashes LMHASH:NTHASH] -t
+                                          DOMAIN_CONTROLLER
+                                          [--computername QUERIED_COMPUTERNAME [QUERIED_COMPUTERNAME ...]]
+                                          [--computerfile QUERIED_COMPUTERFILE]
+                                          [--computer-adspath QUERIED_COMPUTERADSPATH]
+                                          [--unconstrained]
+                                          [--groupname QUERIED_GROUPNAME]
+                                          [--targetserver TARGET_SERVER]
+                                          [--username QUERIED_USERNAME]
+                                          [--user-adspath QUERIED_USERADSPATH]
+                                          [--userfile QUERIED_USERFILE]
+                                          [--threads THREADS] [-v] [--admin-count]
+                                          [--allow-delegation] [--stop-on-success]
+                                          [--check-access] [-d QUERIED_DOMAIN]
+                                          [--stealth]
+                                          [--stealth-source {dfs,dc,file} [{dfs,dc,file} ...]]
+                                          [--show-all] [--foreign-users]
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -w DOMAIN, --workgroup DOMAIN
+                            Name of the domain we authenticate with
+      -u USER, --user USER  Username used to connect to the Domain Controller
+      -p PASSWORD, --password PASSWORD
+                            Password associated to the username
+      --hashes LMHASH:NTHASH
+                            NTLM hashes, format is LMHASH:NTHASH
+      -t DOMAIN_CONTROLLER, --dc-ip DOMAIN_CONTROLLER
+                            IP address of the Domain Controller to target
+      --computername QUERIED_COMPUTERNAME [QUERIED_COMPUTERNAME ...]
+                            Host to enumerate against
+      --computerfile QUERIED_COMPUTERFILE
+                            File of hostnames/IPs to search
+      --computer-adspath QUERIED_COMPUTERADSPATH
+                            ADS path used to search computers against the DC
+      --unconstrained       Query only computers with unconstrained delegation
+      --groupname QUERIED_GROUPNAME
+                            Group name to query for target users
+      --targetserver TARGET_SERVER
+                            Hunt for users who are effective local admins on this
+                            target server
+      --username QUERIED_USERNAME
+                            Hunt for a specific user name
+      --user-adspath QUERIED_USERADSPATH
+                            ADS path used to search users against the DC
+      --userfile QUERIED_USERFILE
+                            File of user names to target
+      --threads THREADS     Number of threads to use (default: 1)
+      -v, --verbose         Displays results as they are found
+      --admin-count         Query only users with adminCount=1
+      --allow-delegation    Return user accounts that are not marked as 'sensitive
+                            and not allowed for delegation'
+      --stop-on-success     Stop hunting after finding target user
+      --check-access        Check if the current user has local admin access to
+                            the target servers
+      -d QUERIED_DOMAIN, --domain QUERIED_DOMAIN
+                            Domain to query for machines
+      --stealth             Only enumerate sessions from commonly used target
+                            servers
+      --stealth-source {dfs,dc,file} [{dfs,dc,file} ...]
+                            The source of target servers to use, 'dfs'
+                            (distributed file server), 'dc' (domain controller),
+                            or 'file' (file server) (default: all)
+      --show-all            Return all user location results
+      --foreign-users       Only return users that are not part of the searched
+                            domain
 
 ## TODO
 
