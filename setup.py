@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='pywerview',
-    version='0.0.1',
+    version='1.0-dev',
     description='A Python port of PowerSploit\'s PowerView',
     classifiers=[
         'Programming Language :: Python :: 2.7',
@@ -27,3 +27,4 @@ setup(name='pywerview',
         'console_scripts': ['pywerview=pywerview.main:main'],
     },
     zip_safe=False)
+
