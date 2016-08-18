@@ -20,6 +20,7 @@
 import functools
 import random
 import multiprocessing
+import signal
 
 from pywerview.net import get_netdomaincontroller, get_dfsshare, get_netfileserver, \
         get_netcomputer, get_netlocalgroup, get_netuser, get_netgroupmember, \
@@ -32,7 +33,7 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
         queried_computerfile=None, queried_computeradspath=str(),
         unconstrained=False, queried_groupname=str(), target_server=str(),
         queried_username=str(), queried_useradspath=str(), queried_userfile=None,
-        threads=1, admin_count=False, allow_delegation=False, stop_on_success=False,
+        threads=1, verbose=False, admin_count=False, allow_delegation=False, stop_on_success=False,
         check_access=False, queried_domain=str(), stealth=False,
         stealth_source=['dfs', 'dc', 'file'], show_all=False, foreign_users=False):
 
@@ -57,8 +58,8 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
                         queried_computername += [x.remoteservername for x in get_dfsshare(domain_controller,
                                 domain, user, password, lmhash, nthash, queried_domain=target_domain)]
                     elif source == 'dc':
-                        queried_computername += get_netdomaincontroller(domain_controller,
-                                domain, user, password, lmhash, nthash, queried_domain=target_domain)
+                        queried_computername += [x.dnshostname for x in get_netdomaincontroller(domain_controller,
+                                domain, user, password, lmhash, nthash, queried_domain=target_domain)]
                     elif source == 'file':
                         queried_computername += [x.dnshostname for x in get_netfileserver(domain_controller,
                                 domain, user, password, lmhash, nthash, queried_domain=target_domain)]
@@ -128,25 +129,30 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
 
     results = list()
     partial_enumerate_sessions = functools.partial(_enumerate_sessions,
-            foreign_users, domain, user, password, lmhash, nthash, stealth,
-            target_users, domain_short_name, check_access)
-    if threads > 1:
-        pool = multiprocessing.Pool(threads)
-        map_function = pool.imap_unordered
-        kwargs = {'chunksize': len(queried_computername)/threads + 1}
-    else:
-        map_function = map
-        kwargs = dict()
-
+            foreign_users, domain, user, password, lmhash, nthash, verbose,
+            stealth, target_users, domain_short_name, check_access)
     # TODO: implement stop on success
-    for result in map_function(partial_enumerate_sessions, queried_computername, **kwargs):
-        results += result
+    if threads > 1:
+        def _init_worker():
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+        pool = multiprocessing.Pool(threads, _init_worker)
+        try:
+            async_result = pool.map_async(partial_enumerate_sessions, queried_computername)
+            pool.close()
+            for result in async_result.get():
+                results += result
+        except KeyboardInterrupt:
+            pool.terminate()
+            pool.join()
+    else:
+        for result in map(partial_enumerate_sessions, queried_computername):
+            results += result
 
     return results
 
 # TODO: test foreign user hunting
 def _enumerate_sessions(foreign_users, domain, user, password, lmhash, nthash,
-        stealth, target_users, domain_short_name, check_access, target_computer):
+        verbose, stealth, target_users, domain_short_name, check_access, target_computer):
     # TODO: implement ping of target
     results = list()
     # First, we get every distant session on the target computer
@@ -198,7 +204,9 @@ def _enumerate_sessions(foreign_users, domain, user, password, lmhash, nthash,
                         attributes['localadmin'] = str()
 
                     results.append(rpcobj.RPCObject(attributes))
-                    #print results[-1], '\n'
+                    # TODO: implement generator instead of verbose mode?
+                    if verbose:
+                        print results[-1], '\n'
 
     return results
 

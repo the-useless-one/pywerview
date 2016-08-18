@@ -307,6 +307,8 @@ def main():
             type=argparse.FileType('r'), help='File of user names to target')
     invoke_userhunter_parser.add_argument('--threads', type=int,
             default=1, help='Number of threads to use (default: %(default)s)')
+    invoke_userhunter_parser.add_argument('-v', '--verbose', action='store_true',
+            help='Displays results as they are found')
     invoke_userhunter_parser.add_argument('--admin-count', action='store_true',
             help='Query only users with adminCount=1')
     invoke_userhunter_parser.add_argument('--allow-delegation', action='store_true',
