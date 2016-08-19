@@ -25,52 +25,6 @@ from impacket.smbconnection import SMBConnection
 import impacket.dcerpc.v5.rpcrt
 from pywerview._rpc import *
 
-def build_domain_connection(domain_controller, domain, user, password=str(),
-        lmhash=str(), nthash=str(), queried_domain=str(),
-        ads_prefix=str(), ads_path=str()):
-
-    if not domain:
-        domain = _get_netfqdn(domain_controller)
-
-    if not queried_domain:
-        queried_domain = domain
-
-    base_dn = str()
-
-    if ads_prefix:
-        base_dn = '{},'.format(ads_prefix)
-
-    if ads_path:
-        # TODO: manage ADS path starting with 'GC://'
-        if ads_path.upper().startswith('LDAP://'):
-            ads_path = ads_path[7:]
-        base_dn += ads_path
-    else:
-        base_dn += ','.join('dc={}'.format(x) for x in queried_domain.split('.'))
-
-    try:
-        domain_connection = ldap.LDAPConnection('ldap://{}'.format(domain_controller),
-            base_dn, domain_controller)
-    except socket.error, e:
-        print >>sys.stderr, e
-        sys.exit(-1)
-    except ldap.LDAPSessionError, e:
-        if str(e).find('strongerAuthRequired') >= 0:
-            # We need to try SSL
-            domain_connection = ldap.LDAPConnection('ldaps://{}'.format(domain_controller),
-                    base_dn, domain_controller)
-        else:
-            print >>sys.stderr, e
-            sys.exit(-1)
-
-    try:
-        domain_connection.login(user, password, domain, lmhash, nthash)
-    except ldap.LDAPSessionError, e:
-        print >>sys.stderr, e
-        sys.exit(-1)
-
-    return domain_connection
-
 def convert_sidtont4(sid, domain_controller, domain, user, password=str(),
         lmhash=str(), nthash=str()):
 
