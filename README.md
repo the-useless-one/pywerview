@@ -45,7 +45,7 @@ Also, blah blah blah, don't use it for evil purposes.
 ## REQUIREMENTS
 
 * Python 2.7
-* impacket 0.9.15
+* impacket >= 0.9.16-dev
 
 ## USAGE
 

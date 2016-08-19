@@ -17,7 +17,7 @@ setup(name='pywerview',
         "pywerview", "pywerview.*"
     ]),
     install_requires=[
-        'impacket>=0.9.15',
+        'impacket>=0.9.16',
         'pyasn1',
         'pycrypto',
         'pyopenssl',
