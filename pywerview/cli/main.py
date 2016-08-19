@@ -19,10 +19,9 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
 import argparse
-from pywerview.net import *
-from pywerview.gpo import *
-from pywerview.misc import *
-from pywerview.hunting import *
+from pywerview.cli.helpers import *
+from pywerview.functions.misc import *
+from pywerview.functions.hunting import *
 
 def main():
     # Main parser
@@ -46,6 +45,11 @@ def main():
     ad_parser.add_argument('-t', '--dc-ip', dest='domain_controller',
             required=True, help='IP address of the Domain Controller to target')
 
+    # Target parser, used for net* functions running against a normal computer
+    target_parser = argparse.ArgumentParser(add_help=False, parents=[credentials_parser])
+    target_parser.add_argument('--computername', dest='target_computername',
+            required=True, help='IP address of the computer target')
+
     # Parser for the get-adobject command
     get_adobject_parser= subparsers.add_parser('get-adobject', help='Takes a domain SID, '\
         'samAccountName or name, and return the associated object', parents=[ad_parser])
@@ -60,7 +64,7 @@ def main():
     get_adobject_parser.add_argument('-a', '--ads-path',
             help='Additional ADS path')
     get_adobject_parser.set_defaults(func=get_adobject)
-    
+
     # Parser for the get-netuser command
     get_netuser_parser= subparsers.add_parser('get-netuser', help='Queries information about '\
         'a domain user', parents=[ad_parser])
@@ -79,7 +83,7 @@ def main():
     get_netuser_parser.add_argument('--spn', action='store_true',
             help='Query only users with not-null Service Principal Names')
     get_netuser_parser.set_defaults(func=get_netuser)
-    
+
     # Parser for the get-netgroup command
     get_netgroup_parser= subparsers.add_parser('get-netgroup', help='Get a list of all current '\
         'domain groups, or a list of groups a domain user is member of', parents=[ad_parser])
@@ -98,7 +102,7 @@ def main():
     get_netgroup_parser.add_argument('--admin-count', action='store_true',
             help='Query only users with adminCount=1')
     get_netgroup_parser.set_defaults(func=get_netgroup)
-    
+
     # Parser for the get-netcomputer command
     get_netcomputer_parser= subparsers.add_parser('get-netcomputer', help='Queries informations about '\
         'domain computers', parents=[ad_parser])
@@ -123,14 +127,14 @@ def main():
     get_netcomputer_parser.add_argument('--full-data', action='store_true',
             help='If set, returns full information on the groups, otherwise, just the dnsHostName')
     get_netcomputer_parser.set_defaults(func=get_netcomputer)
-    
+
     # Parser for the get-netdomaincontroller command
     get_netdomaincontroller_parser= subparsers.add_parser('get-netdomaincontroller', help='Get a list of '\
         'domain controllers for the given domain', parents=[ad_parser])
     get_netdomaincontroller_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
     get_netdomaincontroller_parser.set_defaults(func=get_netdomaincontroller)
-    
+
     # Parser for the get-netfileserver command
     get_netfileserver_parser= subparsers.add_parser('get-netfileserver', help='Return a list of '\
         'file servers, extracted from the domain users\' homeDirectory, scriptPath, and profilePath fields', parents=[ad_parser])
@@ -165,7 +169,7 @@ def main():
     get_netou_parser.add_argument('--full-data', action='store_true',
             help='If set, returns full information on the OUs, otherwise, just the adspath')
     get_netou_parser.set_defaults(func=get_netou)
-    
+
     # Parser for the get-netsite command
     get_netsite_parser= subparsers.add_parser('get-netsite', help='Get a list of all current '\
         'sites in the domain', parents=[ad_parser])
@@ -180,7 +184,7 @@ def main():
     get_netsite_parser.add_argument('--full-data', action='store_true',
             help='If set, returns full information on the sites, otherwise, just the name')
     get_netsite_parser.set_defaults(func=get_netsite)
-    
+
     # Parser for the get-netsubnet command
     get_netsubnet_parser= subparsers.add_parser('get-netsubnet', help='Get a list of all current '\
         'subnets in the domain', parents=[ad_parser])
@@ -193,7 +197,7 @@ def main():
     get_netsubnet_parser.add_argument('--full-data', action='store_true',
             help='If set, returns full information on the subnets, otherwise, just the name')
     get_netsubnet_parser.set_defaults(func=get_netsubnet)
-    
+
     # Parser for the get-netgpo command
     get_netgpo_parser= subparsers.add_parser('get-netgpo', help='Get a list of all current '\
         'GPOs in the domain', parents=[ad_parser])
@@ -206,7 +210,7 @@ def main():
     get_netgpo_parser.add_argument('-a', '--ads-path',
             help='Additional ADS path')
     get_netgpo_parser.set_defaults(func=get_netgpo)
-    
+
     # Parser for the get-netgroup command
     get_netgroupmember_parser= subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain groups', parents=[ad_parser])
     get_netgroupmember_parser.add_argument('--groupname', dest='queried_groupname',
@@ -228,16 +232,12 @@ def main():
 
     # Parser for the get-netsession command
     get_netsession_parser= subparsers.add_parser('get-netsession', help='Queries a host to return a '\
-        'list of active sessions on the host (you can use local credentials instead of domain credentials)', parents=[credentials_parser])
-    get_netsession_parser.add_argument('--computername', dest='target_computername',
-            required=True, help='Computer to list sessions on')
+        'list of active sessions on the host (you can use local credentials instead of domain credentials)', parents=[target_parser])
     get_netsession_parser.set_defaults(func=get_netsession)
 
     #Parser for the get-localdisks command
     get_localdisks_parser = subparsers.add_parser('get-localdisks', help='Queries a host to return a '\
-        'list of active disks on the host (you can use local credentials instead of domain credentials)', parents=[credentials_parser])
-    get_localdisks_parser.add_argument('--computername', dest='target_computername',
-            required=True, help='Computer to list disks on')
+        'list of active disks on the host (you can use local credentials instead of domain credentials)', parents=[target_parser])
     get_localdisks_parser.set_defaults(func=get_localdisks)
 
     #Parser for the get-netdomain command
@@ -247,26 +247,20 @@ def main():
 
     # Parser for the get-netshare command
     get_netshare_parser= subparsers.add_parser('get-netshare', help='Queries a host to return a '\
-        'list of available shares on the host (you can use local credentials instead of domain credentials)', parents=[credentials_parser])
-    get_netshare_parser.add_argument('--computername', dest='target_computername',
-            required=True, help='Computer to list shares on')
+        'list of available shares on the host (you can use local credentials instead of domain credentials)', parents=[target_parser])
     get_netshare_parser.set_defaults(func=get_netshare)
 
     # Parser for the get-netloggedon command
     get_netloggedon_parser= subparsers.add_parser('get-netloggedon', help='This function will '\
         'execute the NetWkstaUserEnum RPC call ti query a given host for actively logged on '\
-        'users', parents=[credentials_parser])
-    get_netloggedon_parser.add_argument('--computername', dest='target_computername',
-            required=True, help='Computer to list logged on users on')
+        'users', parents=[target_parser])
     get_netloggedon_parser.set_defaults(func=get_netloggedon)
 
     # Parser for the get-netlocalgroup command
     get_netlocalgroup_parser= subparsers.add_parser('get-netlocalgroup', help='Gets a list of '\
         'members of a local group on a machine, or returns every local group. You can use local '\
         'credentials instead of domain credentials, however, domain credentials are needed to '\
-        'resolve domain SIDs.', parents=[credentials_parser])
-    get_netlocalgroup_parser.add_argument('--computername', dest='target_computername',
-            required=True, help='Computer to list the local groups on')
+        'resolve domain SIDs.', parents=[target_parser])
     get_netlocalgroup_parser.add_argument('--groupname', dest='queried_groupname',
             help='Group to list the members of (defaults to the local \'Administrators\' group')
     get_netlocalgroup_parser.add_argument('--list-groups', action='store_true',
@@ -279,9 +273,7 @@ def main():
 
     # Parser for the invoke-checklocaladminaccess command
     invoke_checklocaladminaccess_parser = subparsers.add_parser('invoke-checklocaladminaccess', help='Checks '\
-            'if the given user has local admin access on the given host', parents=[credentials_parser])
-    invoke_checklocaladminaccess_parser.add_argument('--computername', dest='target_computername',
-            required=True, help='Computer to test local admin access on')
+            'if the given user has local admin access on the given host', parents=[target_parser])
     invoke_checklocaladminaccess_parser.set_defaults(func=invoke_checklocaladminaccess)
 
     # Parser for the invoke-userhunter command

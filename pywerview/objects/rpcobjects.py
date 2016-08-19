@@ -33,10 +33,10 @@ class RPCObject:
 
     def add_atributes(self, attributes):
         for key, value in attributes.items():
-            if isinstance(value, int):
-                pass
-            else:
-                value = value.rstrip('\x00')
+            #if isinstance(value, int):
+                #pass
+            #else:
+                #value = value.rstrip('\x00')
 
             setattr(self, key.lower(), value)
 

@@ -23,7 +23,6 @@ import sys
 from impacket.ldap import ldap, ldapasn1
 from impacket.smbconnection import SMBConnection
 import impacket.dcerpc.v5.rpcrt
-import pywerview.net
 from pywerview._rpc import *
 
 def build_domain_connection(domain_controller, domain, user, password=str(),
@@ -111,8 +110,9 @@ def convert_sidtont4(sid, domain_controller, domain, user, password=str(),
 def get_domainsid(domain_controller, domain, user, password=str(),
         lmhash=str(), nthash=str(), queried_domain=str()):
 
-    domain_controllers = pywerview.net.get_netdomaincontroller(domain_controller, domain, user, password,
-            lmhash, nthash, queried_domain)
+    requester = NetRequester(domain_controller, domain, user, password,
+                                      lmhash, nthash)
+    domain_controllers = requester.get_netdomaincontroller(queried_domain=queried_domain)
 
     if domain_controllers:
         primary_dc = domain_controllers[0]

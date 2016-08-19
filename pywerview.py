@@ -18,7 +18,7 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
-from pywerview.main import *
+from pywerview.cli.main import main
 
 if __name__ == '__main__':
     main()

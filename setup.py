@@ -24,7 +24,7 @@ setup(name='pywerview',
         'bs4'
     ],
     entry_points = {
-        'console_scripts': ['pywerview=pywerview.main:main'],
+        'console_scripts': ['pywerview=pywerview.cli.main:main'],
     },
     zip_safe=False)
 

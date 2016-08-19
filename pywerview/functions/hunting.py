@@ -22,11 +22,9 @@ import random
 import multiprocessing
 import signal
 
-from pywerview.net import get_netdomaincontroller, get_dfsshare, get_netfileserver, \
-        get_netcomputer, get_netlocalgroup, get_netuser, get_netgroupmember, \
-        get_netsession, get_netloggedon
-from pywerview.misc import convert_sidtont4, get_domainsid, invoke_checklocaladminaccess
-import pywerview.rpcobjects as rpcobj
+from pywerview.functions.net import NetRequester
+from pywerview.functions.misc import convert_sidtont4, get_domainsid, invoke_checklocaladminaccess
+import pywerview.objects.rpcobjects as rpcobj
 
 def invoke_userhunter(domain_controller, domain, user, password=str(),
         lmhash=str(), nthash=str(), queried_computername=list(),
@@ -36,6 +34,9 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
         threads=1, verbose=False, admin_count=False, allow_delegation=False, stop_on_success=False,
         check_access=False, queried_domain=str(), stealth=False,
         stealth_source=['dfs', 'dc', 'file'], show_all=False, foreign_users=False):
+
+    domain_requester = NetRequester(domain_controller, domain, user, password,
+                                    lmhash, nthash)
 
     # TODO: implement forest search
     if not queried_domain:
@@ -50,24 +51,19 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
 
     if not queried_computername:
         if stealth:
-            source_to_function = {'dfs': get_dfsshare, 'dc': get_netdomaincontroller,
-                    'file': get_netfileserver}
             for target_domain in target_domains:
                 for source in stealth_source:
                     if source == 'dfs':
-                        queried_computername += [x.remoteservername for x in get_dfsshare(domain_controller,
-                                domain, user, password, lmhash, nthash, queried_domain=target_domain)]
+                        queried_computername += [x.remoteservername for x in domain_requester.get_dfsshare(queried_domain=target_domain)]
                     elif source == 'dc':
-                        queried_computername += [x.dnshostname for x in get_netdomaincontroller(domain_controller,
-                                domain, user, password, lmhash, nthash, queried_domain=target_domain)]
+                        queried_computername += [x.dnshostname for x in domain_requester.get_netdomaincontroller(queried_domain=target_domain)]
                     elif source == 'file':
-                        queried_computername += [x.dnshostname for x in get_netfileserver(domain_controller,
-                                domain, user, password, lmhash, nthash, queried_domain=target_domain)]
+                        queried_computername += [x.dnshostname for x in domain_requester.get_netfileserver(queried_domain=target_domain)]
         else:
             for target_domain in target_domains:
-                queried_computername = [x.dnshostname for x in get_netcomputer(domain_controller,
-                        domain, user, password, lmhash, nthash, queried_domain=target_domain,
-                        unconstrained=unconstrained, ads_path=queried_computeradspath)]
+                queried_computername = [x.dnshostname for x in domain_requester.get_netcomputer(
+                    queried_domain=target_domain, unconstrained=unconstrained,
+                    ads_path=queried_computeradspath)]
 
     # TODO: automatically convert server names to IP address (DNS, LLMNR, NBT-NS, etc.)
     queried_computername = list(set(queried_computername))
@@ -85,8 +81,10 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
             domain_short_name = convert_sidtont4(domain_sid, domain_controller,
                     domain, user, password, lmhash, nthash).split('\\')[0]
     elif target_server:
-        for x in get_netlocalgroup(target_server, domain_controller, domain,
-                user, password, lmhash, nthash, recurse=True):
+        target_server_requester = NetRequester(target_server, domain, user,
+                                               password, lmhash, nthash,
+                                               domain_controller)
+        for x in target_server_requester.get_netlocalgroup(recurse=True):
             if x.isdomain and not x.isgroup:
                 attributes = {'memberdomain': x.name.split('/')[0].lower(),
                         'membername': x.name.split('/')[1].lower()}
@@ -108,10 +106,9 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
         target_users.append(rpcobj.TargetUser(attributes))
     elif queried_useradspath or admin_count or allow_delegation:
         for target_domain in target_domains:
-            for x in get_netuser(domain_controller, domain, user, password,
-                    lmhash, nthash, ads_path=queried_useradspath,
-                    admin_count=admin_count, allow_delegation=allow_delegation,
-                    queried_domain=target_domain):
+            for x in domain_requester.get_netuser(
+                    ads_path=queried_useradspath, admin_count=admin_count,
+                    allow_delegation=allow_delegation, queried_domain=target_domain):
                         attributes = dict()
                         attributes['memberdomain'] = target_domain
                         attributes['membername'] = x.samaccountname
@@ -119,8 +116,9 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
                         target_users.append(rpcobj.TargetUser(attributes))
     else:
         for target_domain in target_domains:
-            target_users += get_netgroupmember(domain_controller, domain, user, password, lmhash,
-                    nthash, queried_domain=target_domain, queried_groupname=queried_groupname)
+            target_users += domain_requester.get_netgroupmember(
+                    queried_domain=target_domain,
+                    queried_groupname=queried_groupname)
 
     target_users = list(set(target_users))
 
