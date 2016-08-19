@@ -69,8 +69,16 @@ class LDAPRequester():
 
     def _ldap_search(self, search_filter, class_result, attributes=list()):
         results = list()
-        search_results = self._ldap_connection.search(searchFilter=search_filter,
-                                                      attributes=attributes)
+        try:
+            search_results = self._ldap_connection.search(manualFilter=search_filter,
+                                                          attributes=attributes)
+        except ldap.LDAPSearchError as e:
+            # If we got a "size exceeded" error, we get the partial results
+            if e.error == 4:
+                search_results = e.answers
+            else:
+                raise e
+
         for result in search_results:
             if not isinstance(result, ldapasn1.SearchResultEntry):
                 continue
