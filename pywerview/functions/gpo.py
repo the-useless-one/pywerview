@@ -17,7 +17,7 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
-from impacket.ldap import ldap, ldapasn1
+from impacket.ldap import ldapasn1
 
 from pywerview.objects.adobjects import *
 from pywerview.functions.requester import LDAPRequester

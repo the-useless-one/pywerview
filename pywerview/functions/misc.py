@@ -17,10 +17,6 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
-import socket
-import sys
-
-from impacket.ldap import ldap, ldapasn1
 from impacket.smbconnection import SMBConnection
 import impacket.dcerpc.v5.rpcrt
 from pywerview._rpc import *
