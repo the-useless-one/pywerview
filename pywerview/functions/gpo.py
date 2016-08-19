@@ -20,10 +20,9 @@
 from impacket.ldap import ldap, ldapasn1
 
 from pywerview.objects.adobjects import *
-from pywerview._ldap import *
-from pywerview.functions.net import NetRequester
+from pywerview.functions.requester import LDAPRequester
 
-class GPORequester(NetRequester):
+class GPORequester(LDAPRequester):
 
     def get_netgpo(self, queried_gponame='*', queried_displayname=str(),
                    queried_domain=str(), ads_path=str()):
@@ -33,20 +32,20 @@ class GPORequester(NetRequester):
         gpo_search_filter = ldapasn1.Filter()
         gpo_search_filter['and'] = ldapasn1.And()
 
-        gpo_filter = build_equality_match_filter('objectCategory', 'groupPolicyContainer')
+        gpo_filter = LDAPRequester._build_equality_match_filter('objectCategory', 'groupPolicyContainer')
         gpo_search_filter['and'][0] = gpo_filter
 
         if queried_displayname:
             if '*' in queried_displayname:
-                displayname_filter = build_substrings_filter('displayname', queried_displayname)
+                displayname_filter = LDAPRequester._build_substrings_filter('displayname', queried_displayname)
             else:
-                displayname_filter = build_equality_match_filter('displayname', queried_displayname)
+                displayname_filter = LDAPRequester._build_equality_match_filter('displayname', queried_displayname)
             gpo_search_filter['and'][gpo_search_filter['and']._componentValuesSet] = displayname_filter
         else:
             if '*' in queried_gponame:
-                gponame_filter = build_substrings_filter('displayname', queried_gponame)
+                gponame_filter = LDAPRequester._build_substrings_filter('displayname', queried_gponame)
             else:
-                gponame_filter = build_equality_match_filter('displayname', queried_gponame)
+                gponame_filter = LDAPRequester._build_equality_match_filter('displayname', queried_gponame)
             gpo_search_filter['and'][gpo_search_filter['and']._componentValuesSet] = gponame_filter
 
         return self._ldap_search(gpo_search_filter, GPO)

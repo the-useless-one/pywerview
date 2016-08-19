@@ -23,79 +23,23 @@ import impacket.dcerpc.v5.samr
 from bs4 import BeautifulSoup
 
 from impacket.ldap import ldap, ldapasn1
-from impacket.smbconnection import SMBConnection
 import impacket.dcerpc.v5.rpcrt
 
+from pywerview.functions.requester import LDAPRequester
 import pywerview.objects.adobjects as adobj
 import pywerview.objects.rpcobjects as rpcobj
-from pywerview._ldap import *
 from pywerview._rpc import *
 from pywerview.functions.misc import *
 
-class NetRequester():
+class NetRequester(LDAPRequester):
     def __init__(self, target_computer, domain=str(), user=(), password=str(),
                  lmhash=str(), nthash=str(), domain_controller=str()):
         self._target_computer = target_computer
-        if domain_controller:
-            self._domain_controller = domain_controller
-        else:
-            self._domain_controller = self._target_computer
-        self._domain = domain
-        self._user = user
-        self._password = password
-        self._lmhash = lmhash
-        self._nthash = nthash
-        self._ldap_connection = None
+        if not domain_controller:
+            domain_controller = self._target_computer
+        LDAPRequester.__init__(self, domain_controller, domain, user, password,
+                               lmhash, nthash)
         self._rpc_connection = None
-
-    def _create_ldap_connection(self, queried_domain=str(), ads_path=str(),
-                                ads_prefix=str()):
-        if not self._domain:
-            self._domain = _get_netfqdn(self._target_computer)
-
-        if not queried_domain:
-            queried_domain = self._domain
-
-        base_dn = str()
-
-        if ads_prefix:
-            base_dn = '{},'.format(ads_prefix)
-
-        if ads_path:
-            # TODO: manage ADS path starting with 'GC://'
-            if ads_path.upper().startswith('LDAP://'):
-                ads_path = ads_path[7:]
-            base_dn += ads_path
-        else:
-            base_dn += ','.join('dc={}'.format(x) for x in queried_domain.split('.'))
-
-        try:
-            ldap_connection = ldap.LDAPConnection('ldap://{}'.format(self._domain_controller),
-                                                  base_dn, self._domain_controller)
-        except ldap.LDAPSessionError, e:
-            if str(e).find('strongerAuthRequired') >= 0:
-                # We need to try SSL
-                ldap_connection = ldap.LDAPConnection('ldaps://{}'.format(self._domain_controller),
-                                                      base_dn, self._domain_controller)
-            else:
-                raise e
-
-        ldap_connection.login(self._user, self._password, self._domain,
-                              self._lmhash, self._nthash)
-
-        self._ldap_connection = ldap_connection
-
-    def _ldap_search(self, search_filter, class_result, attributes=list()):
-        results = list()
-        search_results = self._ldap_connection.search(searchFilter=search_filter,
-                                                      attributes=attributes)
-        for result in search_results:
-            if not isinstance(result, ldapasn1.SearchResultEntry):
-                continue
-
-            results.append(class_result(result['attributes']))
-
-        return results
 
     def get_adobject(self, queried_domain=str(), queried_sid=str(),
                      queried_name=str(), queried_sam_account_name=str(),
@@ -103,14 +47,14 @@ class NetRequester():
 
         self._create_ldap_connection(queried_domain=queried_domain, ads_path=ads_path)
 
-        object_filter = build_substrings_filter('objectSid', '*')
+        object_filter = LDAPRequester._build_substrings_filter('objectSid', '*')
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', queried_name),
                                       ('samAccountName', queried_sam_account_name)):
             if attr_value:
                 if '*' in attr_value:
-                    object_filter = build_substrings_filter(attr_desc, attr_value)
+                    object_filter = LDAPRequester._build_substrings_filter(attr_desc, attr_value)
                 else:
-                    object_filter = build_equality_match_filter(attr_desc, attr_value)
+                    object_filter = LDAPRequester._build_equality_match_filter(attr_desc, attr_value)
                 break
 
         return self._ldap_search(object_filter, adobj.ADObject)
@@ -124,26 +68,26 @@ class NetRequester():
         user_search_filter = ldapasn1.Filter()
         user_search_filter['and'] = ldapasn1.And()
 
-        user_filter = build_equality_match_filter('samAccountType', '805306368')
+        user_filter = LDAPRequester._build_equality_match_filter('samAccountType', '805306368')
         user_search_filter['and'][0] = user_filter
 
         if unconstrained:
-            unconstrained_filter = build_extensible_match_filter('1.2.840.113556.1.4.803', 'UserAccountControl', '524288')
+            unconstrained_filter = LDAPRequester._build_extensible_match_filter('1.2.840.113556.1.4.803', 'UserAccountControl', '524288')
             user_search_filter['and'][user_search_filter['and']._componentValuesSet] = unconstrained_filter
 
         if allow_delegation:
-            allow_delegation_filter = build_extensible_match_filter('1.2.840.113556.1.4.803', 'UserAccountControl', '1048574')
+            allow_delegation_filter = LDAPRequester._build_extensible_match_filter('1.2.840.113556.1.4.803', 'UserAccountControl', '1048574')
             user_search_filter['and'][user_search_filter['and']._componentValuesSet] = allow_delegation_filter
 
         if admin_count:
-            admin_count_filter = build_equality_match_filter('admincount', 1)
+            admin_count_filter = LDAPRequester._build_equality_match_filter('admincount', 1)
             user_search_filter['and'][user_search_filter['and']._componentValuesSet] = admin_count_filter
 
         if queried_username:
             if '*' in queried_username:
-                user_name_filter = build_substrings_filter('samAccountName', queried_username)
+                user_name_filter = LDAPRequester._build_substrings_filter('samAccountName', queried_username)
             else:
-                user_name_filter = build_equality_match_filter('samAccountName', queried_username)
+                user_name_filter = LDAPRequester._build_equality_match_filter('samAccountName', queried_username)
             user_search_filter['and'][user_search_filter['and']._componentValuesSet] = user_name_filter
 
         elif spn:
@@ -168,27 +112,27 @@ class NetRequester():
         group_search_filter['and'] = ldapasn1.And()
 
         if admin_count:
-            admin_count_filter = build_equality_match_filter('admincount', 1)
+            admin_count_filter = LDAPRequester._build_equality_match_filter('admincount', 1)
             group_search_filter['and'][group_search_filter['and']._componentValuesSet] = admin_count_filter
 
         if queried_username:
             if '*' in queried_username:
-                group_name_filter = build_substrings_filter('samAccountName', queried_username)
+                group_name_filter = LDAPRequester._build_substrings_filter('samAccountName', queried_username)
             else:
-                group_name_filter = build_equality_match_filter('samAccountName', queried_username)
+                group_name_filter = LDAPRequester._build_equality_match_filter('samAccountName', queried_username)
             group_search_filter['and'][group_search_filter['and']._componentValuesSet] = group_name_filter
             attributes = ['memberOf']
         else:
-            group_filter = build_equality_match_filter('objectCategory', 'group')
+            group_filter = LDAPRequester._build_equality_match_filter('objectCategory', 'group')
             group_search_filter['and'][group_search_filter['and']._componentValuesSet] = group_filter
             if queried_sid:
-                group_sid_filter = build_equality_match_filter('objectSid', queried_sid)
+                group_sid_filter = LDAPRequester._build_equality_match_filter('objectSid', queried_sid)
                 group_search_filter['and'][group_search_filter['and']._componentValuesSet] = group_sid_filter
             elif queried_groupname:
                 if '*' in queried_groupname:
-                    group_name_filter = build_substrings_filter('name', queried_groupname)
+                    group_name_filter = LDAPRequester._build_substrings_filter('name', queried_groupname)
                 else:
-                    group_name_filter = build_equality_match_filter('name', queried_groupname)
+                    group_name_filter = LDAPRequester._build_equality_match_filter('name', queried_groupname)
                 group_search_filter['and'][group_search_filter['and']._componentValuesSet] = group_name_filter
 
             if full_data:
@@ -211,15 +155,15 @@ class NetRequester():
         computer_search_filter = ldapasn1.Filter()
         computer_search_filter['and'] = ldapasn1.And()
 
-        computer_filter = build_equality_match_filter('samAccountType', '805306369')
+        computer_filter = LDAPRequester._build_equality_match_filter('samAccountType', '805306369')
         computer_search_filter['and'][0] = computer_filter
 
         if unconstrained:
-            unconstrained_filter = build_extensible_match_filter('1.2.840.113556.1.4.803', 'UserAccountControl', '524288')
+            unconstrained_filter = LDAPRequester._build_extensible_match_filter('1.2.840.113556.1.4.803', 'UserAccountControl', '524288')
             computer_search_filter['and'][computer_search_filter['and']._componentValuesSet] = unconstrained_filter
 
         if printers:
-            printers_filter = build_equality_match_filter('objectCategory', 'printQueue')
+            printers_filter = LDAPRequester._build_equality_match_filter('objectCategory', 'printQueue')
             computer_search_filter['and'][computer_search_filter['and']._componentValuesSet] = printers_filter
 
         for (attr_desc, attr_value) in (('servicePrincipalName', queried_spn),
@@ -227,9 +171,9 @@ class NetRequester():
                 ('dnsHostName', queried_computername)):
             if attr_value:
                 if '*' in attr_value:
-                    f = build_substrings_filter(attr_desc, attr_value)
+                    f = LDAPRequester._build_substrings_filter(attr_desc, attr_value)
                 else:
-                    f = build_equality_match_filter(attr_desc, attr_value)
+                    f = LDAPRequester._build_equality_match_filter(attr_desc, attr_value)
                 computer_search_filter['and'][computer_search_filter['and']._componentValuesSet] = f
 
         if custom_filter:
@@ -244,7 +188,7 @@ class NetRequester():
 
     def get_netdomaincontroller(self, queried_domain=str()):
 
-        domain_controller_filter = build_extensible_match_filter('1.2.840.113556.1.4.803',
+        domain_controller_filter = LDAPRequester._build_extensible_match_filter('1.2.840.113556.1.4.803',
                 'userAccountControl', '8192')
 
         return self.get_netcomputer(queried_domain=queried_domain, full_data=True,
@@ -282,7 +226,7 @@ class NetRequester():
         self._create_ldap_connection(queried_domain=queried_domain, ads_path=ads_path)
 
         def _get_dfssharev1():
-            dfs_search_filter = build_equality_match_filter('objectClass', 'fTDfs')
+            dfs_search_filter = LDAPRequester._build_equality_match_filter('objectClass', 'fTDfs')
 
             intermediate_results = self._ldap_search(dfs_search_filter, adobj.ADObject,
                                                 attributes=['remoteservername', 'name'])
@@ -299,7 +243,7 @@ class NetRequester():
             return results
 
         def _get_dfssharev2():
-            dfs_search_filter = build_equality_match_filter('objectClass',
+            dfs_search_filter = LDAPRequester._build_equality_match_filter('objectClass',
                     'msDFS-Linkv2')
 
             intermediate_results = self._ldap_search(dfs_search_filter, adobj.ADObject,
@@ -340,18 +284,18 @@ class NetRequester():
         ou_search_filter = ldapasn1.Filter()
         ou_search_filter['and'] = ldapasn1.And()
 
-        ou_filter = build_equality_match_filter('objectCategory', 'organizationalUnit')
+        ou_filter = LDAPRequester._build_equality_match_filter('objectCategory', 'organizationalUnit')
         ou_search_filter['and'][0] = ou_filter
 
         if queried_ouname:
             if '*' in queried_ouname:
-                ou_name_filter = build_substrings_filter('name', queried_ouname)
+                ou_name_filter = LDAPRequester._build_substrings_filter('name', queried_ouname)
             else:
-                ou_name_filter = build_equality_match_filter('name', queried_ouname)
+                ou_name_filter = LDAPRequester._build_equality_match_filter('name', queried_ouname)
             ou_search_filter['and'][ou_search_filter['and']._componentValuesSet] = ou_name_filter
 
         if queried_guid:
-            guid_filter = build_substrings_filter('gplink', '*{}*'.format(queried_guid))
+            guid_filter = LDAPRequester._build_substrings_filter('gplink', '*{}*'.format(queried_guid))
             ou_search_filter['and'][ou_search_filter['and']._componentValuesSet] = guid_filter
 
         if full_data:
@@ -369,18 +313,18 @@ class NetRequester():
         site_search_filter = ldapasn1.Filter()
         site_search_filter['and'] = ldapasn1.And()
 
-        site_filter = build_equality_match_filter('objectCategory', 'site')
+        site_filter = LDAPRequester._build_equality_match_filter('objectCategory', 'site')
         site_search_filter['and'][0] = site_filter
 
         if queried_sitename:
             if '*' in queried_sitename:
-                site_name_filter = build_substrings_filter('name', queried_sitename)
+                site_name_filter = LDAPRequester._build_substrings_filter('name', queried_sitename)
             else:
-                site_name_filter = build_equality_match_filter('name', queried_sitename)
+                site_name_filter = LDAPRequester._build_equality_match_filter('name', queried_sitename)
             site_search_filter['and'][site_search_filter['and']._componentValuesSet] = site_name_filter
 
         if queried_guid:
-            guid_filter = build_substrings_filter('gplink', '*{}*'.format(queried_guid))
+            guid_filter = LDAPRequester._build_substrings_filter('gplink', '*{}*'.format(queried_guid))
             site_search_filter['and'][site_search_filter['and']._componentValuesSet] = guid_filter
 
         if full_data:
@@ -398,13 +342,13 @@ class NetRequester():
         subnet_search_filter = ldapasn1.Filter()
         subnet_search_filter['and'] = ldapasn1.And()
 
-        subnet_filter = build_equality_match_filter('objectCategory', 'subnet')
+        subnet_filter = LDAPRequester._build_equality_match_filter('objectCategory', 'subnet')
         subnet_search_filter['and'][0] = subnet_filter
 
         if queried_sitename:
             if not queried_sitename.endswith('*'):
                 queried_sitename += '*'
-            site_name_filter = build_substrings_filter('siteobject', '*CN={}'.format(queried_sitename))
+            site_name_filter = LDAPRequester._build_substrings_filter('siteobject', '*CN={}'.format(queried_sitename))
             subnet_search_filter['and'][site_search_filter['and']._componentValuesSet] = site_name_filter
 
         if full_data:
@@ -437,7 +381,7 @@ class NetRequester():
             members = list()
 
             if recurse and use_matching_rule:
-                group_memberof_filter = build_extensible_match_filter('1.2.840.113556.1.4.1941',
+                group_memberof_filter = LDAPRequester._build_extensible_match_filter('1.2.840.113556.1.4.1941',
                         'memberof', group.distinguishedname)
 
                 members = self.get_netuser(custom_filter=group_memberof_filter)
@@ -445,7 +389,7 @@ class NetRequester():
                 # TODO: range cycling
                 try:
                     for member in group.member:
-                        dn_filter = build_equality_match_filter('distinguishedname',
+                        dn_filter = LDAPRequester._build_equality_match_filter('distinguishedname',
                                                                 member)
                         members += self.get_netuser(custom_filter=dn_filter)
                         members += self.get_netgroup(custom_filter=dn_filter, full_data=True)
