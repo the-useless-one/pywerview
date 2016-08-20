@@ -19,7 +19,7 @@
 
 from impacket.smbconnection import SMBConnection
 import impacket.dcerpc.v5.rpcrt
-from pywerview._rpc import *
+#from pywerview._rpc import *
 
 def convert_sidtont4(sid, domain_controller, domain, user, password=str(),
         lmhash=str(), nthash=str()):

@@ -17,18 +17,17 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
+import socket
 from impacket.ldap import ldapasn1
 from impacket.dcerpc.v5.ndr import NULL
-import impacket.dcerpc.v5.samr
+from impacket.dcerpc.v5 import wkst, srvs, samr
+from impacket.dcerpc.v5.samr import DCERPCSessionError
+from impacket.dcerpc.v5.rpcrt import DCERPCException
 from bs4 import BeautifulSoup
-
-from impacket.ldap import ldap, ldapasn1
-import impacket.dcerpc.v5.rpcrt
 
 from pywerview.functions.requester import LDAPRequester, RPCRequester
 import pywerview.objects.adobjects as adobj
 import pywerview.objects.rpcobjects as rpcobj
-from pywerview._rpc import *
 from pywerview.functions.misc import *
 
 class NetRequester(LDAPRequester, RPCRequester):
@@ -42,6 +41,22 @@ class NetRequester(LDAPRequester, RPCRequester):
                                lmhash, nthash)
         RPCRequester.__init__(self, target_computer, domain, user, password,
                                lmhash, nthash)
+
+    def __enter__(self):
+        # If this NetRequester is used to make RPC requests, this will raise
+        # and exception.
+        try:
+            LDAPRequester.__enter__(self)
+        except socket.error:
+            pass
+        # This should work every time
+        RPCRequester.__enter__(self)
+
+        return self
+
+    def __exit__(self, type, value, traceback):
+        LDAPRequester.__exit__(self, type, value, traceback)
+        RPCRequester.__exit__(self, type, value, traceback)
 
     @LDAPRequester._ldap_connection_init
     def get_adobject(self, queried_domain=str(), queried_sid=str(),
@@ -441,7 +456,7 @@ class NetRequester(LDAPRequester, RPCRequester):
 
         try:
             resp = srvs.hNetrSessionEnum(self._rpc_connection, '\x00', NULL, 10)
-        except impacket.dcerpc.v5.rpcrt.DCERPCException:
+        except DCERPCException:
             return list()
 
         results = list()
@@ -493,7 +508,7 @@ class NetRequester(LDAPRequester, RPCRequester):
 
         try:
             resp = wkst.hNetrWkstaUserEnum(self._rpc_connection, 1)
-        except impacket.dcerpc.v5.rpcrt.DCERPCException:
+        except DCERPCException:
             return list()
 
         results = list()
@@ -571,7 +586,7 @@ class NetRequester(LDAPRequester, RPCRequester):
                         queried_group_rid = resp['RelativeIds']['Element'][0]['Data']
                         queried_group_domain_handle = domain_handle
                         break
-                    except (impacket.dcerpc.v5.samr.DCERPCSessionError, KeyError, IndexError):
+                    except (DCERPCSessionError, KeyError, IndexError):
                         continue
                 else:
                     raise ValueError('The group \'{}\' was not found on the target server'.format(queried_groupname))
@@ -586,7 +601,7 @@ class NetRequester(LDAPRequester, RPCRequester):
             try:
                 group = samr.hSamrOpenAlias(self._rpc_connection, queried_group_domain_handle, aliasId=queried_group_rid)
                 resp = samr.hSamrGetMembersInAlias(self._rpc_connection, group['AliasHandle'])
-            except impacket.dcerpc.v5.samr.DCERPCSessionError:
+            except DCERPCSessionError:
                 raise ValueError('The name \'{}\' is not a valid group on the target server'.format(queried_groupname))
 
             # For every user, we look for information in every local domain
@@ -610,7 +625,7 @@ class NetRequester(LDAPRequester, RPCRequester):
                             attributes['isgroup'] = False
                             resp = samr.hSamrQueryInformationUser(self._rpc_connection, member_handle)
                             attributes['name'] = '{}/{}'.format(member_domain, resp['Buffer']['General']['UserName'])
-                        except impacket.dcerpc.v5.samr.DCERPCSessionError:
+                        except DCERPCSessionError:
                             resp = samr.hSamrOpenAlias(self._rpc_connection, domain_handle, aliasId=member_rid)
                             member_handle = resp['AliasHandle']
                             attributes['isgroup'] = True

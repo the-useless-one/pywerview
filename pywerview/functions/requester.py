@@ -160,7 +160,10 @@ class LDAPRequester():
         return self
 
     def __exit__(self, type, value, traceback):
-        self._ldap_connection.close()
+        try:
+            self._ldap_connection.close()
+        except AttributeError:
+            pass
         self._ldap_connection = None
 
 class RPCRequester():
@@ -217,7 +220,7 @@ class RPCRequester():
                 instance = args[0]
                 if (not instance._rpc_connection) or (pipe != instance._pipe):
                     if instance._rpc_connection:
-                        instance._rpc_connection.close()
+                        instance._rpc_connection.disconnect()
                     instance._create_rpc_connection(pipe=pipe)
                 return f(*args, **kwargs)
             return wrapper
@@ -229,6 +232,9 @@ class RPCRequester():
         return self
 
     def __exit__(self, type, value, traceback):
-        self._rpc_connection.close()
+        try:
+            self._rpc_connection.disconnect()
+        except AttributeError:
+            pass
         self._rpc_connection = None
 
