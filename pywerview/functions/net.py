@@ -25,7 +25,7 @@ from impacket.dcerpc.v5.samr import DCERPCSessionError
 from impacket.dcerpc.v5.rpcrt import DCERPCException
 from bs4 import BeautifulSoup
 
-from pywerview.functions.requester import LDAPRPCRequester
+from pywerview.requester import LDAPRPCRequester
 import pywerview.objects.adobjects as adobj
 import pywerview.objects.rpcobjects as rpcobj
 from pywerview.functions.misc import *

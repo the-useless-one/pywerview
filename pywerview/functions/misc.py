@@ -21,7 +21,7 @@ from impacket.smbconnection import SMBConnection
 from impacket.dcerpc.v5.rpcrt import DCERPCException
 from impacket.dcerpc.v5 import scmr, drsuapi
 
-from pywerview.functions.requester import LDAPRPCRequester
+from pywerview.requester import LDAPRPCRequester
 from pywerview.functions.net import NetRequester
 
 class Misc(LDAPRPCRequester):

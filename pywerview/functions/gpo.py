@@ -20,7 +20,7 @@
 from impacket.ldap import ldapasn1
 
 from pywerview.objects.adobjects import *
-from pywerview.functions.requester import LDAPRequester
+from pywerview.requester import LDAPRequester
 
 class GPORequester(LDAPRequester):
 
