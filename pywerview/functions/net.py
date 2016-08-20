@@ -436,14 +436,11 @@ class NetRequester(LDAPRequester, RPCRequester):
 
         return results
 
+    @RPCRequester._rpc_connection_init(r'\srvsvc')
     def get_netsession(self):
-        dce = build_dce(self._domain, self._user, self._password, self._lmhash,
-                        self._nthash, self._target_computer, r'\srvsvc')
-        if dce is None:
-            return list()
 
         try:
-            resp = srvs.hNetrSessionEnum(dce, '\x00', NULL, 10)
+            resp = srvs.hNetrSessionEnum(self._rpc_connection, '\x00', NULL, 10)
         except impacket.dcerpc.v5.rpcrt.DCERPCException:
             return list()
 
@@ -453,13 +450,10 @@ class NetRequester(LDAPRequester, RPCRequester):
 
         return results
 
+    @RPCRequester._rpc_connection_init(r'\srvsvc')
     def get_netshare(self):
-        dce = build_dce(self._domain, self._user, self._password, self._lmhash,
-                        self._nthash, self._target_computer, r'\srvsvc')
-        if dce is None:
-            return list()
 
-        resp = srvs.hNetrShareEnum(dce, 1)
+        resp = srvs.hNetrShareEnum(self._rpc_connection, 1)
 
         results = list()
         for share in resp['InfoStruct']['ShareInfo']['Level1']['Buffer']:
@@ -467,13 +461,10 @@ class NetRequester(LDAPRequester, RPCRequester):
 
         return results
 
+    @RPCRequester._rpc_connection_init(r'\srvsvc')
     def get_localdisks(self):
-        dce = build_dce(self._domain, self._user, self._password, self._lmhash,
-                        self._nthash, self._target_computer, r'\srvsvc')
-        if dce is None:
-            return list()
 
-        resp = srvs.hNetrServerDiskEnum(dce, 0)
+        resp = srvs.hNetrServerDiskEnum(self._rpc_connection, 0)
 
         results = list()
         for disk in resp['DiskInfoStruct']['Buffer']:
@@ -482,17 +473,14 @@ class NetRequester(LDAPRequester, RPCRequester):
 
         return results
 
+    @RPCRequester._rpc_connection_init(r'\samr')
     def get_netdomain(self):
-        dce = build_dce(self._domain, self._user, self._password, self._lmhash,
-                        self._nthash, self._target_computer, r'\samr')
-        if dce is None:
-            return list()
 
-        resp = samr.hSamrConnect(dce)
+        resp = samr.hSamrConnect(self._rpc_connection)
         server_handle = resp['ServerHandle']
 
         # We first list every domain in the SAM
-        resp = samr.hSamrEnumerateDomainsInSamServer(dce, server_handle)
+        resp = samr.hSamrEnumerateDomainsInSamServer(self._rpc_connection, server_handle)
 
         results = list()
         for domain in resp['Buffer']['Buffer']:
@@ -500,14 +488,11 @@ class NetRequester(LDAPRequester, RPCRequester):
 
         return results
 
+    @RPCRequester._rpc_connection_init(r'\wkssvc')
     def get_netloggedon(self):
-        dce = build_dce(self._domain, self._user, self._password, self._lmhash,
-                        self._nthash, self._target_computer, r'\wkssvc')
-        if dce is None:
-            return list()
 
         try:
-            resp = wkst.hNetrWkstaUserEnum(dce, 1)
+            resp = wkst.hNetrWkstaUserEnum(self._rpc_connection, 1)
         except impacket.dcerpc.v5.rpcrt.DCERPCException:
             return list()
 
@@ -520,28 +505,23 @@ class NetRequester(LDAPRequester, RPCRequester):
     # TODO: if self._target_computer == self._domain_controller, check that
     # self._domain_controller is indeed a domain controller
     @LDAPRequester._ldap_connection_init
+    @RPCRequester._rpc_connection_init(r'\samr')
     def get_netlocalgroup(self, queried_groupname=str(), list_groups=False,
                           recurse=False):
         from impacket.nt_errors import STATUS_MORE_ENTRIES
         results = list()
 
-        # We first get a handle to the server
-        dce = build_dce(self._domain, self._user, self._password, self._lmhash,
-                        self._nthash, self._target_computer, r'\samr')
-        if dce is None:
-            return list()
-
-        resp = samr.hSamrConnect(dce)
+        resp = samr.hSamrConnect(self._rpc_connection)
         server_handle = resp['ServerHandle']
 
         # We first list every domain in the SAM
-        resp = samr.hSamrEnumerateDomainsInSamServer(dce, server_handle)
+        resp = samr.hSamrEnumerateDomainsInSamServer(self._rpc_connection, server_handle)
         domains = resp['Buffer']['Buffer']
         domain_handles = dict()
         for local_domain in domains:
-            resp = samr.hSamrLookupDomainInSamServer(dce, server_handle, local_domain['Name'])
+            resp = samr.hSamrLookupDomainInSamServer(self._rpc_connection, server_handle, local_domain['Name'])
             domain_sid = 'S-1-5-{}'.format('-'.join(str(x) for x in resp['DomainId']['SubAuthority']))
-            resp = samr.hSamrOpenDomain(dce, serverHandle=server_handle, domainId=resp['DomainId'])
+            resp = samr.hSamrOpenDomain(self._rpc_connection, serverHandle=server_handle, domainId=resp['DomainId'])
             domain_handles[domain_sid] = resp['DomainHandle']
 
         # If we list the groups
@@ -552,7 +532,7 @@ class NetRequester(LDAPRequester, RPCRequester):
                 enumeration_context = 0
                 groups = list()
                 while True:
-                    resp = samr.hSamrEnumerateAliasesInDomain(dce, domain_handle,
+                    resp = samr.hSamrEnumerateAliasesInDomain(self.rpc_connection, domain_handle,
                             enumerationContext=enumeration_context)
                     groups += resp['Buffer']['Buffer']
 
@@ -562,21 +542,21 @@ class NetRequester(LDAPRequester, RPCRequester):
 
                 # We get information on every group
                 for group in groups:
-                    resp = samr.hSamrRidToSid(dce, domain_handle, rid=group['RelativeId'])
+                    resp = samr.hSamrRidToSid(self._rpc_connection, domain_handle, rid=group['RelativeId'])
                     sid = 'S-1-5-{}'.format('-'.join(str(x) for x in resp['Sid']['SubAuthority']))
 
-                    resp = samr.hSamrOpenAlias(dce, domain_handle, aliasId=group['RelativeId'])
+                    resp = samr.hSamrOpenAlias(self._rpc_connection, domain_handle, aliasId=group['RelativeId'])
                     alias_handle = resp['AliasHandle']
-                    resp = samr.hSamrQueryInformationAlias(dce, alias_handle)
+                    resp = samr.hSamrQueryInformationAlias(self._rpc_connection, alias_handle)
 
                     final_group = rpcobj.Group(resp['Buffer']['General'])
                     final_group.add_atributes({'server': self._target_computer, 'sid': sid})
 
                     results.append(final_group)
 
-                    samr.hSamrCloseHandle(dce, alias_handle)
+                    samr.hSamrCloseHandle(self._rpc_connection, alias_handle)
 
-                samr.hSamrCloseHandle(dce, domain_handle)
+                samr.hSamrCloseHandle(self._rpc_connection, domain_handle)
         # If we query a group
         else:
             queried_group_rid = None
@@ -587,7 +567,7 @@ class NetRequester(LDAPRequester, RPCRequester):
                 # We look for it in every domain
                 for _, domain_handle in domain_handles.items():
                     try:
-                        resp = samr.hSamrLookupNamesInDomain(dce, domain_handle, [queried_groupname])
+                        resp = samr.hSamrLookupNamesInDomain(self._rpc_connection, domain_handle, [queried_groupname])
                         queried_group_rid = resp['RelativeIds']['Element'][0]['Data']
                         queried_group_domain_handle = domain_handle
                         break
@@ -598,14 +578,14 @@ class NetRequester(LDAPRequester, RPCRequester):
             # Otherwise, we look for the local Administrators group
             else:
                 queried_group_rid = 544
-                resp = samr.hSamrLookupDomainInSamServer(dce, server_handle, 'BUILTIN')
-                resp = samr.hSamrOpenDomain(dce, serverHandle=server_handle, domainId=resp['DomainId'])
+                resp = samr.hSamrLookupDomainInSamServer(self._rpc_connection, server_handle, 'BUILTIN')
+                resp = samr.hSamrOpenDomain(self._rpc_connection, serverHandle=server_handle, domainId=resp['DomainId'])
                 queried_group_domain_handle = resp['DomainHandle']
 
             # We get a handle on the group, and list its members
             try:
-                group = samr.hSamrOpenAlias(dce, queried_group_domain_handle, aliasId=queried_group_rid)
-                resp = samr.hSamrGetMembersInAlias(dce, group['AliasHandle'])
+                group = samr.hSamrOpenAlias(self._rpc_connection, queried_group_domain_handle, aliasId=queried_group_rid)
+                resp = samr.hSamrGetMembersInAlias(self._rpc_connection, group['AliasHandle'])
             except impacket.dcerpc.v5.samr.DCERPCSessionError:
                 raise ValueError('The name \'{}\' is not a valid group on the target server'.format(queried_groupname))
 
@@ -622,19 +602,19 @@ class NetRequester(LDAPRequester, RPCRequester):
                     # We've found a local member
                     if member_sid.startswith(domain_sid):
                         attributes['isdomain'] = False
-                        resp = samr.hSamrQueryInformationDomain(dce, domain_handle)
+                        resp = samr.hSamrQueryInformationDomain(self._rpc_connection, domain_handle)
                         member_domain = resp['Buffer']['General2']['I1']['DomainName']
                         try:
-                            resp = samr.hSamrOpenUser(dce, domain_handle, userId=member_rid)
+                            resp = samr.hSamrOpenUser(self._rpc_connection, domain_handle, userId=member_rid)
                             member_handle = resp['UserHandle']
                             attributes['isgroup'] = False
-                            resp = samr.hSamrQueryInformationUser(dce, member_handle)
+                            resp = samr.hSamrQueryInformationUser(self._rpc_connection, member_handle)
                             attributes['name'] = '{}/{}'.format(member_domain, resp['Buffer']['General']['UserName'])
                         except impacket.dcerpc.v5.samr.DCERPCSessionError:
-                            resp = samr.hSamrOpenAlias(dce, domain_handle, aliasId=member_rid)
+                            resp = samr.hSamrOpenAlias(self._rpc_connection, domain_handle, aliasId=member_rid)
                             member_handle = resp['AliasHandle']
                             attributes['isgroup'] = True
-                            resp = samr.hSamrQueryInformationAlias(dce, member_handle)
+                            resp = samr.hSamrQueryInformationAlias(self._rpc_connection, member_handle)
                             attributes['name'] = '{}/{}'.format(member_domain, resp['Buffer']['General']['Name'])
                         attributes['lastlogin'] = str()
                         break

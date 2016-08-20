@@ -172,9 +172,12 @@ class RPCRequester():
         self._password = password
         self._lmhash = lmhash
         self._nthash = nthash
+        self._pipe = None
         self._rpc_connection = None
 
-    def _build_rpc_connection(self, pipe):
+    def _create_rpc_connection(self, pipe):
+        self._pipe = pipe
+
         binding_strings = dict()
         binding_strings['srvsvc'] = srvs.MSRPC_UUID_SRVS
         binding_strings['wkssvc'] = wkst.MSRPC_UUID_WKST
@@ -183,7 +186,7 @@ class RPCRequester():
         binding_strings['drsuapi'] = drsuapi.MSRPC_UUID_DRSUAPI
 
         # TODO: try to fallback to TCP/139 if tcp/445 is closed
-        if pipe == r'\drsuapi':
+        if self._pipe == r'\drsuapi':
             string_binding = epm.hept_map(self._target_computer, drsuapi.MSRPC_UUID_DRSUAPI,
                                           protocol='ncacn_ip_tcp')
             rpctransport = transport.DCERPCTransportFactory(string_binding)
@@ -191,22 +194,41 @@ class RPCRequester():
                                          domain=self._domain, lmhash=self._lmhash,
                                          nthash=self._nthash)
         else:
-            rpctransport = transport.SMBTransport(self._target_computer, 445, pipe,
+            rpctransport = transport.SMBTransport(self._target_computer, 445, self._pipe,
                                                   username=self._user, password=self._password,
                                                   domain=self._domain, lmhash=self._lmhash,
                                                   nthash=self._nthash)
 
         rpctransport.set_connect_timeout(10)
         dce = rpctransport.get_dce_rpc()
-        if pipe == r'\drsuapi':
+
+        if self._pipe == r'\drsuapi':
             dce.set_auth_level(RPC_C_AUTHN_LEVEL_PKT_PRIVACY)
-        try:
-            dce.connect()
-            dce.bind(binding_strings[pipe[1:]])
-        # I know, it's ugly, but impacket can raise a general Exception on connect
-        # TODO: open issue on impacket
-        except:
-            dce = None
+
+        dce.connect()
+        dce.bind(binding_strings[self._pipe[1:]])
 
         self._rpc_connection = dce
+
+    @staticmethod
+    def _rpc_connection_init(pipe):
+        def decorator(f):
+            def wrapper(*args, **kwargs):
+                instance = args[0]
+                if (not instance._rpc_connection) or (pipe != instance._pipe):
+                    if instance._rpc_connection:
+                        instance._rpc_connection.close()
+                    instance._create_rpc_connection(pipe=pipe)
+                return f(*args, **kwargs)
+            return wrapper
+        return decorator
+
+    def __enter__(self):
+        # Picked because it's the most used by the net* functions
+        self._create_rpc_connection(r'\srvsvc')
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self._rpc_connection.close()
+        self._rpc_connection = None
 
