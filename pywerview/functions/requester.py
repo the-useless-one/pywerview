@@ -155,6 +155,14 @@ class LDAPRequester():
 
         return f
 
+    def __enter__(self):
+        self._create_ldap_connection()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self._ldap_connection.close()
+        self._ldap_connection = None
+
 class RPCRequester():
     def __init__(self, target_computer, domain=str(), user=(), password=str(),
                  lmhash=str(), nthash=str()):
