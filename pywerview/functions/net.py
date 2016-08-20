@@ -25,27 +25,28 @@ from bs4 import BeautifulSoup
 from impacket.ldap import ldap, ldapasn1
 import impacket.dcerpc.v5.rpcrt
 
-from pywerview.functions.requester import LDAPRequester
+from pywerview.functions.requester import LDAPRequester, RPCRequester
 import pywerview.objects.adobjects as adobj
 import pywerview.objects.rpcobjects as rpcobj
 from pywerview._rpc import *
 from pywerview.functions.misc import *
 
-class NetRequester(LDAPRequester):
+class NetRequester(LDAPRequester, RPCRequester):
     def __init__(self, target_computer, domain=str(), user=(), password=str(),
                  lmhash=str(), nthash=str(), domain_controller=str()):
-        self._target_computer = target_computer
+        # If no domain controller was given, we assume that the user wants to
+        # target a domain controller to perform LDAP requests against
         if not domain_controller:
-            domain_controller = self._target_computer
+            domain_controller = target_computer
         LDAPRequester.__init__(self, domain_controller, domain, user, password,
                                lmhash, nthash)
-        self._rpc_connection = None
+        RPCRequester.__init__(self, target_computer, domain, user, password,
+                               lmhash, nthash)
 
+    @LDAPRequester._ldap_connection_init
     def get_adobject(self, queried_domain=str(), queried_sid=str(),
                      queried_name=str(), queried_sam_account_name=str(),
                      ads_path=str()):
-
-        self._create_ldap_connection(queried_domain=queried_domain, ads_path=ads_path)
 
         object_filter = LDAPRequester._build_substrings_filter('objectSid', '*')
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', queried_name),
@@ -59,11 +60,10 @@ class NetRequester(LDAPRequester):
 
         return self._ldap_search(object_filter, adobj.ADObject)
 
+    @LDAPRequester._ldap_connection_init
     def get_netuser(self, queried_username=str(), queried_domain=str(),
                     ads_path=str(), admin_count=False, spn=False,
                     unconstrained=False, allow_delegation=False, custom_filter=None):
-
-        self._create_ldap_connection(queried_domain=queried_domain, ads_path=ads_path)
 
         user_search_filter = ldapasn1.Filter()
         user_search_filter['and'] = ldapasn1.And()
@@ -101,12 +101,11 @@ class NetRequester(LDAPRequester):
         return self._ldap_search(user_search_filter, adobj.User)
 
 
+    @LDAPRequester._ldap_connection_init
     def get_netgroup(self, queried_groupname='*', queried_sid=str(),
                      queried_username=str(), queried_domain=str(),
                      ads_path=str(), admin_count=False, full_data=False,
                      custom_filter=None):
-
-        self._create_ldap_connection(queried_domain=queried_domain, ads_path=ads_path)
 
         group_search_filter = ldapasn1.Filter()
         group_search_filter['and'] = ldapasn1.And()
@@ -145,12 +144,11 @@ class NetRequester(LDAPRequester):
 
         return self._ldap_search(group_search_filter, adobj.Group, attributes=attributes)
 
+    @LDAPRequester._ldap_connection_init
     def get_netcomputer(self, queried_computername='*', queried_spn=str(),
                         queried_os=str(), queried_sp=str(), queried_domain=str(),
                         ads_path=str(), printers=False, unconstrained=False,
                         ping=False, full_data=False, custom_filter=None):
-
-        self._create_ldap_connection(queried_domain=queried_domain, ads_path=ads_path)
 
         computer_search_filter = ldapasn1.Filter()
         computer_search_filter['and'] = ldapasn1.And()
@@ -186,6 +184,7 @@ class NetRequester(LDAPRequester):
 
         return self._ldap_search(computer_search_filter, adobj.Computer, attributes=attributes)
 
+    @LDAPRequester._ldap_connection_init
     def get_netdomaincontroller(self, queried_domain=str()):
 
         domain_controller_filter = LDAPRequester._build_extensible_match_filter('1.2.840.113556.1.4.803',
@@ -194,14 +193,13 @@ class NetRequester(LDAPRequester):
         return self.get_netcomputer(queried_domain=queried_domain, full_data=True,
                                     custom_filter=domain_controller_filter)
 
+    @LDAPRequester._ldap_connection_init
     def get_netfileserver(self, queried_domain=str(), target_users=list()):
 
         def split_path(path):
             split_path = path.split('\\')
             if len(split_path) >= 3:
                 return split_path[2]
-
-        self._create_ldap_connection(queried_domain=queried_domain)
 
         results = list()
         if target_users:
@@ -221,9 +219,8 @@ class NetRequester(LDAPRequester):
 
         return results
 
+    @LDAPRequester._ldap_connection_init
     def get_dfsshare(self, version=['v1', 'v2'], queried_domain=str(), ads_path=str()):
-
-        self._create_ldap_connection(queried_domain=queried_domain, ads_path=ads_path)
 
         def _get_dfssharev1():
             dfs_search_filter = LDAPRequester._build_equality_match_filter('objectClass', 'fTDfs')
@@ -276,10 +273,9 @@ class NetRequester(LDAPRequester):
 
         return results
 
+    @LDAPRequester._ldap_connection_init
     def get_netou(self, queried_ouname='*', queried_guid=str(), ads_path=str(),
                   full_data=False):
-
-        self._create_ldap_connection(ads_path=ads_path)
 
         ou_search_filter = ldapasn1.Filter()
         ou_search_filter['and'] = ldapasn1.And()
@@ -305,10 +301,9 @@ class NetRequester(LDAPRequester):
 
         return self._ldap_search(ou_search_filter, adobj.OU, attributes=attributes)
 
+    @LDAPRequester._ldap_connection_init
     def get_netsite(self, queried_domain=str(), queried_sitename=str(),
                     queried_guid=str(), ads_path=str(), full_data=False):
-
-        self._create_ldap_connection(queried_domain=queried_domain, ads_path=ads_path)
 
         site_search_filter = ldapasn1.Filter()
         site_search_filter['and'] = ldapasn1.And()
@@ -334,10 +329,9 @@ class NetRequester(LDAPRequester):
 
         return self._ldap_search(site_search_filter, adobj.Site, attributes=attributes)
 
+    @LDAPRequester._ldap_connection_init
     def get_netsubnet(self, queried_domain=str(), queried_sitename=str(),
                       ads_path=str(), full_data=False):
-
-        self._create_ldap_connection(queried_domain=queried_domain, ads_path=ads_path)
 
         subnet_search_filter = ldapasn1.Filter()
         subnet_search_filter['and'] = ldapasn1.And()
@@ -358,11 +352,10 @@ class NetRequester(LDAPRequester):
 
         return self._ldap_search(subnet_search_filter, adobj.Subnet, attributes=attributes)
 
+    @LDAPRequester._ldap_connection_init
     def get_netgroupmember(self, queried_groupname=str(), queried_sid=str(),
                            queried_domain=str(), ads_path=str(), recurse=False,
                            use_matching_rule=False, full_data=False):
-
-        self._create_ldap_connection(queried_domain=queried_domain, ads_path=ads_path)
 
         def _get_members(_groupname=str(), _sid=str()):
             try:
@@ -526,6 +519,7 @@ class NetRequester(LDAPRequester):
 
     # TODO: if self._target_computer == self._domain_controller, check that
     # self._domain_controller is indeed a domain controller
+    @LDAPRequester._ldap_connection_init
     def get_netlocalgroup(self, queried_groupname=str(), list_groups=False,
                           recurse=False):
         from impacket.nt_errors import STATUS_MORE_ENTRIES

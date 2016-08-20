@@ -18,6 +18,8 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
 from impacket.ldap import ldap, ldapasn1
+from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
+from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
 
 class LDAPRequester():
     def __init__(self, domain_controller, domain=str(), user=(), password=str(),
@@ -28,6 +30,9 @@ class LDAPRequester():
         self._password = password
         self._lmhash = lmhash
         self._nthash = nthash
+        self._queried_domain = None
+        self._ads_path = None
+        self._ads_prefix = None
         self._ldap_connection = None
 
     def _create_ldap_connection(self, queried_domain=str(), ads_path=str(),
@@ -37,19 +42,22 @@ class LDAPRequester():
 
         if not queried_domain:
             queried_domain = self._domain
+        self._queried_domain = queried_domain
 
         base_dn = str()
 
         if ads_prefix:
-            base_dn = '{},'.format(ads_prefix)
+            self._ads_prefix = ads_prefix
+            base_dn = '{},'.format(self._ads_prefix)
 
         if ads_path:
             # TODO: manage ADS path starting with 'GC://'
             if ads_path.upper().startswith('LDAP://'):
                 ads_path = ads_path[7:]
-            base_dn += ads_path
+            self._ads_path = ads_path
+            base_dn += self._ads_path
         else:
-            base_dn += ','.join('dc={}'.format(x) for x in queried_domain.split('.'))
+            base_dn += ','.join('dc={}'.format(x) for x in self._queried_domain.split('.'))
 
         try:
             ldap_connection = ldap.LDAPConnection('ldap://{}'.format(self._domain_controller),
@@ -86,6 +94,27 @@ class LDAPRequester():
             results.append(class_result(result['attributes']))
 
         return results
+
+    @staticmethod
+    def _ldap_connection_init(f):
+        def wrapper(*args, **kwargs):
+            instance = args[0]
+            queried_domain = kwargs.get('queried_domain', None)
+            ads_path = kwargs.get('ads_path', None)
+            ads_prefix = kwargs.get('ads_prefix', None)
+            if (not instance._ldap_connection) or \
+               (queried_domain is not None and queried_domain != instance._queried_domain) or \
+               (ads_path is not None and ads_path != instance._ads_path) or \
+               (ads_prefix is not None and ads_prefix != instance._ads_prefix):
+                print 'creating LDAP connection'
+                if instance._ldap_connection:
+                    instance._ldap_connection.close()
+                instance._create_ldap_connection(queried_domain=queried_domain,
+                                                 ads_path=ads_path, ads_prefix=ads_prefix)
+            else:
+                print 'LDAP already connected'
+            return f(*args, **kwargs)
+        return wrapper
 
     @staticmethod
     def _build_extensible_match_filter(matching_rule, match_type, match_value):
@@ -128,4 +157,51 @@ class LDAPRequester():
                 f['substrings']['substrings'][len(substrings)-2+offset] = ldapasn1.SubString().setComponentByName('final', ldapasn1.FinalAssertion(substrings[-1]))
 
         return f
+
+class RPCRequester():
+    def __init__(self, target_computer, domain=str(), user=(), password=str(),
+                 lmhash=str(), nthash=str()):
+        self._target_computer = target_computer
+        self._domain = domain
+        self._user = user
+        self._password = password
+        self._lmhash = lmhash
+        self._nthash = nthash
+        self._rpc_connection = None
+
+    def _build_rpc_connection(self, pipe):
+        binding_strings = dict()
+        binding_strings['srvsvc'] = srvs.MSRPC_UUID_SRVS
+        binding_strings['wkssvc'] = wkst.MSRPC_UUID_WKST
+        binding_strings['samr'] = samr.MSRPC_UUID_SAMR
+        binding_strings['svcctl'] = scmr.MSRPC_UUID_SCMR
+        binding_strings['drsuapi'] = drsuapi.MSRPC_UUID_DRSUAPI
+
+        # TODO: try to fallback to TCP/139 if tcp/445 is closed
+        if pipe == r'\drsuapi':
+            string_binding = epm.hept_map(self._target_computer, drsuapi.MSRPC_UUID_DRSUAPI,
+                                          protocol='ncacn_ip_tcp')
+            rpctransport = transport.DCERPCTransportFactory(string_binding)
+            rpctransport.set_credentials(username=self._user, password=self._password,
+                                         domain=self._domain, lmhash=self._lmhash,
+                                         nthash=self._nthash)
+        else:
+            rpctransport = transport.SMBTransport(self._target_computer, 445, pipe,
+                                                  username=self._user, password=self._password,
+                                                  domain=self._domain, lmhash=self._lmhash,
+                                                  nthash=self._nthash)
+
+        rpctransport.set_connect_timeout(10)
+        dce = rpctransport.get_dce_rpc()
+        if pipe == r'\drsuapi':
+            dce.set_auth_level(RPC_C_AUTHN_LEVEL_PKT_PRIVACY)
+        try:
+            dce.connect()
+            dce.bind(binding_strings[pipe[1:]])
+        # I know, it's ugly, but impacket can raise a general Exception on connect
+        # TODO: open issue on impacket
+        except:
+            dce = None
+
+        self._rpc_connection = dce
 
