@@ -106,13 +106,10 @@ class LDAPRequester():
                (queried_domain is not None and queried_domain != instance._queried_domain) or \
                (ads_path is not None and ads_path != instance._ads_path) or \
                (ads_prefix is not None and ads_prefix != instance._ads_prefix):
-                print 'creating LDAP connection'
                 if instance._ldap_connection:
                     instance._ldap_connection.close()
                 instance._create_ldap_connection(queried_domain=queried_domain,
                                                  ads_path=ads_path, ads_prefix=ads_prefix)
-            else:
-                print 'LDAP already connected'
             return f(*args, **kwargs)
         return wrapper
 
