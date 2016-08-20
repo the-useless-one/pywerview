@@ -18,79 +18,71 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
 from impacket.smbconnection import SMBConnection
-import impacket.dcerpc.v5.rpcrt
-#from pywerview._rpc import *
+from impacket.dcerpc.v5.rpcrt import DCERPCException
+from impacket.dcerpc.v5 import scmr, drsuapi
 
-def convert_sidtont4(sid, domain_controller, domain, user, password=str(),
-        lmhash=str(), nthash=str()):
+from pywerview.functions.requester import LDAPRPCRequester
+from pywerview.functions.net import NetRequester
 
-    stringBinding = epm.hept_map(domain_controller, drsuapi.MSRPC_UUID_DRSUAPI,
-                                 protocol='ncacn_ip_tcp')
-    rpc = transport.DCERPCTransportFactory(stringBinding)
-    if hasattr(rpc, 'set_credentials'):
-        # This method exists only for selected protocol sequences.
-        rpc.set_credentials(username=user, password=password, domain=domain,
-                lmhash=lmhash, nthash=nthash)
-    dce = build_dce(domain, user, password, lmhash, nthash, domain_controller, r'\drsuapi')
-    if dce is None:
-        return list()
+class Misc(LDAPRPCRequester):
+    def _get_netfqdn(self):
+        smb = SMBConnection(self._target_computername, self._target_computername)
+        smb.login('', '')
+        fqdn = smb.getServerDNSDomainName()
+        smb.logoff()
 
-    # We get a DRS handle, shamelessly stolen from secretsdump.py
-    request = drsuapi.DRSBind()
-    request['puuidClientDsa'] = drsuapi.NTDSAPI_CLIENT_GUID
-    drs = drsuapi.DRS_EXTENSIONS_INT()
-    drs['cb'] = len(drs) #- 4
-    drs['dwFlags'] = drsuapi.DRS_EXT_GETCHGREQ_V6 | drsuapi.DRS_EXT_GETCHGREPLY_V6 | drsuapi.DRS_EXT_GETCHGREQ_V8 | \
-                     drsuapi.DRS_EXT_STRONG_ENCRYPTION
-    drs['SiteObjGuid'] = drsuapi.NULLGUID
-    drs['Pid'] = 0
-    drs['dwReplEpoch'] = 0
-    drs['dwFlagsExt'] = 0
-    drs['ConfigObjGUID'] = drsuapi.NULLGUID
-    drs['dwExtCaps'] = 0xffffffff
-    request['pextClient']['cb'] = len(drs)
-    request['pextClient']['rgb'] = list(str(drs))
+        return fqdn
 
-    hdrs = dce.request(request)['phDrs']
+    @LDAPRPCRequester._rpc_connection_init(r'\drsuapi')
+    def convert_sidtont4(self, sid):
 
-    resp = drsuapi.hDRSCrackNames(dce, hdrs, 0x0, 11, 2, (sid,))
+        # We get a DRS handle, shamelessly stolen from secretsdump.py
+        request = drsuapi.DRSBind()
+        request['puuidClientDsa'] = drsuapi.NTDSAPI_CLIENT_GUID
+        drs = drsuapi.DRS_EXTENSIONS_INT()
+        drs['cb'] = len(drs) #- 4
+        drs['dwFlags'] = drsuapi.DRS_EXT_GETCHGREQ_V6 | drsuapi.DRS_EXT_GETCHGREPLY_V6 | drsuapi.DRS_EXT_GETCHGREQ_V8 | \
+                         drsuapi.DRS_EXT_STRONG_ENCRYPTION
+        drs['SiteObjGuid'] = drsuapi.NULLGUID
+        drs['Pid'] = 0
+        drs['dwReplEpoch'] = 0
+        drs['dwFlagsExt'] = 0
+        drs['ConfigObjGUID'] = drsuapi.NULLGUID
+        drs['dwExtCaps'] = 0xffffffff
+        request['pextClient']['cb'] = len(drs)
+        request['pextClient']['rgb'] = list(str(drs))
 
-    return resp['pmsgOut']['V1']['pResult']['rItems'][0]['pName']
+        hdrs = self._rpc_connection.request(request)['phDrs']
 
-def get_domainsid(domain_controller, domain, user, password=str(),
-        lmhash=str(), nthash=str(), queried_domain=str()):
+        resp = drsuapi.hDRSCrackNames(self._rpc_connection, hdrs, 0x0, 11, 2, (sid,))
 
-    requester = NetRequester(domain_controller, domain, user, password,
-                                      lmhash, nthash)
-    domain_controllers = requester.get_netdomaincontroller(queried_domain=queried_domain)
+        return resp['pmsgOut']['V1']['pResult']['rItems'][0]['pName']
 
-    if domain_controllers:
-        primary_dc = domain_controllers[0]
-        domain_sid = '-'.join(primary_dc.objectsid.split('-')[:-1])
-    else:
-        domain_sid = None
+    def get_domainsid(self, queried_domain=str()):
 
-    return domain_sid
+        with NetRequester(self._domain_controller, self._domain, self._user,
+                          self._password, self._lmhash, self._nthash) as r:
+            domain_controllers = r.get_netdomaincontroller(queried_domain=queried_domain)
 
-def invoke_checklocaladminaccess(target_computername, domain, user,
-        password=str(), lmhash=str(), nthash=str()):
+        if domain_controllers:
+            primary_dc = domain_controllers[0]
+            domain_sid = '-'.join(primary_dc.objectsid.split('-')[:-1])
+        else:
+            domain_sid = None
 
-    dce = build_dce(domain, user, password, lmhash, nthash, target_computername, r'\svcctl')
-    if dce is None:
-        return list()
+        return domain_sid
 
-    try:
-        # 0xF003F - SC_MANAGER_ALL_ACCESS
-        # http://msdn.microsoft.com/en-us/library/windows/desktop/ms685981(v=vs.85).aspx
-        ans = scmr.hROpenSCManagerW(dce, '{}\x00'.format(target_computername), 'ServicesActive\x00', 0xF003F)
-    except impacket.dcerpc.v5.rpcrt.DCERPCException:
-        return False
+    @LDAPRPCRequester._rpc_connection_init(r'\svcctl')
+    def invoke_checklocaladminaccess(self):
 
-    return True
+        try:
+            # 0xF003F - SC_MANAGER_ALL_ACCESS
+            # http://msdn.microsoft.com/en-us/library/windows/desktop/ms685981(v=vs.85).aspx
+            ans = scmr.hROpenSCManagerW(self._rpc_connection,
+                                        '{}\x00'.format(self._target_computer),
+                                        'ServicesActive\x00', 0xF003F)
+        except DCERPCException:
+            return False
 
-def _get_netfqdn(target_computername):
-    smb = SMBConnection(target_computername, target_computername)
-    smb.login('', '')
-
-    return smb.getServerDNSDomainName()
+        return True
 
