@@ -238,3 +238,30 @@ class RPCRequester():
             pass
         self._rpc_connection = None
 
+class LDAPRPCRequester(LDAPRequester, RPCRequester):
+    def __init__(self, target_computer, domain=str(), user=(), password=str(),
+                 lmhash=str(), nthash=str(), domain_controller=str()):
+        # If no domain controller was given, we assume that the user wants to
+        # target a domain controller to perform LDAP requests against
+        if not domain_controller:
+            domain_controller = target_computer
+        LDAPRequester.__init__(self, domain_controller, domain, user, password,
+                               lmhash, nthash)
+        RPCRequester.__init__(self, target_computer, domain, user, password,
+                               lmhash, nthash)
+    def __enter__(self):
+        # If this LDAPRPCRequester is used to make RPC requests, this will raise
+        # and exception. We catch it and continue
+        try:
+            LDAPRequester.__enter__(self)
+        except socket.error:
+            pass
+        # This should work every time
+        RPCRequester.__enter__(self)
+
+        return self
+
+    def __exit__(self, type, value, traceback):
+        LDAPRequester.__exit__(self, type, value, traceback)
+        RPCRequester.__exit__(self, type, value, traceback)
+
