@@ -17,16 +17,14 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
-import functools
 import random
 import multiprocessing
-import signal
+import select
 
 import pywerview.objects.rpcobjects as rpcobj
 from pywerview.functions.net import NetRequester
 from pywerview.functions.misc import Misc
-#from pywerview.functions.misc import convert_sidtont4, get_domainsid
-#from pywerview.worker.hunting import UserHunterWorker
+from pywerview.worker.hunting import UserHunterWorker
 
 class UserHunter(NetRequester):
     def invoke_userhunter(self, queried_computername=list(), queried_computerfile=None,
@@ -39,7 +37,7 @@ class UserHunter(NetRequester):
 
         # TODO: implement forest search
         if not queried_domain:
-            queried_domain = domain
+            queried_domain = self._domain
 
         target_domains = [queried_domain]
 
@@ -125,26 +123,44 @@ class UserHunter(NetRequester):
         if (not show_all) and (not foreign_users) and (not target_users):
             raise ValueError('No users to search for')
 
-        results = list()
-        partial_enumerate_sessions = functools.partial(_enumerate_sessions,
-                foreign_users, domain, user, password, lmhash, nthash, verbose,
-                stealth, target_users, domain_short_name, check_access)
-        # TODO: implement stop on success
-        if threads > 1:
-            def _init_worker():
-                signal.signal(signal.SIGINT, signal.SIG_IGN)
-            pool = multiprocessing.Pool(threads, _init_worker)
-            try:
-                async_result = pool.map_async(partial_enumerate_sessions, queried_computername)
-                pool.close()
-                for result in async_result.get():
-                    results += result
-            except KeyboardInterrupt:
-                pool.terminate()
-                pool.join()
-        else:
-            for result in map(partial_enumerate_sessions, queried_computername):
-                results += result
+        results, workers = list(), list()
+        parent_pipes, worker_pipes = list(), list()
 
-        return results
+        for i in xrange(threads):
+            parent_pipe, worker_pipe = multiprocessing.Pipe()
+            parent_pipes.append(parent_pipe)
+            worker_pipes.append(worker_pipe)
+            worker = UserHunterWorker(worker_pipe, self._domain, self._user,
+                                            self._password, self._lmhash, self._nthash,
+                                            foreign_users, verbose, stealth, target_users,
+                                            domain_short_name, check_access)
+
+            worker.start()
+            workers.append(worker)
+
+        jobs_done, total_jobs = 0, len(queried_computername)
+        try:
+            while jobs_done < total_jobs:
+                if queried_computername:
+                    write_watch_list = parent_pipes
+                else:
+                    write_watch_list = list()
+                rlist, wlist, _ = select.select(parent_pipes, write_watch_list, list())
+
+                for readable in rlist:
+                    jobs_done += 1 
+                    result = readable.recv()
+                    for session in result:
+                        yield session
+                for writable in wlist:
+                    try:
+                        target_computer = queried_computername.pop(0)
+                        writable.send(target_computer)
+                    except IndexError:
+                        pass
+        except KeyboardInterrupt:
+            pass
+        finally:
+            for worker in workers:
+                worker.terminate()
 

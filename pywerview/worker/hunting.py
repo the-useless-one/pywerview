@@ -20,11 +20,13 @@
 from multiprocessing import Process, Pipe
 
 from pywerview.functions.net import NetRequester
+from pywerview.functions.misc import Misc
 import pywerview.objects.rpcobjects as rpcobj
 
 class UserHunterWorker(Process):
-    def __init__(self, domain, user, password, lmhash, nthash, foreign_users, verbose,
-                 stealth, target_users, domain_short_name, check_access):
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, foreign_users,
+                 verbose, stealth, target_users, domain_short_name, check_access):
+        self._pipe = pipe
         self._domain = domain
         self._user = user
         self._password = password
@@ -39,21 +41,27 @@ class UserHunterWorker(Process):
         Process.__init__(self)
 
     def run(self):
-        pass
+        while True:
+            target_computer = self._pipe.recv()
+            result = self._enumerate_sessions(target_computer)
+            self._pipe.send(result)
+
+    def terminate(self):
+        self._pipe.close()
+        Process.terminate(self)
 
     # TODO: test foreign user hunting
-    def _enumerate_sessions(foreign_users, domain, user, password, lmhash, nthash,
-            verbose, stealth, target_users, domain_short_name, check_access, target_computer):
+    def _enumerate_sessions(self, target_computer):
         # TODO: implement ping of target
         results = list()
         # First, we get every distant session on the target computer
         distant_sessions = list()
-        if not foreign_users:
-            distant_sessions += get_netsession(target_computer, domain, user, password,
-                    lmhash, nthash)
-        if not stealth:
-            distant_sessions += get_netloggedon(target_computer, domain, user, password,
-                    lmhash, nthash)
+        with NetRequester(target_computer, self._domain, self._user, self._password,
+                          self._lmhash, self._nthash) as net_requester:
+            if not self._foreign_users:
+                distant_sessions += net_requester.get_netsession()
+            if not self._stealth:
+                distant_sessions += net_requester.get_netloggedon()
 
         # For every session, we get information on the remote user
         for session in distant_sessions:
@@ -71,12 +79,12 @@ class UserHunterWorker(Process):
             # If we found a user
             if username:
                 # We see if it's in our target user group
-                for target_user in target_users:
+                for target_user in self._target_users:
                     if target_user.membername.lower() in username.lower():
 
                         # If we fall in this branch, we're looking for foreign users
                         # and found a user in the same domain
-                        if domain_short_name and domain_short_name.lower() == userdomain.lower():
+                        if self._domain_short_name and self._domain_short_name.lower() == userdomain.lower():
                             continue
 
                         attributes = dict()
@@ -88,15 +96,16 @@ class UserHunterWorker(Process):
                         attributes['computername'] = target_computer
                         attributes['sessionfrom'] = session_from
 
-                        if check_access:
-                            attributes['localadmin'] = invoke_checklocaladminaccess(target_computer,
-                                    domain, user, password, lmhash, nthash)
+                        if self._check_access:
+                            with Misc(target_computer, self._domain, self._user, self._password,
+                                              self._lmhash, self._nthash) as misc_requester:
+                                attributes['localadmin'] = misc_requester.invoke_checklocaladminaccess()
                         else:
                             attributes['localadmin'] = str()
 
                         results.append(rpcobj.RPCObject(attributes))
                         # TODO: implement generator instead of verbose mode?
-                        if verbose:
+                        if self._verbose:
                             print results[-1], '\n'
 
         return results
