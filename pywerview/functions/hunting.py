@@ -24,8 +24,9 @@ import signal
 
 import pywerview.objects.rpcobjects as rpcobj
 from pywerview.functions.net import NetRequester
-from pywerview.functions.misc import convert_sidtont4, get_domainsid
-from pywerview.worker.hunting import UserHunterWorker
+from pywerview.functions.misc import Misc
+#from pywerview.functions.misc import convert_sidtont4, get_domainsid
+#from pywerview.worker.hunting import UserHunterWorker
 
 class UserHunter(NetRequester):
     def invoke_userhunter(self, queried_computername=list(), queried_computerfile=None,
@@ -77,10 +78,9 @@ class UserHunter(NetRequester):
             attributes = {'memberdomain': str(), 'membername': str()}
             target_users.append(rpcobj.TargetUser(attributes))
             if foreign_users:
-                domain_sid = get_domainsid(domain_controller, domain, user, password,
-                        lmhash, nthash)
-                domain_short_name = convert_sidtont4(domain_sid, domain_controller,
-                        domain, user, password, lmhash, nthash).split('\\')[0]
+                with Misc(domain_controller, domain, user, password, lmhash, nthash) as misc_requester:
+                    domain_sid = misc_requester.get_domainsid()
+                    domain_short_name = misc_requester.convert_sidtont4(domain_sid).split('\\')[0]
         elif target_server:
             with NetRequester(target_server, domain, user, password, lmhash,
                               nthash, domain_controller) as target_server_requester:

@@ -22,7 +22,7 @@ from impacket.dcerpc.v5.rpcrt import DCERPCException
 from impacket.dcerpc.v5 import scmr, drsuapi
 
 from pywerview.requester import LDAPRPCRequester
-from pywerview.functions.net import NetRequester
+import pywerview.functions.net
 
 class Misc(LDAPRPCRequester):
     def _get_netfqdn(self):
@@ -60,8 +60,8 @@ class Misc(LDAPRPCRequester):
 
     def get_domainsid(self, queried_domain=str()):
 
-        with NetRequester(self._domain_controller, self._domain, self._user,
-                          self._password, self._lmhash, self._nthash) as r:
+        with pywerview.functions.net.NetRequester(self._domain_controller, self._domain, self._user,
+                                                  self._password, self._lmhash, self._nthash) as r:
             domain_controllers = r.get_netdomaincontroller(queried_domain=queried_domain)
 
         if domain_controllers:

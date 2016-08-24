@@ -24,29 +24,18 @@ from pywerview.requester import LDAPRequester
 
 class GPORequester(LDAPRequester):
 
+    @LDAPRequester._ldap_connection_init
     def get_netgpo(self, queried_gponame='*', queried_displayname=str(),
                    queried_domain=str(), ads_path=str()):
 
-        self._create_ldap_connection(queried_domain=queried_domain, ads_path=ads_path)
-
-        gpo_search_filter = ldapasn1.Filter()
-        gpo_search_filter['and'] = ldapasn1.And()
-
-        gpo_filter = LDAPRequester._build_equality_match_filter('objectCategory', 'groupPolicyContainer')
-        gpo_search_filter['and'][0] = gpo_filter
+        gpo_search_filter = '(objectCategory=groupPolicyContainer)'
 
         if queried_displayname:
-            if '*' in queried_displayname:
-                displayname_filter = LDAPRequester._build_substrings_filter('displayname', queried_displayname)
-            else:
-                displayname_filter = LDAPRequester._build_equality_match_filter('displayname', queried_displayname)
-            gpo_search_filter['and'][gpo_search_filter['and']._componentValuesSet] = displayname_filter
+            gpo_search_filter += '(displayname={})'.format(queried_displayname)
         else:
-            if '*' in queried_gponame:
-                gponame_filter = LDAPRequester._build_substrings_filter('displayname', queried_gponame)
-            else:
-                gponame_filter = LDAPRequester._build_equality_match_filter('displayname', queried_gponame)
-            gpo_search_filter['and'][gpo_search_filter['and']._componentValuesSet] = gponame_filter
+            gpo_search_filter += '(name={})'.format(queried_gponame)
+
+        gpo_search_filter = '(&{})'.format(gpo_search_filter)
 
         return self._ldap_search(gpo_search_filter, GPO)
 

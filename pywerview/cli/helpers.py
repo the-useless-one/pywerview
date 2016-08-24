@@ -20,20 +20,23 @@
 
 from pywerview.functions.net import NetRequester
 from pywerview.functions.gpo import GPORequester
+from pywerview.functions.misc import Misc
 
 def get_adobject(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), queried_domain=str(), queried_sid=str(),
-                queried_name=str(), queried_sam_account_name=str(), ads_path=str()):
+                queried_name=str(), queried_sam_account_name=str(), ads_path=str(),
+                custom_filter=str()):
 	requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
 	return requester.get_adobject(queried_domain=queried_domain,
                     queried_sid=queried_sid, queried_name=queried_name,
-                    queried_sam_account_name=queried_sam_account_name, ads_path=ads_path)
+                    queried_sam_account_name=queried_sam_account_name,
+                    ads_path=ads_path, custom_filter=custom_filter)
 
 def get_netuser(domain_controller, domain, user, password=str(), lmhash=str(),
                 nthash=str(), queried_username=str(), queried_domain=str(), ads_path=str(),
                 admin_count=False, spn=False, unconstrained=False, allow_delegation=False,
-                custom_filter=None):
+                custom_filter=str()):
 	requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
 	return requester.get_netuser(queried_username=queried_username,
@@ -44,7 +47,7 @@ def get_netuser(domain_controller, domain, user, password=str(), lmhash=str(),
 def get_netgroup(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), queried_groupname='*', queried_sid=str(),
                 queried_username=str(), queried_domain=str(), ads_path=str(),
-                admin_count=False, full_data=False, custom_filter=None):
+                admin_count=False, full_data=False, custom_filter=str()):
 	requester = NetRequester(domain_controller, domain, user, password,
                                 lmhash, nthash)
 	return requester.get_netgroup(queried_groupname=queried_groupname,
@@ -56,7 +59,7 @@ def get_netcomputer(domain_controller, domain, user, password=str(),
                     lmhash=str(), nthash=str(), queried_computername='*', queried_spn=str(),
                     queried_os=str(), queried_sp=str(), queried_domain=str(), ads_path=str(),
                     printers=False, unconstrained=False, ping=False, full_data=False,
-                    custom_filter=None):
+                    custom_filter=str()):
 	requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
 	return requester.get_netcomputer(queried_computername=queried_computername,
@@ -114,12 +117,14 @@ def get_netsubnet(domain_controller, domain, user, password=str(),
 def get_netgroupmember(domain_controller, domain, user, password=str(),
                        lmhash=str(), nthash=str(), queried_groupname=str(), queried_sid=str(),
                        queried_domain=str(), ads_path=str(), recurse=False, use_matching_rule=False,
-                       full_data=False):
+                       full_data=False, custom_filter=str()):
 	requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
 	return requester.get_netgroupmember(queried_groupname=queried_groupname,
-                                            queried_sid=queried_sid, queried_domain=queried_domain, ads_path=ads_path,
-                                            recurse=recurse, use_matching_rule=use_matching_rule, full_data=full_data)
+                                            queried_sid=queried_sid, queried_domain=queried_domain,
+                                            ads_path=ads_path, recurse=recurse,
+                                            use_matching_rule=use_matching_rule,
+                                            full_data=full_data, custom_filter=custom_filter)
 
 def get_netsession(target_computername, domain, user, password=str(),
                    lmhash=str(), nthash=str()):
@@ -167,3 +172,9 @@ def get_netgpo(domain_controller, domain, user, password=str(),
         return requester.get_netgpo(queried_gponame=queried_gponame,
                                     queried_displayname=queried_displayname,
                                     queried_domain=queried_domain, ads_path=ads_path)
+
+def invoke_checklocaladminaccess(target_computername, domain, user, password=str(),
+                                 lmhash=str(), nthash=str()):
+    misc = Misc(target_computername, domain, user, password, lmhash, nthash)
+
+    return misc.invoke_checklocaladminaccess()
