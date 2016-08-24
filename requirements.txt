@@ -1,5 +1,2 @@
 impacket>=0.9.16
-pyasn1
-pycrypto
 bs4
-pyopenssl
