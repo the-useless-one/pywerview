@@ -79,7 +79,8 @@ class LDAPRequester():
 
     def _ldap_search(self, search_filter, class_result, attributes=list()):
         results = list()
-        paged_search_control = ldapasn1.SimplePagedResultsControl()
+        paged_search_control = ldapasn1.SimplePagedResultsControl(criticality=True,
+                                                                   size=1000)
         try:
             search_results = self._ldap_connection.search(searchFilter=search_filter,
                                                           searchControls=[paged_search_control],
