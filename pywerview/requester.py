@@ -79,8 +79,10 @@ class LDAPRequester():
 
     def _ldap_search(self, search_filter, class_result, attributes=list()):
         results = list()
+        paged_search_control = ldapasn1.SimplePagedResultsControl()
         try:
             search_results = self._ldap_connection.search(searchFilter=search_filter,
+                                                          searchControls=[paged_search_control],
                                                           attributes=attributes)
         except ldap.LDAPSearchError as e:
             # If we got a "size exceeded" error, we get the partial results
@@ -114,48 +116,6 @@ class LDAPRequester():
                                                  ads_path=ads_path, ads_prefix=ads_prefix)
             return f(*args, **kwargs)
         return wrapper
-
-    @staticmethod
-    def _build_extensible_match_filter(matching_rule, match_type, match_value):
-        f = ldapasn1.Filter()
-        f['extensibleMatch'] = ldapasn1.MatchingRuleAssertion()
-        f['extensibleMatch']['matchingRule'] = ldapasn1.MatchingRuleId(matching_rule)
-        f['extensibleMatch']['type'] = ldapasn1.TypeDescription(match_type)
-        f['extensibleMatch']['matchValue'] = ldapasn1.matchValueAssertion(match_value)
-        f['extensibleMatch']['dnAttributes'] = False
-
-        return f
-
-    @staticmethod
-    def _build_equality_match_filter(attribute_desc, attribute_value):
-        f = ldapasn1.Filter()
-        f['equalityMatch'] = ldapasn1.EqualityMatch()
-        f['equalityMatch']['attributeDesc'] = ldapasn1.AttributeDescription(attribute_desc)
-        f['equalityMatch']['assertionValue'] = ldapasn1.AssertionValue(attribute_value)
-
-        return f
-
-    @staticmethod
-    def _build_substrings_filter(attribute_desc, attribute_value):
-        f = ldapasn1.Filter()
-
-        if attribute_value == '*':
-            f['present'] = ldapasn1.Present(attribute_desc)
-        else:
-            substrings = attribute_value.split('*')
-            f['substrings'] = ldapasn1.SubstringFilter()
-            f['substrings']['type'] = ldapasn1.AttributeDescription(attribute_desc)
-            f['substrings']['substrings'] = ldapasn1.SubStrings()
-            offset = 0
-            if substrings[0]:
-                f['substrings']['substrings'][0] = ldapasn1.SubString().setComponentByName('initial', ldapasn1.InitialAssertion(substrings[0]))
-                offset = 1
-            for i, substring in enumerate(substrings[1:-1]):
-                f['substrings']['substrings'][i+offset] = ldapasn1.SubString().setComponentByName('any', ldapasn1.AnyAssertion(substring))
-            if substrings[-1]:
-                f['substrings']['substrings'][len(substrings)-2+offset] = ldapasn1.SubString().setComponentByName('final', ldapasn1.FinalAssertion(substrings[-1]))
-
-        return f
 
     def __enter__(self):
         self._create_ldap_connection()
