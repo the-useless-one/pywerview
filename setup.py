@@ -5,6 +5,7 @@ from setuptools import setup, find_packages
 setup(name='pywerview',
     version='1.0-dev',
     description='A Python port of PowerSploit\'s PowerView',
+    dependency_links = ['https://github.com/CoreSecurity/impacket/tarball/master#egg=impacket-0.9.16dev']
     classifiers=[
         'Programming Language :: Python :: 2.7',
     ],
@@ -17,7 +18,7 @@ setup(name='pywerview',
         "pywerview", "pywerview.*"
     ]),
     install_requires=[
-        'impacket>=0.9.16',
+        'impacket>=0.9.16dev',
         'pyasn1',
         'pycrypto',
         'pyopenssl',
