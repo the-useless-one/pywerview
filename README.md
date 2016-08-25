@@ -56,7 +56,7 @@ For example, my domain name is `uselessdomain.local`. The Win2K compatible name
 is `USELESSDOMAIN`. In every command,  I must use __`uselessdomain.local`__ as
 an argument, and __not__ `USELESSDOMAIN`.
 
-Take a loot at the [wiki](https://github.com/the-useless-one/pywerview/wiki) to
+Take a look at the [wiki](https://github.com/the-useless-one/pywerview/wiki) to
 see the list of available commands.
 
 ## TODO
