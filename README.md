@@ -11,6 +11,10 @@ A (partial) Python rewriting of [PowerSploit](https://github.com/PowerShellMafia
 
 Fork me on [GitHub](https://github.com/the-useless-one/pywerview).
 
+![License](https://img.shields.io/pypi/l/pywerview.svg?maxAge=2592000)
+![Python versions](https://img.shields.io/pypi/pyversions/pywerview.svg?maxAge=2592000)
+[![PyPI version](https://img.shields.io/pypi/v/pywerview.svg?maxAge=2592000)](https://pypi.python.org/pypi/pywerview)
+
 ## HISTORY
 
 As a pentester, I love using PowerView during my assignments. It makes it so
@@ -49,6 +53,9 @@ Also, blah blah blah, don't use it for evil purposes.
 
 ## USAGE
 
+Take a look at the [wiki](https://github.com/the-useless-one/pywerview/wiki) to
+see the list of available commands.
+
 *Attention:* in every command, the used domain name must be the post-Win2k UPN,
 and not the Win2k compatible name.
 
@@ -56,8 +63,8 @@ For example, my domain name is `uselessdomain.local`. The Win2K compatible name
 is `USELESSDOMAIN`. In every command,  I must use __`uselessdomain.local`__ as
 an argument, and __not__ `USELESSDOMAIN`.
 
-Take a look at the [wiki](https://github.com/the-useless-one/pywerview/wiki) to
-see the list of available commands.
+If you like living on the bleeding edge, check out the
+[development branch](https://github.com/the-useless-one/pywerview/tree/develop).
 
 ## TODO
 
