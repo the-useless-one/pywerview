@@ -49,6 +49,9 @@ Also, blah blah blah, don't use it for evil purposes.
 
 ## USAGE
 
+Take a look at the [wiki](https://github.com/the-useless-one/pywerview/wiki) to
+see the list of available commands.
+
 *Attention:* in every command, the used domain name must be the post-Win2k UPN,
 and not the Win2k compatible name.
 
@@ -56,8 +59,8 @@ For example, my domain name is `uselessdomain.local`. The Win2K compatible name
 is `USELESSDOMAIN`. In every command,  I must use __`uselessdomain.local`__ as
 an argument, and __not__ `USELESSDOMAIN`.
 
-Take a look at the [wiki](https://github.com/the-useless-one/pywerview/wiki) to
-see the list of available commands.
+If you like living on the bleeding edge, check out the
+[development branch](https://github.com/the-useless-one/pywerview/tree/develop).
 
 ## TODO
 
