@@ -3,17 +3,20 @@
 from setuptools import setup, find_packages
 
 setup(name='pywerview',
-    version='1.0-dev',
+    version='0.1.0-dev',
     description='A Python port of PowerSploit\'s PowerView',
-    dependency_links = ['https://github.com/CoreSecurity/impacket/tarball/master#egg=impacket-0.9.16dev']
+    dependency_links = ['https://github.com/CoreSecurity/impacket/tarball/master#egg=impacket-0.9.16dev'],
     classifiers=[
+        'Environment :: Console',
+        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
         'Programming Language :: Python :: 2.7',
+        'Topic :: Security',
     ],
-    keywords='python powersploit pentesting',
+    keywords='python powersploit pentesting recon active directory windows',
     url='https://github.com/the-useless-one/pywerview',
     author='Yannick Méheut',
     author_email='yannick@meheut.org',
-    license='GNU',
+    license='GNU GPLv3',
     packages=find_packages(include=[
         "pywerview", "pywerview.*"
     ]),
