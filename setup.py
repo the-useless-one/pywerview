@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='pywerview',
-    version='0.1.0-dev',
+    version='0.2.0-dev',
     description='A Python port of PowerSploit\'s PowerView',
     dependency_links = ['https://github.com/CoreSecurity/impacket/tarball/master#egg=impacket-0.9.16dev'],
     classifiers=[
