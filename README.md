@@ -11,8 +11,9 @@ A (partial) Python rewriting of [PowerSploit](https://github.com/PowerShellMafia
 
 Fork me on [GitHub](https://github.com/the-useless-one/pywerview).
 
-![License](https://img.shields.io/pypi/l/pywerview.svg?maxAge=2592000)
+![License](https://img.shields.io/github/license/the-useless-one/pywerview.svg?maxAge=2592000)
 ![Python versions](https://img.shields.io/pypi/pyversions/pywerview.svg?maxAge=2592000)
+[![GitHub release](https://img.shields.io/github/release/the-useless-one/pywerview.svg?maxAge=2592000&label=GitHub%20release)](https://github.com/the-useless-one/pywerview/releases/latest)
 [![PyPI version](https://img.shields.io/pypi/v/pywerview.svg?maxAge=2592000)](https://pypi.python.org/pypi/pywerview)
 
 ## HISTORY
