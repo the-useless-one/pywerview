@@ -165,6 +165,12 @@ def get_netlocalgroup(target_computername, domain_controller, domain, user,
 	return requester.get_netlocalgroup(queried_groupname=queried_groupname,
                                            list_groups=list_groups, recurse=recurse)
 
+def get_netprocess(target_computername, domain, user, password=str(),
+                   lmhash=str(), nthash=str()):
+	requester = NetRequester(target_computername, domain, user, password,
+                                 lmhash, nthash)
+	return requester.get_netprocess()
+
 def get_netgpo(domain_controller, domain, user, password=str(),
                lmhash=str(), nthash=str(), queried_gponame='*',
                queried_displayname=str(), queried_domain=str(), ads_path=str()):

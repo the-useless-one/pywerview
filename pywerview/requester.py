@@ -22,6 +22,9 @@ import socket
 from impacket.ldap import ldap, ldapasn1
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
+from impacket.dcerpc.v5.dcom import wmi
+from impacket.dcerpc.v5.dtypes import NULL
+from impacket.dcerpc.v5.dcomrt import DCOMConnection
 
 class LDAPRequester():
     def __init__(self, domain_controller, domain=str(), user=(), password=str(),
@@ -140,8 +143,11 @@ class RPCRequester():
         self._nthash = nthash
         self._pipe = None
         self._rpc_connection = None
+        self._dcom = None
+        self._wmi_connection = None
 
     def _create_rpc_connection(self, pipe):
+        # Here we build the DCE/RPC connection
         self._pipe = pipe
 
         binding_strings = dict()
@@ -176,12 +182,22 @@ class RPCRequester():
 
         self._rpc_connection = dce
 
+        # Here we build the WMI connection
+        self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
+                                    self._domain, self._lmhash, self._nthash)
+        i_interface = self._dcom.CoCreateInstanceEx(wmi.CLSID_WbemLevel1Login,
+                                                    wmi.IID_IWbemLevel1Login)
+        i_wbem_level1_login = wmi.IWbemLevel1Login(i_interface)
+        self._wmi_connection = i_wbem_level1_login.NTLMLogin('\\\\{}\\root\\cimv2'.format(self._target_computer),
+                                                             NULL, NULL)
+
     @staticmethod
-    def _rpc_connection_init(pipe):
+    def _rpc_connection_init(pipe=r'\srvsvc'):
         def decorator(f):
             def wrapper(*args, **kwargs):
                 instance = args[0]
-                if (not instance._rpc_connection) or (pipe != instance._pipe):
+                if (not instance._rpc_connection) or (pipe != instance._pipe) or \
+                   (not instance._wmi_connection):
                     if instance._rpc_connection:
                         instance._rpc_connection.disconnect()
                     instance._create_rpc_connection(pipe=pipe)

@@ -50,7 +50,7 @@ def main():
             required=True, help='IP address of the computer target')
 
     # Parser for the get-adobject command
-    get_adobject_parser= subparsers.add_parser('get-adobject', help='Takes a domain SID, '\
+    get_adobject_parser = subparsers.add_parser('get-adobject', help='Takes a domain SID, '\
         'samAccountName or name, and return the associated object', parents=[ad_parser])
     get_adobject_parser.add_argument('--sid', dest='queried_sid',
             help='SID to query (wildcards accepted)')
@@ -65,7 +65,7 @@ def main():
     get_adobject_parser.set_defaults(func=get_adobject)
 
     # Parser for the get-netuser command
-    get_netuser_parser= subparsers.add_parser('get-netuser', help='Queries information about '\
+    get_netuser_parser = subparsers.add_parser('get-netuser', help='Queries information about '\
         'a domain user', parents=[ad_parser])
     get_netuser_parser.add_argument('--username', dest='queried_username',
             help='Username to query (wildcards accepted)')
@@ -84,7 +84,7 @@ def main():
     get_netuser_parser.set_defaults(func=get_netuser)
 
     # Parser for the get-netgroup command
-    get_netgroup_parser= subparsers.add_parser('get-netgroup', help='Get a list of all current '\
+    get_netgroup_parser = subparsers.add_parser('get-netgroup', help='Get a list of all current '\
         'domain groups, or a list of groups a domain user is member of', parents=[ad_parser])
     get_netgroup_parser.add_argument('--groupname', dest='queried_groupname',
             default='*', help='Group to query (wildcards accepted)')
@@ -103,7 +103,7 @@ def main():
     get_netgroup_parser.set_defaults(func=get_netgroup)
 
     # Parser for the get-netcomputer command
-    get_netcomputer_parser= subparsers.add_parser('get-netcomputer', help='Queries informations about '\
+    get_netcomputer_parser = subparsers.add_parser('get-netcomputer', help='Queries informations about '\
         'domain computers', parents=[ad_parser])
     get_netcomputer_parser.add_argument('--computername', dest='queried_computername',
             default='*', help='Computer name to query')
@@ -128,14 +128,14 @@ def main():
     get_netcomputer_parser.set_defaults(func=get_netcomputer)
 
     # Parser for the get-netdomaincontroller command
-    get_netdomaincontroller_parser= subparsers.add_parser('get-netdomaincontroller', help='Get a list of '\
+    get_netdomaincontroller_parser = subparsers.add_parser('get-netdomaincontroller', help='Get a list of '\
         'domain controllers for the given domain', parents=[ad_parser])
     get_netdomaincontroller_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
     get_netdomaincontroller_parser.set_defaults(func=get_netdomaincontroller)
 
     # Parser for the get-netfileserver command
-    get_netfileserver_parser= subparsers.add_parser('get-netfileserver', help='Return a list of '\
+    get_netfileserver_parser = subparsers.add_parser('get-netfileserver', help='Return a list of '\
         'file servers, extracted from the domain users\' homeDirectory, scriptPath, and profilePath fields', parents=[ad_parser])
     get_netfileserver_parser.add_argument('--target-users', nargs='+',
             metavar='TARGET_USER', help='A list of users to target to find file servers (wildcards accepted)')
@@ -144,7 +144,7 @@ def main():
     get_netfileserver_parser.set_defaults(func=get_netfileserver)
 
     # Parser for the get-dfsshare command
-    get_dfsshare_parser= subparsers.add_parser('get-dfsshare', help='Return a list of '\
+    get_dfsshare_parser = subparsers.add_parser('get-dfsshare', help='Return a list of '\
         'all fault tolerant distributed file systems for a given domain', parents=[ad_parser])
     get_dfsshare_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
@@ -155,7 +155,7 @@ def main():
     get_dfsshare_parser.set_defaults(func=get_dfsshare)
 
     # Parser for the get-netou command
-    get_netou_parser= subparsers.add_parser('get-netou', help='Get a list of all current '\
+    get_netou_parser = subparsers.add_parser('get-netou', help='Get a list of all current '\
         'OUs in the domain', parents=[ad_parser])
     get_netou_parser.add_argument('--ouname', dest='queried_ouname',
             default='*', help='OU name to query (wildcards accepted)')
@@ -170,7 +170,7 @@ def main():
     get_netou_parser.set_defaults(func=get_netou)
 
     # Parser for the get-netsite command
-    get_netsite_parser= subparsers.add_parser('get-netsite', help='Get a list of all current '\
+    get_netsite_parser = subparsers.add_parser('get-netsite', help='Get a list of all current '\
         'sites in the domain', parents=[ad_parser])
     get_netsite_parser.add_argument('--sitename', dest='queried_sitename',
             help='Site name to query (wildcards accepted)')
@@ -185,7 +185,7 @@ def main():
     get_netsite_parser.set_defaults(func=get_netsite)
 
     # Parser for the get-netsubnet command
-    get_netsubnet_parser= subparsers.add_parser('get-netsubnet', help='Get a list of all current '\
+    get_netsubnet_parser = subparsers.add_parser('get-netsubnet', help='Get a list of all current '\
         'subnets in the domain', parents=[ad_parser])
     get_netsubnet_parser.add_argument('--sitename', dest='queried_sitename',
             help='Only return subnets for the specified site name (wildcards accepted)')
@@ -198,7 +198,7 @@ def main():
     get_netsubnet_parser.set_defaults(func=get_netsubnet)
 
     # Parser for the get-netgpo command
-    get_netgpo_parser= subparsers.add_parser('get-netgpo', help='Get a list of all current '\
+    get_netgpo_parser = subparsers.add_parser('get-netgpo', help='Get a list of all current '\
         'GPOs in the domain', parents=[ad_parser])
     get_netgpo_parser.add_argument('--gponame', dest='queried_gponame',
             default='*', help='GPO name to query for (wildcards accepted)')
@@ -211,7 +211,7 @@ def main():
     get_netgpo_parser.set_defaults(func=get_netgpo)
 
     # Parser for the get-netgroup command
-    get_netgroupmember_parser= subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain groups', parents=[ad_parser])
+    get_netgroupmember_parser = subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain groups', parents=[ad_parser])
     get_netgroupmember_parser.add_argument('--groupname', dest='queried_groupname',
             help='Group to query, defaults to the \'Domain Admins\' group (wildcards accepted)')
     get_netgroupmember_parser.add_argument('--sid', dest='queried_sid',
@@ -230,7 +230,7 @@ def main():
     get_netgroupmember_parser.set_defaults(func=get_netgroupmember)
 
     # Parser for the get-netsession command
-    get_netsession_parser= subparsers.add_parser('get-netsession', help='Queries a host to return a '\
+    get_netsession_parser = subparsers.add_parser('get-netsession', help='Queries a host to return a '\
         'list of active sessions on the host (you can use local credentials instead of domain credentials)', parents=[target_parser])
     get_netsession_parser.set_defaults(func=get_netsession)
 
@@ -245,18 +245,18 @@ def main():
     get_netdomain_parser.set_defaults(func=get_netdomain)
 
     # Parser for the get-netshare command
-    get_netshare_parser= subparsers.add_parser('get-netshare', help='Queries a host to return a '\
+    get_netshare_parser = subparsers.add_parser('get-netshare', help='Queries a host to return a '\
         'list of available shares on the host (you can use local credentials instead of domain credentials)', parents=[target_parser])
     get_netshare_parser.set_defaults(func=get_netshare)
 
     # Parser for the get-netloggedon command
-    get_netloggedon_parser= subparsers.add_parser('get-netloggedon', help='This function will '\
+    get_netloggedon_parser = subparsers.add_parser('get-netloggedon', help='This function will '\
         'execute the NetWkstaUserEnum RPC call ti query a given host for actively logged on '\
         'users', parents=[target_parser])
     get_netloggedon_parser.set_defaults(func=get_netloggedon)
 
     # Parser for the get-netlocalgroup command
-    get_netlocalgroup_parser= subparsers.add_parser('get-netlocalgroup', help='Gets a list of '\
+    get_netlocalgroup_parser = subparsers.add_parser('get-netlocalgroup', help='Gets a list of '\
         'members of a local group on a machine, or returns every local group. You can use local '\
         'credentials instead of domain credentials, however, domain credentials are needed to '\
         'resolve domain SIDs.', parents=[target_parser])
@@ -274,6 +274,12 @@ def main():
     invoke_checklocaladminaccess_parser = subparsers.add_parser('invoke-checklocaladminaccess', help='Checks '\
             'if the given user has local admin access on the given host', parents=[target_parser])
     invoke_checklocaladminaccess_parser.set_defaults(func=invoke_checklocaladminaccess)
+
+    # Parser for the get-netprocess command
+    get_netprocess_parser = subparsers.add_parser('get-netprocess', help='This function will '\
+        'execute the \'Select * from Win32_Process\' WMI query to a given host for a list of '\
+        'executed process', parents=[target_parser])
+    get_netprocess_parser.set_defaults(func=get_netprocess)
 
     # Parser for the invoke-userhunter command
     invoke_userhunter_parser = subparsers.add_parser('invoke-userhunter', help='Finds '\

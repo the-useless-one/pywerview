@@ -23,6 +23,7 @@ from impacket.dcerpc.v5.ndr import NULL
 from impacket.dcerpc.v5 import wkst, srvs, samr
 from impacket.dcerpc.v5.samr import DCERPCSessionError
 from impacket.dcerpc.v5.rpcrt import DCERPCException
+from impacket.dcerpc.v5.dcom.wmi import WBEM_FLAG_FORWARD_ONLY
 from bs4 import BeautifulSoup
 
 from pywerview.requester import LDAPRPCRequester
@@ -591,6 +592,32 @@ class NetRequester(LDAPRPCRequester):
                         except AttributeError:
                             domain_member_attributes['lastlogin'] = str()
                         results.append(rpcobj.RPCObject(domain_member_attributes))
+
+        return results
+
+    @LDAPRPCRequester._rpc_connection_init()
+    def get_netprocess(self):
+        results = list()
+        wmi_enum_process = self._wmi_connection.ExecQuery('SELECT Name,ProcessId from Win32_Process',
+                                                          lFlags=WBEM_FLAG_FORWARD_ONLY)
+        while True:
+            try:
+                # TODO: do we have to get them one by one?
+                wmi_process = wmi_enum_process.Next(0xffffffff, 1)[0]
+                wmi_process_owner = wmi_process.GetOwner()
+                attributes = {'computername': self._target_computer,
+                              'processname': wmi_process.Name,
+                              'processid': wmi_process.ProcessId,
+                              'user': wmi_process_owner.User,
+                              'domain': wmi_process_owner.Domain}
+
+                result_process = rpcobj.Process(attributes)
+                results.append(result_process)
+            except Exception, e:
+                if str(e).find('S_FALSE') < 0:
+                    raise e
+                else:
+                    break
 
         return results
 

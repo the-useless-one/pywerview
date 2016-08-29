@@ -29,9 +29,9 @@ class RPCObject:
                 attributes[key] = obj[key]
         except AttributeError:
             attributes = obj
-        self.add_atributes(attributes)
+        self.add_attributes(attributes)
 
-    def add_atributes(self, attributes):
+    def add_attributes(self, attributes):
         for key, value in attributes.items():
             #if isinstance(value, int):
                 #pass
@@ -74,4 +74,7 @@ class Group(RPCObject):
     pass
 
 class Disk(RPCObject):
+    pass
+
+class Process(RPCObject):
     pass
