@@ -229,8 +229,8 @@ class LDAPRPCRequester(LDAPRequester, RPCRequester):
         RPCRequester.__init__(self, target_computer, domain, user, password,
                                lmhash, nthash)
     def __enter__(self):
-        # If this LDAPRPCRequester is used to make RPC requests, this will raise
-        # and exception. We catch it and continue
+        # If this LDAPRPCRequester is used to make only RPC requests, this will
+        # raise and exception. We catch it and continue
         try:
             LDAPRequester.__enter__(self)
         except socket.error:
