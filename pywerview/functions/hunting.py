@@ -78,6 +78,9 @@ class Hunter(NetRequester):
         self._target_computers = list(set(self._target_computers))
         random.shuffle(self._target_computers)
 
+        if not self._target_computer:
+            raise ValueError('No computers to search against')
+
     def _build_target_users(self, queried_groupname=str(), target_server=str(),
                             queried_username=str(), queried_useradspath=str(),
                             queried_userfile=None, admin_count=False,
