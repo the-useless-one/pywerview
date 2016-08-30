@@ -598,7 +598,7 @@ class NetRequester(LDAPRPCRequester):
     @LDAPRPCRequester._rpc_connection_init()
     def get_netprocess(self):
         results = list()
-        wmi_enum_process = self._wmi_connection.ExecQuery('SELECT Name,ProcessId from Win32_Process',
+        wmi_enum_process = self._wmi_connection.ExecQuery('SELECT * from Win32_Process',
                                                           lFlags=WBEM_FLAG_FORWARD_ONLY)
         while True:
             try:
