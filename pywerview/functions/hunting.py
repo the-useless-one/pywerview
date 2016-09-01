@@ -176,7 +176,7 @@ class UserHunter(Hunter):
     def invoke_userhunter(self, queried_computername=list(), queried_computerfile=None,
             queried_computerfilter=str(), queried_computeradspath=str(),
             unconstrained=False, queried_groupname=str(), target_server=str(),
-            queried_username=str(), queried_userfileter=str(), queried_useradspath=str(),
+            queried_username=str(), queried_userfilter=str(), queried_useradspath=str(),
             queried_userfile=None, threads=1, admin_count=False, allow_delegation=False,
             stop_on_success=False, check_access=False, queried_domain=str(), stealth=False,
             stealth_source=['dfs', 'dc', 'file'], show_all=False, foreign_users=False):
