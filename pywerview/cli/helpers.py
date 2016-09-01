@@ -21,7 +21,7 @@
 from pywerview.functions.net import NetRequester
 from pywerview.functions.gpo import GPORequester
 from pywerview.functions.misc import Misc
-from pywerview.functions.hunting import UserHunter
+from pywerview.functions.hunting import UserHunter, ProcessHunter
 
 def get_adobject(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), queried_domain=str(), queried_sid=str(),
@@ -188,24 +188,51 @@ def invoke_checklocaladminaccess(target_computername, domain, user, password=str
 
 def invoke_userhunter(domain_controller, domain, user, password=str(),
                       lmhash=str(), nthash=str(), queried_computername=list(),
-                      queried_computerfile=None, queried_computeradspath=str(),
-                      unconstrained=False, queried_groupname=str(), target_server=str(),
-                      queried_username=str(), queried_useradspath=str(), queried_userfile=None,
+                      queried_computerfile=None, queried_computerfilter=str(),
+                      queried_computeradspath=str(), unconstrained=False,
+                      queried_groupname=str(), target_server=str(),
+                      queried_username=str(), queried_useradspath=str(),
+                      queried_userfilter=str(), queried_userfile=None,
                       threads=1, admin_count=False, allow_delegation=False,
-                      stop_on_success=False, check_access=False, queried_domain=str(), stealth=False,
-                      stealth_source=['dfs', 'dc', 'file'], show_all=False, foreign_users=False):
+                      stop_on_success=False, check_access=False, queried_domain=str(),
+                      stealth=False, stealth_source=['dfs', 'dc', 'file'],
+                      show_all=False, foreign_users=False):
     user_hunter = UserHunter(domain_controller, domain, user, password,
                              lmhash, nthash)
     
     return user_hunter.invoke_userhunter(queried_computername=queried_computername,
                                          queried_computerfile=queried_computerfile,
+                                         queried_computerfilter=queried_computerfilter,
                                          queried_computeradspath=queried_computeradspath,
                                          unconstrained=unconstrained, queried_groupname=queried_groupname,
                                          target_server=target_server, queried_username=queried_username,
+                                         queried_userfilter=queried_userfilter,
                                          queried_useradspath=queried_useradspath, queried_userfile=queried_userfile,
                                          threads=threads, admin_count=admin_count,
                                          allow_delegation=allow_delegation, stop_on_success=stop_on_success,
                                          check_access=check_access, queried_domain=queried_domain, stealth=stealth,
                                          stealth_source=stealth_source, show_all=show_all,
                                          foreign_users=foreign_users)
+
+def invoke_processhunter(domain_controller, domain, user, password=str(),
+                         lmhash=str(), nthash=str(), queried_computername=list(),
+                         queried_computerfile=None, queried_computerfilter=str(),
+                         queried_computeradspath=str(), queried_processname=list(),
+                         queried_groupname=str(), target_server=str(),
+                         queried_username=str(), queried_useradspath=str(),
+                         queried_userfilter=str(), queried_userfile=None, threads=1,
+                         stop_on_success=False, queried_domain=str(), show_all=False):
+    process_hunter = ProcessHunter(domain_controller, domain, user, password,
+                                   lmhash, nthash)
+
+    return process_hunter.invoke_processhunter(queried_computername=queried_computername,
+                                               queried_computerfile=queried_computerfile,
+                                               queried_computerfilter=queried_computerfilter,
+                                               queried_computeradspath=queried_computeradspath,
+                                               queried_processname=queried_processname,
+                                               queried_groupname=queried_groupname,
+                                               target_server=target_server, queried_username=queried_username,
+                                               queried_useradspath=queried_useradspath, queried_userfile=queried_userfile,
+                                               threads=threads, stop_on_success=stop_on_success,
+                                               queried_domain=queried_domain, show_all=show_all)
 

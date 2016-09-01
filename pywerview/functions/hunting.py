@@ -24,7 +24,7 @@ import select
 import pywerview.objects.rpcobjects as rpcobj
 from pywerview.functions.net import NetRequester
 from pywerview.functions.misc import Misc
-from pywerview.worker.hunting import UserHunterWorker
+from pywerview.worker.hunting import UserHunterWorker, ProcessHunterWorker
 
 class Hunter(NetRequester):
     def __init__(self, target_computer, domain=str(), user=(), password=str(),
@@ -82,9 +82,10 @@ class Hunter(NetRequester):
             raise ValueError('No computers to search against')
 
     def _build_target_users(self, queried_groupname=str(), target_server=str(),
-                            queried_username=str(), queried_useradspath=str(),
-                            queried_userfile=None, admin_count=False,
-                            allow_delegation=False, show_all=False, foreign_users=False):
+                            queried_username=str(), queried_userfilter=str(),
+                            queried_useradspath=str(), queried_userfile=None,
+                            admin_count=False, allow_delegation=False,
+                            show_all=False, foreign_users=False):
         if show_all or foreign_users:
             attributes = {'memberdomain': str(), 'membername': str()}
             self._target_users.append(rpcobj.TargetUser(attributes))
@@ -111,9 +112,10 @@ class Hunter(NetRequester):
             attributes['memberdomain'] = self._target_domains[0]
 
             self._target_users.append(rpcobj.TargetUser(attributes))
-        elif queried_useradspath or admin_count or allow_delegation:
+        elif queried_useradspath or queried_userfilter or admin_count or allow_delegation:
             for target_domain in self._target_domains:
                 for x in self.get_netuser(ads_path=queried_useradspath,
+                                          custom_filter=queried_userfilter,
                                           admin_count=admin_count,
                                           allow_delegation=allow_delegation,
                                           queried_domain=target_domain):
@@ -174,9 +176,9 @@ class UserHunter(Hunter):
     def invoke_userhunter(self, queried_computername=list(), queried_computerfile=None,
             queried_computerfilter=str(), queried_computeradspath=str(),
             unconstrained=False, queried_groupname=str(), target_server=str(),
-            queried_username=str(), queried_useradspath=str(), queried_userfile=None,
-            threads=1, admin_count=False, allow_delegation=False, stop_on_success=False,
-            check_access=False, queried_domain=str(), stealth=False,
+            queried_username=str(), queried_userfileter=str(), queried_useradspath=str(),
+            queried_userfile=None, threads=1, admin_count=False, allow_delegation=False,
+            stop_on_success=False, check_access=False, queried_domain=str(), stealth=False,
             stealth_source=['dfs', 'dc', 'file'], show_all=False, foreign_users=False):
 
         self._build_target_domains(queried_domain)
@@ -191,6 +193,7 @@ class UserHunter(Hunter):
         self._build_target_users(queried_groupname=queried_groupname,
                                  target_server=target_server,
                                  queried_username=queried_username,
+                                 queried_userfilter=queried_userfilter,
                                  queried_useradspath=queried_useradspath,
                                  queried_userfile=queried_userfile,
                                  admin_count=admin_count, allow_delegation=allow_delegation,
@@ -206,5 +209,33 @@ class UserHunter(Hunter):
         self._build_workers(threads, UserHunterWorker, (foreign_users, stealth,
                                                         self._target_users,
                                                         domain_short_name, check_access))
+        return self._process_workers()
+
+class ProcessHunter(Hunter):
+    def invoke_processhunter(self, queried_computername=list(), queried_computerfile=None,
+            queried_computerfilter=str(), queried_computeradspath=str(),
+            queried_processname=list(), queried_groupname=str(), target_server=str(),
+            queried_username=str(), queried_userfilter=str(), queried_useradspath=str(),
+            queried_userfile=None, threads=1, stop_on_success=False, queried_domain=str(),
+            show_all=False):
+
+        self._build_target_domains(queried_domain)
+
+        self._build_target_computers(queried_computername=queried_computername,
+                                     queried_computerfile=queried_computerfile,
+                                     queried_computerfilter=queried_computerfilter,
+                                     queried_computeradspath=queried_computeradspath)
+
+        self._build_target_users(queried_groupname=queried_groupname,
+                                 target_server=target_server,
+                                 queried_username=queried_username,
+                                 queried_userfilter=queried_userfilter,
+                                 queried_useradspath=queried_useradspath,
+                                 queried_userfile=queried_userfile,
+                                 show_all=show_all)
+
+        self._build_workers(threads, ProcessHunterWorker, (queried_processname,
+                                                        self._target_users))
+
         return self._process_workers()
 

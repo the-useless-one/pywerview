@@ -110,3 +110,29 @@ class UserHunterWorker(HunterWorker):
 
         return results
 
+class ProcessHunterWorker(HunterWorker):
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, process_name,
+                 target_users):
+        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash)
+        self._process_name = process_name
+        self._target_users = target_users
+
+    def _hunt(self, target_computer):
+        results = list()
+
+        distant_processes = list()
+        with NetRequester(target_computer, self._domain, self._user, self._password,
+                          self._lmhash, self._nthash) as net_requester:
+            distant_processes = net_requester.get_netprocess()
+
+        for process in distant_processes:
+            if self._process_name:
+                for process_name in self._process_name:
+                    if process_name.lower() in process.processname.lower():
+                        results.append(process)
+            elif self._target_users:
+                for target_user in self._target_users:
+                    if target_user.membername.lower() in process.user.lower():
+                        results.append(process)
+
+        return results

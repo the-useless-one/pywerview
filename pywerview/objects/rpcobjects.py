@@ -77,4 +77,8 @@ class Disk(RPCObject):
     pass
 
 class Process(RPCObject):
-    pass
+    def __init__(self, obj):
+        RPCObject.__init__(self, obj)
+        self.user = str(self.user)
+        self.domain = str(self.domain)
+

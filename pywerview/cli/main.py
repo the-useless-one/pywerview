@@ -288,6 +288,8 @@ def main():
             nargs='+', default=list(), help='Host to enumerate against')
     invoke_userhunter_parser.add_argument('--computerfile', dest='queried_computerfile',
             type=argparse.FileType('r'), help='File of hostnames/IPs to search')
+    invoke_userhunter_parser.add_argument('--computer-filter', dest='queried_computerfilter',
+            type=str, help='Custom filter used to search computers against the DC')
     invoke_userhunter_parser.add_argument('--computer-adspath', dest='queried_computeradspath',
             type=str, help='ADS path used to search computers against the DC')
     invoke_userhunter_parser.add_argument('--unconstrained', action='store_true',
@@ -298,6 +300,8 @@ def main():
             help='Hunt for users who are effective local admins on this target server')
     invoke_userhunter_parser.add_argument('--username', dest='queried_username',
             help='Hunt for a specific user name')
+    invoke_userhunter_parser.add_argument('--user-filter', dest='queried_userfilter',
+            type=str, help='Custom filter used to search users against the DC')
     invoke_userhunter_parser.add_argument('--user-adspath', dest='queried_useradspath',
             type=str, help='ADS path used to search users against the DC')
     invoke_userhunter_parser.add_argument('--userfile', dest='queried_userfile',
@@ -326,6 +330,41 @@ def main():
     invoke_userhunter_parser.add_argument('--foreign-users', action='store_true',
             help='Only return users that are not part of the searched domain')
     invoke_userhunter_parser.set_defaults(func=invoke_userhunter)
+
+    # Parser for the invoke-processhunter command
+    invoke_processhunter_parser = subparsers.add_parser('invoke-processhunter', help='Searches machines'\
+            'for processes with specific name, or ran by specific users', parents=[ad_parser])
+    invoke_processhunter_parser.add_argument('--computername', dest='queried_computername',
+            nargs='+', default=list(), help='Host to enumerate against')
+    invoke_processhunter_parser.add_argument('--computerfile', dest='queried_computerfile',
+            type=argparse.FileType('r'), help='File of hostnames/IPs to search')
+    invoke_processhunter_parser.add_argument('--computer-filter', dest='queried_computerfilter',
+            type=str, help='Custom filter used to search computers against the DC')
+    invoke_processhunter_parser.add_argument('--computer-adspath', dest='queried_computeradspath',
+            type=str, help='ADS path used to search computers against the DC')
+    invoke_processhunter_parser.add_argument('--processname', dest='queried_processname',
+            nargs='+', default=list(), help='Names of the process to hunt')
+    invoke_processhunter_parser.add_argument('--groupname', dest='queried_groupname',
+            help='Group name to query for target users')
+    invoke_processhunter_parser.add_argument('--targetserver', dest='target_server',
+            help='Hunt for users who are effective local admins on this target server')
+    invoke_processhunter_parser.add_argument('--username', dest='queried_username',
+            help='Hunt for a specific user name')
+    invoke_processhunter_parser.add_argument('--user-filter', dest='queried_userfilter',
+            type=str, help='Custom filter used to search users against the DC')
+    invoke_processhunter_parser.add_argument('--user-adspath', dest='queried_useradspath',
+            type=str, help='ADS path used to search users against the DC')
+    invoke_processhunter_parser.add_argument('--userfile', dest='queried_userfile',
+            type=argparse.FileType('r'), help='File of user names to target')
+    invoke_processhunter_parser.add_argument('--threads', type=int,
+            default=1, help='Number of threads to use (default: %(default)s)')
+    invoke_processhunter_parser.add_argument('--stop-on-success', action='store_true',
+            help='Stop hunting after finding target user')
+    invoke_processhunter_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query for machines')
+    invoke_processhunter_parser.add_argument('--show-all', action='store_true',
+            help='Return all user location results')
+    invoke_processhunter_parser.set_defaults(func=invoke_processhunter)
 
     args = parser.parse_args()
     if args.hashes:
