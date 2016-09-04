@@ -17,7 +17,11 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
+import codecs
+from StringIO import StringIO
+
 from impacket.ldap import ldapasn1
+from impacket.smbconnection import SMBConnection
 
 from pywerview.objects.adobjects import *
 from pywerview.requester import LDAPRequester
@@ -38,4 +42,35 @@ class GPORequester(LDAPRequester):
         gpo_search_filter = '(&{})'.format(gpo_search_filter)
 
         return self._ldap_search(gpo_search_filter, GPO)
+
+    def get_gpttmpl(self, gpttmpl_path):
+        content_io = StringIO()
+
+        gpttmpl_path_split = gpttmpl_path.split('\\')
+        target = gpttmpl_path_split[2]
+        share = gpttmpl_path_split[3]
+        file_name = '\\'.join(gpttmpl_path_split[4:])
+
+        smb_connection = SMBConnection(remoteName=target, remoteHost=target)
+        # TODO: kerberos login
+        smb_connection.login(self._user, self._password, self._domain,
+                             self._lmhash, self._nthash)
+
+        smb_connection.connectTree(share)
+        smb_connection.getFile(share, file_name, content_io.write)
+
+        content = codecs.decode(content_io.getvalue(), 'utf_16_le')[1:].replace('\r', '')
+
+        sections_final = dict()
+        for l in content.split('\n'):
+            if l.startswith('['):
+                section_name = l.strip('[]')
+                sections_final[section_name] = dict()
+            elif '=' in l:
+                property_name, property_values = [x.strip() for x in l.split('=')]
+                if ',' in property_values:
+                    property_values = property_values.split(',')
+                sections_final[section_name][property_name] =  property_values
+
+        return sections_final
 
