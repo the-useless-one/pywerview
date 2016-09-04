@@ -171,6 +171,14 @@ def get_netprocess(target_computername, domain, user, password=str(),
                                  lmhash, nthash)
 	return requester.get_netprocess()
 
+def get_userevent(target_computername, domain, user, password=str(),
+                   lmhash=str(), nthash=str(), event_type=['logon', 'tgt'],
+                   date_start=5):
+	requester = NetRequester(target_computername, domain, user, password,
+                                 lmhash, nthash)
+	return requester.get_userevent(event_type=event_type,
+                                       date_start=date_start)
+
 def get_netgpo(domain_controller, domain, user, password=str(),
                lmhash=str(), nthash=str(), queried_gponame='*',
                queried_displayname=str(), queried_domain=str(), ads_path=str()):

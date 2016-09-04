@@ -18,6 +18,7 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
 import socket
+import datetime
 from impacket.dcerpc.v5.ndr import NULL
 from impacket.dcerpc.v5 import wkst, srvs, samr
 from impacket.dcerpc.v5.samr import DCERPCSessionError
@@ -589,7 +590,6 @@ class NetRequester(LDAPRPCRequester):
 
     @LDAPRPCRequester._rpc_connection_init()
     def get_netprocess(self):
-        results = list()
         wmi_enum_process = self._wmi_connection.ExecQuery('SELECT * from Win32_Process',
                                                           lFlags=WBEM_FLAG_FORWARD_ONLY)
         while True:
@@ -604,12 +604,59 @@ class NetRequester(LDAPRPCRequester):
                               'domain': wmi_process_owner.Domain}
 
                 result_process = rpcobj.Process(attributes)
-                results.append(result_process)
+                yield result_process
             except Exception, e:
                 if str(e).find('S_FALSE') < 0:
                     raise e
                 else:
                     break
 
-        return results
+    @LDAPRPCRequester._rpc_connection_init()
+    def get_userevent(self, event_type=['logon', 'tgt'], date_start=5):
+        limit_date = (datetime.datetime.today() - datetime.timedelta(days=date_start)).strftime('%Y%m%d%H%M%S.%f-000')
+        if event_type == ['logon']:
+            where_clause = 'EventCode=4624'
+        elif event_type == ['tgt']:
+            where_clause = 'EventCode=4768'
+        else:
+            where_clause = '(EventCode=4624 OR EventCode=4768)'
+
+        wmi_enum_event = self._wmi_connection.ExecQuery('SELECT * from Win32_NTLogEvent where {}'\
+                                                        'and TimeGenerated >= \'{}\''.format(where_clause, limit_date),
+                                                        lFlags=WBEM_FLAG_FORWARD_ONLY)
+        while True:
+            try:
+                # TODO: do we have to get them one by one?
+                wmi_event = wmi_enum_event.Next(0xffffffff, 1)[0]
+                wmi_event_type = wmi_event.EventIdentifier
+                wmi_event_info = wmi_event.InsertionStrings
+                time = datetime.datetime.strptime(wmi_event.TimeGenerated, '%Y%m%d%H%M%S.%f-000')
+                if wmi_event_type == 4624:
+                    logon_type = int(wmi_event_info[8])
+                    user = wmi_event_info[5]
+                    domain = wmi_event_info[6]
+                    address = wmi_event_info[18]
+                    if logon_type not in [2, 3] or user.endswith('$') \
+                       or (user.lower == 'anonymous logon'):
+                        continue
+                else:
+                    logon_type = str()
+                    user = wmi_event_info[0]
+                    domain = wmi_event_info[1]
+                    address = wmi_event_info[9].replace('::ffff:', '')
+
+                attributes = {'computername': self._target_computer,
+                              'logontype': logon_type,
+                              'username': user,
+                              'domain': domain,
+                              'address': address,
+                              'time': time,
+                              'id': wmi_event_type}
+                result_event = rpcobj.Event(attributes)
+                yield result_event
+            except Exception, e:
+                if str(e).find('S_FALSE') < 0:
+                    raise e
+                else:
+                    break
 

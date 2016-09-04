@@ -82,3 +82,6 @@ class Process(RPCObject):
         self.user = str(self.user)
         self.domain = str(self.domain)
 
+class Event(RPCObject):
+    pass
+

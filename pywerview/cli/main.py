@@ -281,6 +281,16 @@ def main():
         'executed process', parents=[target_parser])
     get_netprocess_parser.set_defaults(func=get_netprocess)
 
+    # Parser for the get-userevent command
+    get_userevent_parser = subparsers.add_parser('get-userevent', help='This function will '\
+        'execute the \'Select * from Win32_Process\' WMI query to a given host for a list of '\
+        'executed process', parents=[target_parser])
+    get_userevent_parser.add_argument('--event-type', nargs='+', choices=['logon', 'tgt'],
+            default=['logon', 'tgt'], help='The type of event to search for: logon, tgt, or all (default: all)')
+    get_userevent_parser.add_argument('--date-start', type=int,
+            default=5, help='(Filter out events before this date (in days) default: %(default)s)')
+    get_userevent_parser.set_defaults(func=get_userevent)
+
     # Parser for the invoke-userhunter command
     invoke_userhunter_parser = subparsers.add_parser('invoke-userhunter', help='Finds '\
             'which machines domain users are logged into', parents=[ad_parser])
