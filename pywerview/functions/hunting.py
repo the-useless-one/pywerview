@@ -24,7 +24,7 @@ import select
 import pywerview.objects.rpcobjects as rpcobj
 from pywerview.functions.net import NetRequester
 from pywerview.functions.misc import Misc
-from pywerview.worker.hunting import UserHunterWorker, ProcessHunterWorker
+from pywerview.worker.hunting import UserHunterWorker, ProcessHunterWorker, EventHunterWorker
 
 class Hunter(NetRequester):
     def __init__(self, target_computer, domain=str(), user=(), password=str(),
@@ -235,7 +235,33 @@ class ProcessHunter(Hunter):
                                  show_all=show_all)
 
         self._build_workers(threads, ProcessHunterWorker, (queried_processname,
-                                                        self._target_users))
+                                                           self._target_users))
 
         return self._process_workers()
 
+class EventHunter(Hunter):
+    def invoke_eventhunter(self, queried_computername=list(), queried_computerfile=None,
+                           queried_computerfilter=str(), queried_computeradspath=str(),
+                           queried_groupname=str(), target_server=str(), queried_username=str(),
+                           queried_useradspath=str(), queried_userfilter=str(),
+                           queried_userfile=None, threads=1, queried_domain=str(),
+                           search_days=3):
+
+        self._build_target_domains(queried_domain)
+
+        self._build_target_computers(queried_computername=queried_computername,
+                                     queried_computerfile=queried_computerfile,
+                                     queried_computerfilter=queried_computerfilter,
+                                     queried_computeradspath=queried_computeradspath)
+
+        self._build_target_users(queried_groupname=queried_groupname,
+                                 target_server=target_server,
+                                 queried_username=queried_username,
+                                 queried_userfilter=queried_userfilter,
+                                 queried_useradspath=queried_useradspath,
+                                 queried_userfile=queried_userfile)
+
+        self._build_workers(threads, EventHunterWorker, (search_days,
+                                                         self._target_users))
+
+        return self._process_workers()

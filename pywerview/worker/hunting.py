@@ -136,3 +136,26 @@ class ProcessHunterWorker(HunterWorker):
                         results.append(process)
 
         return results
+
+class EventHunterWorker(HunterWorker):
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, search_days,
+                 target_users):
+        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash)
+        self._target_users = target_users
+        self._search_days = search_days
+
+    def _hunt(self, target_computer):
+        results = list()
+
+        distant_processes = list()
+        with NetRequester(target_computer, self._domain, self._user, self._password,
+                          self._lmhash, self._nthash) as net_requester:
+            distant_events = net_requester.get_userevent(date_start=self._search_days)
+
+        for event in distant_events:
+            if self._target_users:
+                for target_user in self._target_users:
+                    if target_user.membername.lower() in event.username.lower():
+                        results.append(event)
+
+        return results
