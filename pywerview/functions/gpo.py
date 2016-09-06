@@ -25,6 +25,7 @@ from impacket.smbconnection import SMBConnection
 
 from pywerview.objects.adobjects import *
 from pywerview.requester import LDAPRequester
+from pywerview.functions.net import NetRequester
 
 class GPORequester(LDAPRequester):
 
@@ -61,16 +62,69 @@ class GPORequester(LDAPRequester):
 
         content = codecs.decode(content_io.getvalue(), 'utf_16_le')[1:].replace('\r', '')
 
-        sections_final = dict()
+        gpttmpl_final = GptTmpl(list())
         for l in content.split('\n'):
             if l.startswith('['):
-                section_name = l.strip('[]')
-                sections_final[section_name] = dict()
+                section_name = l.strip('[]').replace(' ', '').lower()
+                setattr(gpttmpl_final, section_name, Policy(list()))
             elif '=' in l:
                 property_name, property_values = [x.strip() for x in l.split('=')]
                 if ',' in property_values:
                     property_values = property_values.split(',')
-                sections_final[section_name][property_name] =  property_values
+                setattr(getattr(gpttmpl_final, section_name), property_name, property_values)
 
-        return sections_final
+        return gpttmpl_final
+
+    def get_domainpolicy(self, source='domain', queried_domain=str(),
+                         resolve_sids=False):
+        if source == 'domain':
+            queried_gponame = '{31B2F340-016D-11D2-945F-00C04FB984F9}'
+        elif source == 'dc':
+            queried_gponame = '{6AC1786C-016F-11D2-945F-00C04FB984F9}'
+        gpo = self.get_netgpo(queried_domain=queried_domain, queried_gponame=queried_gponame)[0]
+
+        gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath)
+        gpttmpl = self.get_gpttmpl(gpttmpl_path)
+
+        if source == 'domain':
+            return gpttmpl
+        elif source == 'dc':
+            if not resolve_sids:
+                return gpttmpl
+            else:
+                import inspect
+                try:
+                    privilege_rights_policy = gpttmpl.privilegerights
+                except AttributeError:
+                    return gpttmpl
+
+                members = inspect.getmembers(privilege_rights_policy, lambda x: not(inspect.isroutine(x)))
+                with NetRequester(self._domain_controller, self._domain, self._user,
+                                  self._password, self._lmhash, self._nthash) as net_requester:
+                    for member in members:
+                        if member[0].startswith('_'):
+                            continue
+                        if not isinstance(member[1], list):
+                            sids = [member[1]]
+                        else:
+                            sids = member[1]
+                        resolved_sids = list()
+                        for sid in sids:
+                            try:
+                                resolved_sid = net_requester.get_adobject(queried_sid=sid)[0]
+                            except IndexError:
+                                resolved_sid = sid
+                            else:
+                                resolved_sid = resolved_sid.distinguishedname.split(',')[:2]
+                                resolved_sid = '{}\\{}'.format(resolved_sid[1], resolved_sid[0])
+                                resolved_sid = resolved_sid.replace('CN=', '')
+                                resolved_sids.append(resolved_sid)
+                        if len(resolved_sids) == 1:
+                            resolved_sids = resolved_sids[0]
+                        setattr(privilege_rights_policy, member[0], resolved_sids)
+
+                gpttmpl.privilegerights = privilege_rights_policy
+
+                return gpttmpl
+
 

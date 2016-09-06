@@ -118,3 +118,19 @@ class Subnet(ADObject):
 class GPO(ADObject):
     pass
 
+class GptTmpl(ADObject):
+    def __str__(self):
+        s = str()
+        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
+        for member in members:
+            if not member[0].startswith('_'):
+                s += '{}:\n'.format(member[0])
+                member_value_str = str(member[1])
+                for line in member_value_str.split('\n'):
+                    s += '\t{}\n'.format(line)
+
+        s = s[:-1]
+        return s
+
+class Policy(ADObject):
+    pass

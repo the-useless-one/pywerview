@@ -237,6 +237,17 @@ def main():
             help='Additional ADS path')
     get_netgpo_parser.set_defaults(func=get_netgpo)
 
+    # Parser for the get-netgpo command
+    get_domainpolicy_parser = subparsers.add_parser('get-domainpolicy', help='Returns the default domain or DC'\
+        'policy for the queried domain or DC', parents=[ad_parser])
+    get_domainpolicy_parser.add_argument('--source', dest='source', default='domain',
+            choices=['domain', 'dc'], help='Extract domain or DC policy (default: %(default)s)')
+    get_domainpolicy_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_domainpolicy_parser.add_argument('--resolve-sids', dest='resolve_sids',
+            action='store_true', help='Resolve SIDs when querying a DC policy')
+    get_domainpolicy_parser.set_defaults(func=get_domainpolicy)
+
     # Parser for the get-netgroup command
     get_netgroupmember_parser = subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain groups', parents=[ad_parser])
     get_netgroupmember_parser.add_argument('--groupname', dest='queried_groupname',
