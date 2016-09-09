@@ -18,7 +18,7 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
 import socket
-
+from impacket.smbconnection import SMBConnection
 from impacket.ldap import ldap, ldapasn1
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
@@ -37,10 +37,18 @@ class LDAPRequester():
         self._ads_prefix = None
         self._ldap_connection = None
 
+    def _get_netfqdn(self):
+        smb = SMBConnection(self._domain_controller, self._domain_controller)
+        smb.login('', '')
+        fqdn = smb.getServerDNSDomainName()
+        smb.logoff()
+
+        return fqdn
+
     def _create_ldap_connection(self, queried_domain=str(), ads_path=str(),
                                 ads_prefix=str()):
         if not self._domain:
-            self._domain = _get_netfqdn(self._domain_controller)
+            self._domain = self._get_netfqdn()
 
         if not queried_domain:
             queried_domain = self._domain
