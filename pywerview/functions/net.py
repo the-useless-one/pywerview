@@ -18,7 +18,6 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
 import socket
-from impacket.ldap import ldapasn1
 from impacket.dcerpc.v5.ndr import NULL
 from impacket.dcerpc.v5 import wkst, srvs, samr
 from impacket.dcerpc.v5.samr import DCERPCSessionError
@@ -57,7 +56,6 @@ class NetRequester(LDAPRPCRequester):
             custom_filter += '(!(userAccountControl:1.2.840.113556.1.4.803:=1048574))'
 
         if admin_count:
-            admin_count_filter = LDAPRPCRequester._build_equality_match_filter('admincount', 1)
             custom_filter += '(admincount=1)'
 
         user_search_filter = '(samAccountType=805306368){}'.format(custom_filter)
@@ -104,12 +102,6 @@ class NetRequester(LDAPRPCRequester):
                         queried_os=str(), queried_sp=str(), queried_domain=str(),
                         ads_path=str(), printers=False, unconstrained=False,
                         ping=False, full_data=False, custom_filter=str()):
-
-        computer_search_filter = ldapasn1.Filter()
-        computer_search_filter['and'] = ldapasn1.And()
-
-        computer_filter = LDAPRPCRequester._build_equality_match_filter('samAccountType', '805306369')
-        computer_search_filter['and'][0] = computer_filter
 
         if unconstrained:
             custom_filter += '(userAccountControl:1.2.840.113556.1.4.803:=524288)'
