@@ -34,10 +34,10 @@ def main():
             default=str(), help='Name of the domain we authenticate with')
     credentials_parser.add_argument('-u', '--user', required=True,
             help='Username used to connect to the Domain Controller')
-    credentials_parser.add_argument('-p', '--password',
+    credentials_parser.add_argument('-p', '--password', default=str(),
             help='Password associated to the username')
     credentials_parser.add_argument('--hashes', action='store', metavar = 'LMHASH:NTHASH',
-            help='NTLM hashes, format is LMHASH:NTHASH')
+            help='NTLM hashes, format is [LMHASH:]NTHASH')
 
     # AD parser, used for net* functions running against a domain controller
     ad_parser = argparse.ArgumentParser(add_help=False, parents=[credentials_parser])
@@ -325,7 +325,10 @@ def main():
 
     args = parser.parse_args()
     if args.hashes:
-        args.lmhash, args.nthash = args.hashes.split(':')
+        try:
+            args.lmhash, args.nthash = args.hashes.split(':')
+        except ValueError:
+            args.lmhash, args.nthash = 'aad3b435b51404eeaad3b435b51404ee', args.hashes
     else:
         args.lmhash = args.nthash = str()
 
