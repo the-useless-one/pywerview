@@ -33,10 +33,11 @@ class RPCObject:
 
     def add_attributes(self, attributes):
         for key, value in attributes.items():
-            #if isinstance(value, int):
-                #pass
-            #else:
-                #value = value.rstrip('\x00')
+            key = key.lower()
+            if key in ('wkui1_logon_domain', 'wkui1_logon_server',
+                       'wkui1_oth_domains', 'wkui1_username',
+                       'sesi10_cname', 'sesi10_username'):
+                value = value.rstrip('\x00')
 
             setattr(self, key.lower(), value)
 
