@@ -200,7 +200,8 @@ class UserHunter(Hunter):
                                  show_all=show_all, foreign_users=foreign_users)
 
         if foreign_users:
-            with Misc(domain_controller, domain, user, password, lmhash, nthash) as misc_requester:
+            with Misc(self._domain_controller, self._domain, self._user,
+                      self._password, self._lmhash, self._nthash) as misc_requester:
                 domain_sid = misc_requester.get_domainsid()
                 domain_short_name = misc_requester.convert_sidtont4(domain_sid).split('\\')[0]
         else:
