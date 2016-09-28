@@ -60,7 +60,10 @@ class ADObject:
             elif len(attr['vals']) > 1:
                 value = [str(x) for x in attr['vals']]
             else:
-                value = str(attr['vals'][0])
+                try:
+                    value = str(attr['vals'][0])
+                except IndexError:
+                    value = str()
 
             setattr(self, t, value)
 
