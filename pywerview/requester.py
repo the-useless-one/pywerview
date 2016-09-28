@@ -223,10 +223,13 @@ class LDAPRPCRequester(LDAPRequester, RPCRequester):
                                lmhash, nthash)
     def __enter__(self):
         # If this LDAPRPCRequester is used to make RPC requests, this will raise
-        # and exception. We catch it and continue
+        # and exception, because we won't necessarily interrogate a DC.
+        # We catch it and continue.
+        # See https://github.com/the-useless-one/pywerview/issues/18 to see why
+        # we except on IndexError.
         try:
             LDAPRequester.__enter__(self)
-        except socket.error:
+        except socket.error, IndexError:
             pass
         # This should work every time
         RPCRequester.__enter__(self)
