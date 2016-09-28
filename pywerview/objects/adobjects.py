@@ -77,7 +77,15 @@ class ADObject:
                     max_length = len(member[0])
         for member in members:
             if not member[0].startswith('_'):
-                s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member[1])
+                if member[0] == 'msmqdigests':
+                    member_value = (',\n' + ' ' * (max_length + 2)).join(x.encode('hex') for x in member[1])
+                elif member[0] == 'msmqsigncertificates':
+                    member_value = '{}...'.format(member[1].encode('hex')[:100])
+                elif isinstance(member[1], list):
+                    member_value = (',\n' + ' ' * (max_length + 2)).join(member[1])
+                else:
+                    member_value = member[1]
+                s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
 
         s = s[:-1]
         return s
