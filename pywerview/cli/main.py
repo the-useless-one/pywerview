@@ -34,7 +34,7 @@ def main():
             default=str(), help='Name of the domain we authenticate with')
     credentials_parser.add_argument('-u', '--user', required=True,
             help='Username used to connect to the Domain Controller')
-    credentials_parser.add_argument('-p', '--password', default=str(),
+    credentials_parser.add_argument('-p', '--password',
             help='Password associated to the username')
     credentials_parser.add_argument('--hashes', action='store', metavar = 'LMHASH:NTHASH',
             help='NTLM hashes, format is [LMHASH:]NTHASH')
@@ -329,6 +329,8 @@ def main():
             args.lmhash, args.nthash = args.hashes.split(':')
         except ValueError:
             args.lmhash, args.nthash = 'aad3b435b51404eeaad3b435b51404ee', args.hashes
+        finally:
+            args.password = str()
     else:
         args.lmhash = args.nthash = str()
 
