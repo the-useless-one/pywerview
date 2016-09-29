@@ -149,5 +149,8 @@ class GptTmpl(ADObject):
         s = s[:-1]
         return s
 
+class GPOGroup(ADObject):
+    pass
+
 class Policy(ADObject):
     pass

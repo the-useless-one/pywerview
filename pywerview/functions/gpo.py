@@ -18,6 +18,7 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
 import codecs
+from bs4 import BeautifulSoup
 from StringIO import StringIO
 
 from impacket.smbconnection import SMBConnection
@@ -126,4 +127,91 @@ class GPORequester(LDAPRequester):
 
                 return gpttmpl
 
+    def _get_groupsxml(self, groupsxml_path, gpo_display_name, resolve_sids=False):
+        gpo_groups = list()
+
+        content_io = StringIO()
+
+        groupsxml_path_split = groupsxml_path.split('\\')
+        gpo_name = groupsxml_path_split[6]
+        target = groupsxml_path_split[2]
+        share = groupsxml_path_split[3]
+        file_name = '\\'.join(groupsxml_path_split[4:])
+
+        smb_connection = SMBConnection(remoteName=target, remoteHost=target)
+        # TODO: kerberos login
+        smb_connection.login(self._user, self._password, self._domain,
+                             self._lmhash, self._nthash)
+
+        smb_connection.connectTree(share)
+        smb_connection.getFile(share, file_name, content_io.write)
+
+        content = content_io.getvalue().replace('\r', '')
+        groupsxml_soup = BeautifulSoup(content, 'xml')
+
+        for group in groupsxml_soup.find_all('Group'):
+            members = list()
+            memberof = list()
+            local_sid = group.Properties['groupSid']
+            if not local_sid:
+                if 'administrators' in group.Properties['groupName'].lower():
+                    local_sid = 'S-1-5-32-544'
+                elif 'remote desktop' in group.Properties['groupName'].lower():
+                    local_sid = 'S-1-5-32-555'
+                else:
+                    local_sid = group.Properties['groupName']
+            memberof.append(local_sid)
+
+            for member in group.Properties.find_all('Member'):
+                if not member['action'].lower() == 'add':
+                    continue
+                if member['sid']:
+                    members.append(member['sid'])
+                else:
+                    members.append(member['name'])
+
+            if members or memberof:
+                # TODO: implement filter support (seems like a pain in the ass,
+                # I'll do it if the feature is asked). PowerView also seems to
+                # have the barest support for filters, so ¯\_(ツ)_/¯
+                if resolve_sids:
+                    resolved_members = list()
+                    resolved_memberof = list()
+                    with NetRequester(self._domain_controller, self._domain, self._user,
+                                      self._password, self._lmhash, self._nthash) as net_requester:
+                        for member in members:
+                            try:
+                                resolved_member = net_requester.get_adobject(queried_sid=member)[0]
+                                resolved_member = resolved_member.distinguishedname.split(',')
+                                resolved_member_domain = '.'.join(resolved_member[1:])
+                                resolved_member = '{}\\{}'.format(resolved_member_domain, resolved_member[0])
+                                resolved_member = resolved_member.replace('CN=', '').replace('DC=', '')
+                            except IndexError:
+                                resolved_member = member
+                            finally:
+                                resolved_members.append(resolved_member)
+                        members = resolved_members
+
+                        for member in memberof:
+                            try:
+                                resolved_member = net_requester.get_adobject(queried_sid=member)[0]
+                                resolved_member = resolved_member.distinguishedname.split(',')[:2]
+                                resolved_member = '{}\\{}'.format(resolved_member[1], resolved_member[0])
+                                resolved_member = resolved_member.replace('CN=', '').replace('DC=', '')
+                            except IndexError:
+                                resolved_member = member
+                            finally:
+                                resolved_memberof.append(resolved_member)
+                        memberof = resolved_memberof
+
+                gpo_group = GPOGroup(list())
+                setattr(gpo_group, 'gpodisplayname', gpo_display_name)
+                setattr(gpo_group, 'gponame', gpo_name)
+                setattr(gpo_group, 'gpopath', groupsxml_path)
+                setattr(gpo_group, 'members', members)
+                setattr(gpo_group, 'memberof', memberof)
+
+                gpo_groups.append(gpo_group)
+
+        return gpo_groups
 
