@@ -84,6 +84,9 @@ class ADObject:
                 elif isinstance(member[1], list):
                     if member[0] in ('logonhours',):
                         member_value = member[1]
+                    elif member[0] in ('usercertificate',):
+                        member_value = (',\n' + ' ' * (max_length + 2)).join(
+                                '{}...'.format(x.encode('hex')[:100]) for x in member[1])
                     else:
                         member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member[1])
                 else:
