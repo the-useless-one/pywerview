@@ -17,7 +17,6 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
-from impacket.smbconnection import SMBConnection
 from impacket.dcerpc.v5.rpcrt import DCERPCException
 from impacket.dcerpc.v5 import scmr, drsuapi
 
@@ -25,14 +24,6 @@ from pywerview.requester import LDAPRPCRequester
 import pywerview.functions.net
 
 class Misc(LDAPRPCRequester):
-    def _get_netfqdn(self):
-        smb = SMBConnection(self._target_computername, self._target_computername)
-        smb.login('', '')
-        fqdn = smb.getServerDNSDomainName()
-        smb.logoff()
-
-        return fqdn
-
     @LDAPRPCRequester._rpc_connection_init(r'\drsuapi')
     def convert_sidtont4(self, sid):
 

@@ -286,7 +286,7 @@ class NetRequester(LDAPRPCRequester):
         def _get_members(_groupname=str(), _sid=str()):
             try:
                 if _groupname:
-                    group = self.get_netgroup(queried_groupname=_groupname, full_data=True)[0]
+                    groups = self.get_netgroup(queried_groupname=_groupname, full_data=True)
                 else:
                     if _sid:
                         queried_sid = _sid
@@ -296,56 +296,57 @@ class NetRequester(LDAPRPCRequester):
                                                            self._password, self._lmhash,
                                                            self._nthash) as misc_requester:
                             queried_sid = misc_requester.get_domainsid(queried_domain) + '-512'
-                    group = self.get_netgroup(queried_sid=queried_sid, full_data=True)[0]
+                    groups = self.get_netgroup(queried_sid=queried_sid, full_data=True)
             except IndexError:
                 raise ValueError('The group {} was not found'.format(_groupname))
 
-            members = list()
-
-            if recurse and use_matching_rule:
-                group_memberof_filter = '(&(samAccountType=805306368)(memberof:1.2.840.113556.1.4.1941:={}){})'.format(group.distinguishedname, custom_filter)
-
-                members = self.get_netuser(custom_filter=group_memberof_filter)
-            else:
-                # TODO: range cycling
-                try:
-                    for member in group.member:
-                        dn_filter = '(distinguishedname={}){}'.format(member, custom_filter)
-                        members += self.get_netuser(custom_filter=dn_filter)
-                        members += self.get_netgroup(custom_filter=dn_filter, full_data=True)
-                # The group doesn't have any members
-                except AttributeError:
-                    return list()
-
             final_members = list()
-            for member in members:
-                if full_data:
-                    final_member = member
+
+            for group in groups:
+                members = list()
+                if recurse and use_matching_rule:
+                    group_memberof_filter = '(&(samAccountType=805306368)(memberof:1.2.840.113556.1.4.1941:={}){})'.format(group.distinguishedname, custom_filter)
+
+                    members = self.get_netuser(custom_filter=group_memberof_filter)
                 else:
-                    final_member = adobj.ADObject(list())
+                    # TODO: range cycling
+                    try:
+                        for member in group.member:
+                            dn_filter = '(distinguishedname={}){}'.format(member, custom_filter)
+                            members += self.get_netuser(custom_filter=dn_filter)
+                            members += self.get_netgroup(custom_filter=dn_filter, full_data=True)
+                    # The group doesn't have any members
+                    except AttributeError:
+                        continue
 
-                member_dn = member.distinguishedname
-                try:
-                    member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
-                except IndexError:
-                    member_domain = str()
-                is_group = (member.samaccounttype != '805306368')
+                for member in members:
+                    if full_data:
+                        final_member = member
+                    else:
+                        final_member = adobj.ADObject(list())
 
-                attributes = list()
-                if queried_domain:
-                    attributes.append({'type': 'groupdomain', 'vals': [queried_domain]})
-                else:
-                    attributes.append({'type': 'groupdomain', 'vals': [self._domain]})
-                attributes.append({'type': 'groupname', 'vals': [group.name]})
-                attributes.append({'type': 'membername', 'vals': [member.samaccountname]})
-                attributes.append({'type': 'memberdomain', 'vals': [member_domain]})
-                attributes.append({'type': 'isgroup', 'vals': [is_group]})
-                attributes.append({'type': 'memberdn', 'vals': [member_dn]})
-                attributes.append({'type': 'membersid', 'vals': [member.objectsid]})
+                    member_dn = member.distinguishedname
+                    try:
+                        member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
+                    except IndexError:
+                        member_domain = str()
+                    is_group = (member.samaccounttype != '805306368')
 
-                final_member.add_attributes(attributes)
+                    attributes = list()
+                    if queried_domain:
+                        attributes.append({'type': 'groupdomain', 'vals': [queried_domain]})
+                    else:
+                        attributes.append({'type': 'groupdomain', 'vals': [self._domain]})
+                    attributes.append({'type': 'groupname', 'vals': [group.name]})
+                    attributes.append({'type': 'membername', 'vals': [member.samaccountname]})
+                    attributes.append({'type': 'memberdomain', 'vals': [member_domain]})
+                    attributes.append({'type': 'isgroup', 'vals': [is_group]})
+                    attributes.append({'type': 'memberdn', 'vals': [member_dn]})
+                    attributes.append({'type': 'membersid', 'vals': [member.objectsid]})
 
-                final_members.append(final_member)
+                    final_member.add_attributes(attributes)
+
+                    final_members.append(final_member)
 
             return final_members
 

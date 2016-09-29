@@ -20,7 +20,6 @@
 import codecs
 from StringIO import StringIO
 
-from impacket.ldap import ldapasn1
 from impacket.smbconnection import SMBConnection
 
 from pywerview.objects.adobjects import *
