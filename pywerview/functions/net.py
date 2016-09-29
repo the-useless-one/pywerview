@@ -271,7 +271,6 @@ class NetRequester(LDAPRPCRequester):
             attributes = ['name', 'siteobject']
 
         subnet_search_filter = '(&{})'.format(subnet_search_filter)
-        print subnet_search_filter
 
         return self._ldap_search(subnet_search_filter, adobj.Subnet, attributes=attributes)
 
