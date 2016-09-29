@@ -56,9 +56,9 @@ def main():
     hunter_parser.add_argument('--computerfile', dest='queried_computerfile',
             type=argparse.FileType('r'), help='File of hostnames/IPs to search')
     hunter_parser.add_argument('--computer-filter', dest='queried_computerfilter',
-            type=str, help='Custom filter used to search computers against the DC')
+            type=str, default=str(), help='Custom filter used to search computers against the DC')
     hunter_parser.add_argument('--computer-adspath', dest='queried_computeradspath',
-            type=str, help='ADS path used to search computers against the DC')
+            type=str, default=str(), help='ADS path used to search computers against the DC')
     hunter_parser.add_argument('--groupname', dest='queried_groupname',
             help='Group name to query for target users')
     hunter_parser.add_argument('--targetserver', dest='target_server',
@@ -66,9 +66,9 @@ def main():
     hunter_parser.add_argument('--username', dest='queried_username',
             help='Hunt for a specific user name')
     hunter_parser.add_argument('--user-filter', dest='queried_userfilter',
-            type=str, help='Custom filter used to search users against the DC')
+            type=str, default=str(), help='Custom filter used to search users against the DC')
     hunter_parser.add_argument('--user-adspath', dest='queried_useradspath',
-            type=str, help='ADS path used to search users against the DC')
+            type=str, default=str(), help='ADS path used to search users against the DC')
     hunter_parser.add_argument('--userfile', dest='queried_userfile',
             type=argparse.FileType('r'), help='File of user names to target')
     hunter_parser.add_argument('--threads', type=int,
