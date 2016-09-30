@@ -237,8 +237,8 @@ def main():
             help='Additional ADS path')
     get_netgpo_parser.set_defaults(func=get_netgpo)
 
-    # Parser for the get-netgpo command
-    get_domainpolicy_parser = subparsers.add_parser('get-domainpolicy', help='Returns the default domain or DC'\
+    # Parser for the get-domainpolicy command
+    get_domainpolicy_parser = subparsers.add_parser('get-domainpolicy', help='Returns the default domain or DC '\
         'policy for the queried domain or DC', parents=[ad_parser])
     get_domainpolicy_parser.add_argument('--source', dest='source', default='domain',
             choices=['domain', 'dc'], help='Extract domain or DC policy (default: %(default)s)')
@@ -247,6 +247,28 @@ def main():
     get_domainpolicy_parser.add_argument('--resolve-sids', dest='resolve_sids',
             action='store_true', help='Resolve SIDs when querying a DC policy')
     get_domainpolicy_parser.set_defaults(func=get_domainpolicy)
+
+    # Parser for the get-gpttmpl command
+    get_gpttmpl_parser = subparsers.add_parser('get-gpttmpl', help='Helper to parse a GptTmpl.inf policy '\
+            'file path into a custom object', parents=[ad_parser])
+    get_gpttmpl_parser.add_argument('--gpt-tmpl-path', type=str, required=True,
+            dest='gpttmpl_path', help='The GptTmpl.inf file path name to parse')
+    get_gpttmpl_parser.set_defaults(func=get_gpttmpl)
+
+    # Parser for the get-netgpogroup command
+    get_netgpogroup_parser = subparsers.add_parser('get-netgpogroup', help='Parses all GPOs in the domain '\
+        'that set "Restricted Group" or "Groups.xml"', parents=[ad_parser])
+    get_netgpogroup_parser.add_argument('--gponame', dest='queried_gponame',
+            default='*', help='GPO name to query for (wildcards accepted)')
+    get_netgpogroup_parser.add_argument('--displayname', dest='queried_displayname',
+            help='Display name to query for (wildcards accepted)')
+    get_netgpogroup_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_netgpogroup_parser.add_argument('-a', '--ads-path',
+            help='Additional ADS path')
+    get_netgpogroup_parser.add_argument('--resolve-sids', dest='resolve_sids',
+            action='store_true', help='Resolve SIDs of the members and the target groups')
+    get_netgpogroup_parser.set_defaults(func=get_netgpogroup)
 
     # Parser for the get-netgroup command
     get_netgroupmember_parser = subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain groups', parents=[ad_parser])

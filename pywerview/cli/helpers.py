@@ -197,6 +197,25 @@ def get_domainpolicy(domain_controller, domain, user, password=str(),
         return requester.get_domainpolicy(source=source, queried_domain=queried_domain,
                                           resolve_sids=resolve_sids)
 
+def get_gpttmpl(gpttmpl_path, domain_controller, domain, user, password=str(), lmhash=str(),
+                nthash=str()):
+	requester = GPORequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+
+        return requester.get_gpttmpl(gpttmpl_path)
+
+def get_netgpogroup(domain_controller, domain, user, password=str(), lmhash=str(),
+                    nthash=str(), queried_gponame='*', queried_displayname=str(),
+                    queried_domain=str(), ads_path=str(), resolve_sids=False):
+	requester = GPORequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+
+        return requester.get_netgpogroup(queried_gponame=queried_gponame,
+                                         queried_displayname=queried_displayname,
+                                         queried_domain=queried_domain,
+                                         ads_path=ads_path,
+                                         resolve_sids=resolve_sids)
+
 def invoke_checklocaladminaccess(target_computername, domain, user, password=str(),
                                  lmhash=str(), nthash=str()):
     misc = Misc(target_computername, domain, user, password, lmhash, nthash)
