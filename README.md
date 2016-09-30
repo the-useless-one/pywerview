@@ -52,10 +52,69 @@ Also, blah blah blah, don't use it for evil purposes.
 * Python 2.7
 * impacket >= 0.9.16-dev
 
-## USAGE
+## FUNCTIONALITIES
+
+If you like living on the bleeding edge, check out the
+[development branch](https://github.com/the-useless-one/pywerview/tree/develop).
+
+Here's the list of available commands:
+
+    $ ./pywerview.py --help
+    usage: pywerview.py [-h]
+                        {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,invoke-userhunter}
+                        ...
+
+    Rewriting of some PowerView's functionalities in Python
+
+    optional arguments:
+      -h, --help            show this help message and exit
+
+    Subcommands:
+      Available subcommands
+
+      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,invoke-userhunter}
+        get-adobject        Takes a domain SID, samAccountName or name, and return
+                            the associated object
+        get-netuser         Queries information about a domain user
+        get-netgroup        Get a list of all current domain groups, or a list of
+                            groups a domain user is member of
+        get-netcomputer     Queries informations about domain computers
+        get-netdomaincontroller
+                            Get a list of domain controllers for the given domain
+        get-netfileserver   Return a list of file servers, extracted from the
+                            domain users' homeDirectory, scriptPath, and
+                            profilePath fields
+        get-dfsshare        Return a list of all fault tolerant distributed file
+                            systems for a given domain
+        get-netou           Get a list of all current OUs in the domain
+        get-netsite         Get a list of all current sites in the domain
+        get-netsubnet       Get a list of all current subnets in the domain
+        get-netgpo          Get a list of all current GPOs in the domain
+        get-netgroupmember  Return a list of members of a domain groups
+        get-netsession      Queries a host to return a list of active sessions on
+                            the host (you can use local credentials instead of
+                            domain credentials)
+        get-localdisks      Queries a host to return a list of active disks on the
+                            host (you can use local credentials instead of domain
+                            credentials)
+        get-netdomain       Queries a host for available domains
+        get-netshare        Queries a host to return a list of available shares on
+                            the host (you can use local credentials instead of
+                            domain credentials)
+        get-netloggedon     This function will execute the NetWkstaUserEnum RPC
+                            call ti query a given host for actively logged on
+                            users
+        get-netlocalgroup   Gets a list of members of a local group on a machine,
+                            or returns every local group. You can use local
+                            credentials instead of domain credentials, however,
+                            domain credentials are needed to resolve domain SIDs.
+        invoke-checklocaladminaccess
+                            Checks if the given user has local admin access on the
+                            given host
+        invoke-userhunter   Finds which machines domain users are logged into
 
 Take a look at the [wiki](https://github.com/the-useless-one/pywerview/wiki) to
-see the list of available commands.
+see a more detailed usage of every command.
 
 *Attention:* in every command, the used domain name must be the post-Win2k UPN,
 and not the Win2k compatible name.
@@ -63,9 +122,6 @@ and not the Win2k compatible name.
 For example, my domain name is `uselessdomain.local`. The Win2K compatible name
 is `USELESSDOMAIN`. In every command,  I must use __`uselessdomain.local`__ as
 an argument, and __not__ `USELESSDOMAIN`.
-
-If you like living on the bleeding edge, check out the
-[development branch](https://github.com/the-useless-one/pywerview/tree/develop).
 
 ## TODO
 
