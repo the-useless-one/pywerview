@@ -61,7 +61,7 @@ Here's the list of available commands:
 
     $ ./pywerview.py --help
     usage: pywerview.py [-h]
-                        {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,invoke-userhunter}
+                        {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-domainpolicy,get-gpttmpl,get-netgpogroup,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
                         ...
 
     Rewriting of some PowerView's functionalities in Python
@@ -72,7 +72,7 @@ Here's the list of available commands:
     Subcommands:
       Available subcommands
 
-      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,invoke-userhunter}
+      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-domainpolicy,get-gpttmpl,get-netgpogroup,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
         get-adobject        Takes a domain SID, samAccountName or name, and return
                             the associated object
         get-netuser         Queries information about a domain user
@@ -90,6 +90,12 @@ Here's the list of available commands:
         get-netsite         Get a list of all current sites in the domain
         get-netsubnet       Get a list of all current subnets in the domain
         get-netgpo          Get a list of all current GPOs in the domain
+        get-domainpolicy    Returns the default domain or DC policy for the
+                            queried domain or DC
+        get-gpttmpl         Helper to parse a GptTmpl.inf policy file path into a
+                            custom object
+        get-netgpogroup     Parses all GPOs in the domain that set "Restricted
+                            Group" or "Groups.xml"
         get-netgroupmember  Return a list of members of a domain groups
         get-netsession      Queries a host to return a list of active sessions on
                             the host (you can use local credentials instead of
@@ -111,7 +117,18 @@ Here's the list of available commands:
         invoke-checklocaladminaccess
                             Checks if the given user has local admin access on the
                             given host
+        get-netprocess      This function will execute the 'Select * from
+                            Win32_Process' WMI query to a given host for a list of
+                            executed process
+        get-userevent       This function will execute the 'Select * from
+                            Win32_Process' WMI query to a given host for a list of
+                            executed process
         invoke-userhunter   Finds which machines domain users are logged into
+        invoke-processhunter
+                            Searches machinesfor processes with specific name, or
+                            ran by specific users
+        invoke-eventhunter  Searches machinesfor events with specific name, or ran
+                            by specific users
 
 Take a look at the [wiki](https://github.com/the-useless-one/pywerview/wiki) to
 see a more detailed usage of every command.
