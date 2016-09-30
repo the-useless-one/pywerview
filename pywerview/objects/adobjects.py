@@ -54,13 +54,16 @@ class ADObject:
                 value = datetime.fromtimestamp(timestamp)
             elif t == 'isgroup':
                 value = attr['vals'][0]
-            elif t == 'samaccounttype':
-                setattr(self, 'isgroup', (str(attr['vals'][0]) != '805306368'))
-                value = str(attr['vals'][0])
+            elif t == 'objectclass':
+                value = [str(x) for x in attr['vals']]
+                setattr(self, 'isgroup', ('group' in value))
             elif len(attr['vals']) > 1:
                 value = [str(x) for x in attr['vals']]
             else:
-                value = str(attr['vals'][0])
+                try:
+                    value = str(attr['vals'][0])
+                except IndexError:
+                    value = str()
 
             setattr(self, t, value)
 

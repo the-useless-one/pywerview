@@ -550,7 +550,12 @@ class NetRequester(LDAPRPCRequester):
                         ad_object = self.get_adobject(queried_sid=member_sid)[0]
                         member_dn = ad_object.distinguishedname
                         member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
-                        attributes['name'] = '{}/{}'.format(member_domain, ad_object.samaccountname)
+                        try:
+                            attributes['name'] = '{}/{}'.format(member_domain, ad_object.samaccountname)
+                        except AttributeError:
+                            # Here, the member is a foreign security principal
+                            # TODO: resolve it properly
+                            attributes['name'] = '{}/{}'.format(member_domain, ad_object.objectsid)
                         attributes['isgroup'] = ad_object.isgroup
                         try:
                             attributes['lastlogin'] = ad_object.lastlogon
