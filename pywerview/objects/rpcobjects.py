@@ -38,6 +38,11 @@ class RPCObject:
                        'wkui1_oth_domains', 'wkui1_username',
                        'sesi10_cname', 'sesi10_username'):
                 value = value.rstrip('\x00')
+            if isinstance(value, str):
+                try:
+                    value = value.decode('utf-8')
+                except UnicodeDecodeError:
+                    pass
 
             setattr(self, key.lower(), value)
 
