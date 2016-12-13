@@ -593,7 +593,7 @@ class NetRequester(LDAPRPCRequester):
 
         return results
 
-    @LDAPRPCRequester._rpc_connection_init()
+    @LDAPRPCRequester._wmi_connection_init()
     def get_netprocess(self):
         wmi_enum_process = self._wmi_connection.ExecQuery('SELECT * from Win32_Process',
                                                           lFlags=WBEM_FLAG_FORWARD_ONLY)
@@ -616,7 +616,7 @@ class NetRequester(LDAPRPCRequester):
                 else:
                     break
 
-    @LDAPRPCRequester._rpc_connection_init()
+    @LDAPRPCRequester._wmi_connection_init()
     def get_userevent(self, event_type=['logon', 'tgt'], date_start=5):
         limit_date = (datetime.datetime.today() - datetime.timedelta(days=date_start)).strftime('%Y%m%d%H%M%S.%f-000')
         if event_type == ['logon']:

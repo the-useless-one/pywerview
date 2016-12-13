@@ -191,7 +191,7 @@ class RPCRequester():
 
         self._rpc_connection = dce
 
-        # Here we build the WMI connection
+    def _create_wmi_connection(self):
         self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
                                     self._domain, self._lmhash, self._nthash)
         i_interface = self._dcom.CoCreateInstanceEx(wmi.CLSID_WbemLevel1Login,
@@ -205,11 +205,21 @@ class RPCRequester():
         def decorator(f):
             def wrapper(*args, **kwargs):
                 instance = args[0]
-                if (not instance._rpc_connection) or (pipe != instance._pipe) or \
-                   (not instance._wmi_connection):
+                if (not instance._rpc_connection) or (pipe != instance._pipe):
                     if instance._rpc_connection:
                         instance._rpc_connection.disconnect()
                     instance._create_rpc_connection(pipe=pipe)
+                return f(*args, **kwargs)
+            return wrapper
+        return decorator
+
+    @staticmethod
+    def _wmi_connection_init():
+        def decorator(f):
+            def wrapper(*args, **kwargs):
+                instance = args[0]
+                if not instance._wmi_connection:
+                    instance._create_wmi_connection()
                 return f(*args, **kwargs)
             return wrapper
         return decorator
