@@ -60,7 +60,10 @@ class GPORequester(LDAPRequester):
         smb_connection.connectTree(share)
         smb_connection.getFile(share, file_name, content_io.write)
 
-        content = codecs.decode(content_io.getvalue(), 'utf_16_le')[1:].replace('\r', '')
+        try:
+            content = codecs.decode(content_io.getvalue(), 'utf_16_le')[1:].replace('\r', '')
+        except UnicodeDecodeError:
+            content = content_io.getvalue().replace('\r', '')
 
         gpttmpl_final = GptTmpl(list())
         for l in content.split('\n'):
@@ -211,11 +214,15 @@ class GPORequester(LDAPRequester):
                 members.append(m[0].upper().lstrip('*').replace('__MEMBEROF', ''))
                 if not isinstance(m[1], list):
                     memberof_list = [m[1]]
+                else:
+                    memberof_list = m[1]
                 memberof += [x.lstrip('*') for x in memberof_list]
             elif m[0].lower().endswith('__members'):
                 memberof.append(m[0].upper().lstrip('*').replace('__MEMBERS', ''))
                 if not isinstance(m[1], list):
                     members_list = [m[1]]
+                else:
+                    members_list = m[1]
                 members += [x.lstrip('*') for x in members_list]
 
             if members and memberof:
@@ -245,7 +252,11 @@ class GPORequester(LDAPRequester):
             gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath)
 
             results += self._get_groupsxml(groupsxml_path, gpo_display_name)
-            results += self._get_groupsgpttmpl(gpttmpl_path, gpo_display_name)
+            try:
+                results += self._get_groupsgpttmpl(gpttmpl_path, gpo_display_name)
+            except SessionError:
+                # If the GptTmpl file doesn't exist, we skip this
+                pass
 
         if resolve_sids:
             for gpo_group in results:
@@ -280,6 +291,82 @@ class GPORequester(LDAPRequester):
                         finally:
                             resolved_memberof.append(resolved_member)
                     gpo_group.memberof = memberof = resolved_memberof
+
+        return results
+
+    def find_gpocomputeradmin(self, queried_computername=str(),
+                                 queried_ouname=str(), queried_domain=str(),
+                                 recurse=False):
+
+        results = list()
+        if (not queried_computername) and (not queried_ouname):
+            raise ValueError('You must specify either a computer name or an OU name')
+
+        net_requester = NetRequester(self._domain_controller, self._domain, self._user,
+                                     self._password, self._lmhash, self._nthash)
+        if queried_computername:
+            computers = net_requester.get_netcomputer(queried_computername=queried_computername,
+                                                      queried_domain=queried_domain,
+                                                      full_data=True)
+            if not computers:
+                raise ValueError('Computer {} not found'.format(queried_computername))
+
+            target_ous = list()
+            for computer in computers:
+                dn = computer.distinguishedname
+                for x in dn.split(','):
+                    if x.startswith('OU='):
+                        target_ous.append(dn[dn.find(x):])
+        else:
+            target_ous = [queried_ouname]
+
+        gpo_groups = list()
+        for target_ou in target_ous:
+            ous = net_requester.get_netou(ads_path=target_ou, queried_domain=queried_domain,
+                                          full_data=True)
+
+            for ou in ous:
+                for gplink in ou.gplink.strip('[]').split(']['):
+                    gplink = gplink.split(';')[0]
+                    gpo_groups = self.get_netgpogroup(queried_domain=queried_domain,
+                                                      ads_path=gplink)
+                    for gpo_group in gpo_groups:
+                        for member in gpo_group.members:
+                            obj = net_requester.get_adobject(queried_sid=member,
+                                                             queried_domain=queried_domain)[0]
+                            gpo_computer_admin = GPOComputerAdmin(list())
+                            setattr(gpo_computer_admin, 'computername', queried_computername)
+                            setattr(gpo_computer_admin, 'ou', target_ou)
+                            setattr(gpo_computer_admin, 'gpodisplayname', gpo_group.gpodisplayname)
+                            setattr(gpo_computer_admin, 'gpopath', gpo_group.gpopath)
+                            setattr(gpo_computer_admin, 'objectname', obj.name)
+                            setattr(gpo_computer_admin, 'objectdn', obj.distinguishedname)
+                            setattr(gpo_computer_admin, 'objectsid', member)
+                            setattr(gpo_computer_admin, 'isgroup', (obj.samaccounttype != '805306368'))
+
+                            results.append(gpo_computer_admin)
+
+                            if recurse and gpo_computer_admin.isgroup:
+                                groups_to_resolve = [gpo_computer_admin.objectsid]
+                                while groups_to_resolve:
+                                    group_to_resolve = groups_to_resolve.pop(0)
+                                    group_members = net_requester.get_netgroupmember(queried_sid=group_to_resolve,
+                                                                                     full_data=True)
+                                    for group_member in group_members:
+                                        gpo_computer_admin = GPOComputerAdmin(list())
+                                        setattr(gpo_computer_admin, 'computername', queried_computername)
+                                        setattr(gpo_computer_admin, 'ou', target_ou)
+                                        setattr(gpo_computer_admin, 'gpodisplayname', gpo_group.gpodisplayname)
+                                        setattr(gpo_computer_admin, 'gpopath', gpo_group.gpopath)
+                                        setattr(gpo_computer_admin, 'objectname', group_member.samaccountname)
+                                        setattr(gpo_computer_admin, 'objectdn', group_member.distinguishedname)
+                                        setattr(gpo_computer_admin, 'objectsid', member)
+                                        setattr(gpo_computer_admin, 'isgroup', (group_member.samaccounttype != '805306368'))
+
+                                        results.append(gpo_computer_admin)
+
+                                        if gpo_computer_admin.isgroup:
+                                            groups_to_resolve.append(group_member.objectsid)
 
         return results
 

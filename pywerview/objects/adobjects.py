@@ -79,8 +79,6 @@ class ADObject:
             if not member[0].startswith('_'):
                 if member[0] == 'msmqdigests':
                     member_value = (',\n' + ' ' * (max_length + 2)).join(x.encode('hex') for x in member[1])
-                elif member[0] in('msmqsigncertificates', 'userparameters'):
-                    member_value = '{}...'.format(member[1].encode('hex')[:100])
                 elif isinstance(member[1], list):
                     if member[0] in ('logonhours',):
                         member_value = member[1]
@@ -89,6 +87,11 @@ class ADObject:
                                 '{}...'.format(x.encode('hex')[:100]) for x in member[1])
                     else:
                         member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member[1])
+                elif member[0] in('msmqsigncertificates', 'userparameters',
+                                  'jpegphoto', 'thumbnailphoto', 'usercertificate',
+                                  'msexchmailboxguid', 'msexchmailboxsecuritydescriptor',
+                                  'msrtcsip-userroutinggroupid', 'msexchumpinchecksum'):
+                    member_value = '{}...'.format(member[1].encode('hex')[:100])
                 else:
                     member_value = member[1]
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
@@ -154,3 +157,7 @@ class GPOGroup(ADObject):
 
 class Policy(ADObject):
     pass
+
+class GPOComputerAdmin(ADObject):
+    pass
+

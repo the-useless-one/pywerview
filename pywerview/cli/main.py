@@ -270,6 +270,20 @@ def main():
             action='store_true', help='Resolve SIDs of the members and the target groups')
     get_netgpogroup_parser.set_defaults(func=get_netgpogroup)
 
+    # Parser for the find-gpocomputeradmin command
+    find_gpocomputeradmin_parser = subparsers.add_parser('find-gpocomputeradmin', help='Takes a computer (or OU) and determine '\
+        'who has administrative access to it via GPO', parents=[ad_parser])
+    find_gpocomputeradmin_parser.add_argument('--computername', dest='queried_computername',
+            default=str(), help='The computer to determine who has administrative access to it')
+    find_gpocomputeradmin_parser.add_argument('--ouname', dest='queried_ouname',
+            default=str(), help='OU name to determine who has administrative access to computers within it')
+    find_gpocomputeradmin_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    find_gpocomputeradmin_parser.add_argument('-r', '--recurse', dest='recurse',
+            action='store_true', help='If one of the returned members is a group, '\
+                    'recurse and get all members')
+    find_gpocomputeradmin_parser.set_defaults(func=find_gpocomputeradmin)
+
     # Parser for the get-netgroup command
     get_netgroupmember_parser = subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain groups', parents=[ad_parser])
     get_netgroupmember_parser.add_argument('--groupname', dest='queried_groupname',

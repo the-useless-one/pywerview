@@ -477,7 +477,7 @@ class NetRequester(LDAPRPCRequester):
                     resp = samr.hSamrQueryInformationAlias(self._rpc_connection, alias_handle)
 
                     final_group = rpcobj.Group(resp['Buffer']['General'])
-                    final_group.add_atributes({'server': self._target_computer, 'sid': sid})
+                    final_group.add_attributes({'server': self._target_computer, 'sid': sid})
 
                     results.append(final_group)
 
