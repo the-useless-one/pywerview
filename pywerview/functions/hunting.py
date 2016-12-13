@@ -127,7 +127,8 @@ class Hunter(NetRequester):
         else:
             for target_domain in self._target_domains:
                 self._target_users += self.get_netgroupmember(queried_domain=target_domain,
-                                                              queried_groupname=queried_groupname)
+                                                              queried_groupname=queried_groupname,
+                                                              recurse=True)
 
         self._target_users = list(set(self._target_users))
 
