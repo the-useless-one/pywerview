@@ -14,7 +14,7 @@ Fork me on [GitHub](https://github.com/the-useless-one/pywerview).
 ![License](https://img.shields.io/github/license/the-useless-one/pywerview.svg?maxAge=2592000)
 ![Python versions](https://img.shields.io/pypi/pyversions/pywerview.svg?maxAge=2592000)
 [![GitHub release](https://img.shields.io/github/release/the-useless-one/pywerview.svg?maxAge=2592001&label=GitHub%20release)](https://github.com/the-useless-one/pywerview/releases/latest)
-[![PyPI version](https://img.shields.io/pypi/v/pywerview.svg?maxAge=2592001)](https://pypi.python.org/pypi/pywerview)
+[![PyPI version](https://img.shields.io/pypi/v/pywerview.svg?maxAge=2592000)](https://pypi.python.org/pypi/pywerview)
 
 ## HISTORY
 
@@ -32,6 +32,15 @@ Linux.
 That's why I decided to rewrite some of PowerView's functionalities in Python,
 using the wonderful [impacket](https://github.com/CoreSecurity/impacket/)
 library.
+
+*Update:* I haven't tested the last version of PowerView yet, which can run
+from a machine not connected to a domain. I don't know if it works correctly
+under Linux using Powershell. If anyone has had any experience with this at all,
+you can contact me, I'm really interested. We'll see if pywerview has become
+obsoleted ;) but I think I'll continue working on it eitherway: I'd still
+rather use Python than Powershell on Linux, and I'm learning a lot! Plus, it
+may integrated in existing Linux tools written in Python. It's still great news
+that PowerView now supports machines not connected to the domain!
 
 ## DISCLAIMER
 
@@ -72,7 +81,7 @@ Here's the list of available commands:
     Subcommands:
       Available subcommands
 
-      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-domainpolicy,get-gpttmpl,get-netgpogroup,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
+      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
         get-adobject        Takes a domain SID, samAccountName or name, and return
                             the associated object
         get-netuser         Queries information about a domain user
@@ -96,7 +105,12 @@ Here's the list of available commands:
                             custom object
         get-netgpogroup     Parses all GPOs in the domain that set "Restricted
                             Group" or "Groups.xml"
-        get-netgroupmember  Return a list of members of a domain groups
+        find-gpocomputeradmin
+                            Takes a computer (or OU) and determine who has
+                            administrative access to it via GPO
+        find-gpolocation    Takes a username or a group name and determine the
+                            computers it has administrative access to via GPO
+        get-netgroupmember  Return a list of members of a domain group
         get-netsession      Queries a host to return a list of active sessions on
                             the host (you can use local credentials instead of
                             domain credentials)
@@ -108,7 +122,7 @@ Here's the list of available commands:
                             the host (you can use local credentials instead of
                             domain credentials)
         get-netloggedon     This function will execute the NetWkstaUserEnum RPC
-                            call ti query a given host for actively logged on
+                            call to query a given host for actively logged on
                             users
         get-netlocalgroup   Gets a list of members of a local group on a machine,
                             or returns every local group. You can use local
@@ -125,10 +139,10 @@ Here's the list of available commands:
                             executed process
         invoke-userhunter   Finds which machines domain users are logged into
         invoke-processhunter
-                            Searches machinesfor processes with specific name, or
+                            Searches machines for processes with specific name, or
                             ran by specific users
-        invoke-eventhunter  Searches machinesfor events with specific name, or ran
-                            by specific users
+        invoke-eventhunter  Searches machines for events with specific name, or
+                            ran by specific users
 
 Take a look at the [wiki](https://github.com/the-useless-one/pywerview/wiki) to
 see a more detailed usage of every command.
@@ -142,13 +156,16 @@ an argument, and __not__ `USELESSDOMAIN`.
 
 ## TODO
 
-* Many, many, many more PowerView functionalities to implement. I'll focus on
-  the (process) hunting functions and the GPO functions.
+* Many, many more PowerView functionalities to implement. I'll now focus on
+  forest functions, then inter-forest trust functions
+* Lots of rewrite due to the last version of PowerView
+* Implement a debugging mode (for easier troubleshooting)
+* Gracefully fail against Unix machines running Samba
 * Support Kerberos authentication
 * Perform range cycling in `get-netgroupmember`
-* Manage ADS path starting with `GC://`
+* Manage request to the Global Catalog
 * Try to fall back to `tcp/139` for RPC communications if `tcp/445` is closed
-* Comment and document the code
+* Comment, document, and clean the code
 
 ## THANKS
 
@@ -182,3 +199,4 @@ Public License for more details.
 You should have received a copy of the GNU General Public License along
 with this program. If not, see
 [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
+
