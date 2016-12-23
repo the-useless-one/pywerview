@@ -217,9 +217,9 @@ def get_netgpogroup(domain_controller, domain, user, password=str(), lmhash=str(
                                          resolve_sids=resolve_sids)
 
 def find_gpocomputeradmin(domain_controller, domain, user, password=str(), lmhash=str(),
-                             nthash=str(), queried_computername=str(),
-                             queried_ouname=str(), queried_domain=str(),
-                             recurse=False):
+                          nthash=str(), queried_computername=str(),
+                          queried_ouname=str(), queried_domain=str(),
+                          recurse=False):
 	requester = GPORequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
 
@@ -227,6 +227,17 @@ def find_gpocomputeradmin(domain_controller, domain, user, password=str(), lmhas
                                                queried_ouname=queried_ouname,
                                                queried_domain=queried_domain,
                                                recurse=recurse)
+
+def find_gpolocation(domain_controller, domain, user, password=str(), lmhash=str(),
+                     nthash=str(), queried_username=str(), queried_groupname=str(),
+                     queried_localgroup=str(), queried_domain=str()):
+	requester = GPORequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+
+        return requester.find_gpolocation(queried_username=queried_username,
+                                          queried_groupname=queried_groupname,
+                                          queried_localgroup=queried_localgroup,
+                                          queried_domain=queried_domain)
 
 def invoke_checklocaladminaccess(target_computername, domain, user, password=str(),
                                  lmhash=str(), nthash=str()):

@@ -284,6 +284,20 @@ def main():
                     'recurse and get all members')
     find_gpocomputeradmin_parser.set_defaults(func=find_gpocomputeradmin)
 
+    # Parser for the find-gpolocation command
+    find_gpolocation_parser = subparsers.add_parser('find-gpolocation', help='Takes a username or a group name and determine'\
+        'the computers it has administrative access to via GPO', parents=[ad_parser])
+    find_gpolocation_parser.add_argument('--username', dest='queried_username',
+            default=str(), help='The username to query for access (no wildcard)')
+    find_gpolocation_parser.add_argument('--groupname', dest='queried_groupname',
+            default=str(), help='The group name to query for access (no wildcard)')
+    find_gpolocation_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    find_gpolocation_parser.add_argument('--local-group', dest='queried_localgroup',
+            default='S-1-5-32-544', help='The local group to check access against. It can be ' \
+                    '\'Administrators\', \'RDP\', or a \'S-1-5-X\' SID type')
+    find_gpolocation_parser.set_defaults(func=find_gpolocation)
+
     # Parser for the get-netgroup command
     get_netgroupmember_parser = subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain groups', parents=[ad_parser])
     get_netgroupmember_parser.add_argument('--groupname', dest='queried_groupname',

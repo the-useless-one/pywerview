@@ -370,3 +370,87 @@ class GPORequester(LDAPRequester):
 
         return results
 
+    def find_gpolocation(self, queried_username=str(), queried_groupname=str(),
+                         queried_localgroup=str(), queried_domain=str()):
+        results = list()
+        net_requester = NetRequester(self._domain_controller, self._domain, self._user,
+                                     self._password, self._lmhash, self._nthash)
+        if queried_username:
+                try:
+                    user = net_requester.get_netuser(queried_username=queried_username,
+                                                     queried_domain=queried_domain)[0]
+                except IndexError:
+                    raise ValueError('Username \'{}\' was not found'.format(queried_username))
+                else:
+                    target_sid = [user.objectsid]
+                    object_sam_account_name = user.samaccountname
+                    object_distinguished_name = user.distinguishedname
+        elif queried_groupname:
+                try:
+                    group = net_requester.get_netgroup(queried_groupname=queried_groupname,
+                                                       queried_domain=queried_domain,
+                                                       full_data=True)[0]
+                except IndexError:
+                    raise ValueError('Group name \'{}\' was not found'.format(queried_groupname))
+                else:
+                    target_sid = [group.objectsid]
+                    object_sam_account_name = group.samaccountname
+                    object_distinguished_name = group.distinguishedname
+        else:
+            raise ValueError('You must specify either a username or a group name')
+
+        if 'admin' in queried_localgroup.lower():
+            local_sid = 'S-1-5-32-544'
+        elif 'rdp' in queried_localgroup.lower():
+            local_sid = 'S-1-5-32-555'
+        elif queried_localgroup.upper().startswith('S-1-5'):
+            local_sid = queried_localgroup
+        else:
+            raise ValueError('The queried local group must be in \'Administrators\', ' \
+                    '\'RDP\', or a \'S-1-5\' type SID')
+
+        object_groups = net_requester.get_netgroup(queried_username=object_sam_account_name,
+                                                   queried_domain=queried_domain)
+        for object_group in object_groups:
+            object_group_sid = net_requester.get_adobject(queried_sam_account_name=object_group.samaccountname,
+                                                          queried_domain=queried_domain)[0].objectsid
+            target_sid.append(object_group_sid)
+
+        gpo_groups = list()
+        for gpo_group in self.get_netgpogroup():
+            try:
+                for member in gpo_group.members:
+                    if not member.upper().startswith('S-1-5'):
+                        try:
+                            member = net_requester.get_adobject(queried_sam_account_name=member,
+                                                                queried_domain=queried_domain)[0].objectsid
+                        except IndexError, AttributeError:
+                            continue
+                    if (member.upper() in target_sid) or (member.lower() in target_sid):
+                        if (local_sid.upper() in gpo_group.memberof) or \
+                                (local_sid.lower() in gpo_group.memberof):
+                            gpo_groups.append(gpo_group)
+                            break
+            except AttributeError:
+                continue
+
+        for gpo_group in gpo_groups:
+            gpo_guid = gpo_group.gponame
+            ous = net_requester.get_netou(queried_domain=queried_domain,
+                                          queried_guid=gpo_guid, full_data=True)
+            for ou in ous:
+                # TODO: support filters for GPO
+                ou_computers = [x.dnshostname for x in \
+                        net_requester.get_netcomputer(queried_domain=queried_domain,
+                                                      ads_path=ou.distinguishedname)]
+                gpo_location = GPOLocation(list())
+                setattr(gpo_location, 'objectname', object_distinguished_name)
+                setattr(gpo_location, 'gponame', gpo_group.gpodisplayname)
+                setattr(gpo_location, 'gpoguid', gpo_guid)
+                setattr(gpo_location, 'containername', ou.distinguishedname)
+                setattr(gpo_location, 'computers', ou_computers)
+
+                results.append(gpo_location)
+
+        return results
+

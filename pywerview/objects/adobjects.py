@@ -161,3 +161,6 @@ class Policy(ADObject):
 class GPOComputerAdmin(ADObject):
     pass
 
+class GPOLocation(ADObject):
+    pass
+
