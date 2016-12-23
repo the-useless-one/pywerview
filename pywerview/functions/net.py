@@ -76,15 +76,48 @@ class NetRequester(LDAPRPCRequester):
                      ads_path=str(), admin_count=False, full_data=False,
                      custom_filter=str()):
 
-        if admin_count:
-            custom_filter += '(admincount=1)'
-
-        group_search_filter = custom_filter
         if queried_username:
-            group_search_filter += '(samAccountName={})'.format(queried_username)
-            attributes = ['memberOf']
+            results = list()
+            sam_account_name_to_resolve = [queried_username]
+            first_run = True
+            sam_account_name_already_resolved = list()
+            while sam_account_name_to_resolve:
+                sam_account_name = sam_account_name_to_resolve.pop(0)
+                if first_run:
+                    first_run = False
+                    if admin_count:
+                        custom_filter = '(&{}(admincount=1))'.format(custom_filter)
+                    objects = self.get_adobject(queried_sam_account_name=sam_account_name,
+                                                queried_domain=queried_domain,
+                                                ads_path=ads_path, custom_filter=custom_filter)
+                else:
+                    objects = self.get_adobject(queried_sam_account_name=sam_account_name,
+                                                queried_domain=queried_domain)
+
+                for obj in objects:
+                    try:
+                        if not isinstance(obj.memberof, list):
+                            obj.memberof = [obj.memberof]
+                    except AttributeError:
+                        continue
+                    for group_dn in obj.memberof:
+                        group_sam_account_name = group_dn.split(',')[0].split('=')[1]
+                        if not group_sam_account_name in results:
+                            results.append(group_sam_account_name)
+                            sam_account_name_to_resolve.append(group_sam_account_name)
+            final_results = list()
+            for group_sam_account_name in results:
+                obj_member_of = adobj.Group(list())
+                setattr(obj_member_of, 'samaccountname', group_sam_account_name)
+                final_results.append(obj_member_of)
+            return final_results
         else:
+            if admin_count:
+                custom_filter += '(admincount=1)'
+
+            group_search_filter = custom_filter
             group_search_filter += '(objectCategory=group)'
+
             if queried_sid:
                 group_search_filter += '(objectSid={})'.format(queried_sid)
             elif queried_groupname:
@@ -95,9 +128,9 @@ class NetRequester(LDAPRPCRequester):
             else:
                 attributes=['samaccountname']
 
-        group_search_filter = '(&{})'.format(group_search_filter)
+            group_search_filter = '(&{})'.format(group_search_filter)
 
-        return self._ldap_search(group_search_filter, adobj.Group, attributes=attributes)
+            return self._ldap_search(group_search_filter, adobj.Group, attributes=attributes)
 
     @LDAPRPCRequester._ldap_connection_init
     def get_netcomputer(self, queried_computername='*', queried_spn=str(),
