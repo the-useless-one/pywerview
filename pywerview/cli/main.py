@@ -285,7 +285,7 @@ def main():
     find_gpocomputeradmin_parser.set_defaults(func=find_gpocomputeradmin)
 
     # Parser for the find-gpolocation command
-    find_gpolocation_parser = subparsers.add_parser('find-gpolocation', help='Takes a username or a group name and determine'\
+    find_gpolocation_parser = subparsers.add_parser('find-gpolocation', help='Takes a username or a group name and determine '\
         'the computers it has administrative access to via GPO', parents=[ad_parser])
     find_gpolocation_parser.add_argument('--username', dest='queried_username',
             default=str(), help='The username to query for access (no wildcard)')
@@ -299,7 +299,7 @@ def main():
     find_gpolocation_parser.set_defaults(func=find_gpolocation)
 
     # Parser for the get-netgroup command
-    get_netgroupmember_parser = subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain groups', parents=[ad_parser])
+    get_netgroupmember_parser = subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain group', parents=[ad_parser])
     get_netgroupmember_parser.add_argument('--groupname', dest='queried_groupname',
             help='Group to query, defaults to the \'Domain Admins\' group (wildcards accepted)')
     get_netgroupmember_parser.add_argument('--sid', dest='queried_sid',
@@ -339,7 +339,7 @@ def main():
 
     # Parser for the get-netloggedon command
     get_netloggedon_parser = subparsers.add_parser('get-netloggedon', help='This function will '\
-        'execute the NetWkstaUserEnum RPC call ti query a given host for actively logged on '\
+        'execute the NetWkstaUserEnum RPC call to query a given host for actively logged on '\
         'users', parents=[target_parser])
     get_netloggedon_parser.set_defaults(func=get_netloggedon)
 
@@ -406,7 +406,7 @@ def main():
     invoke_userhunter_parser.set_defaults(func=invoke_userhunter)
 
     # Parser for the invoke-processhunter command
-    invoke_processhunter_parser = subparsers.add_parser('invoke-processhunter', help='Searches machines'\
+    invoke_processhunter_parser = subparsers.add_parser('invoke-processhunter', help='Searches machines '\
             'for processes with specific name, or ran by specific users', parents=[ad_parser, hunter_parser])
     invoke_processhunter_parser.add_argument('--processname', dest='queried_processname',
             nargs='+', default=list(), help='Names of the process to hunt')
@@ -417,7 +417,7 @@ def main():
     invoke_processhunter_parser.set_defaults(func=invoke_processhunter)
 
     # Parser for the invoke-eventhunter command
-    invoke_eventhunter_parser = subparsers.add_parser('invoke-eventhunter', help='Searches machines'\
+    invoke_eventhunter_parser = subparsers.add_parser('invoke-eventhunter', help='Searches machines '\
             'for events with specific name, or ran by specific users', parents=[ad_parser, hunter_parser])
     invoke_eventhunter_parser.add_argument('--search-days', dest='search_days',
             type=int, default=3, help='Number of days back to search logs for (default: %(default)s)')
