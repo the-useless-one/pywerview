@@ -318,7 +318,8 @@ class NetRequester(LDAPRPCRequester):
         def _get_members(_groupname=str(), _sid=str()):
             try:
                 if _groupname:
-                    groups = self.get_netgroup(queried_groupname=_groupname, full_data=True)
+                    groups = self.get_netgroup(queried_groupname=_groupname,
+                                               queried_domain=queried_domain, full_data=True)
                 else:
                     if _sid:
                         queried_sid = _sid
@@ -395,6 +396,12 @@ class NetRequester(LDAPRPCRequester):
                     groups_to_process.append((member.membername, str()))
 
         return results
+
+    @LDAPRPCRequester._ldap_connection_init
+    def get_netdomaintrust(self, queried_domain):
+        trust_search_filter = '(&(objectClass=trustedDomain))'
+
+        return self._ldap_search(trust_search_filter, adobj.Trust)
 
     @LDAPRPCRequester._rpc_connection_init(r'\srvsvc')
     def get_netsession(self):
