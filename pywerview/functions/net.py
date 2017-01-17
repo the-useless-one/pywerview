@@ -603,6 +603,10 @@ class NetRequester(LDAPRPCRequester):
                             attributes['isgroup'] = False
                             attributes['name'] = attributes['sid']
                             attributes['lastlogin'] = str()
+                    else:
+                        attributes['isgroup'] = False
+                        attributes['name'] = str()
+                        attributes['lastlogin'] = str()
 
                 results.append(rpcobj.RPCObject(attributes))
 
