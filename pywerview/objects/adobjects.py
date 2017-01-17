@@ -54,13 +54,16 @@ class ADObject:
                 value = datetime.fromtimestamp(timestamp)
             elif t == 'isgroup':
                 value = attr['vals'][0]
-            elif t == 'samaccounttype':
-                setattr(self, 'isgroup', (str(attr['vals'][0]) != '805306368'))
-                value = str(attr['vals'][0])
+            elif t == 'objectclass':
+                value = [str(x) for x in attr['vals']]
+                setattr(self, 'isgroup', ('group' in value))
             elif len(attr['vals']) > 1:
                 value = [str(x) for x in attr['vals']]
             else:
-                value = str(attr['vals'][0])
+                try:
+                    value = str(attr['vals'][0])
+                except IndexError:
+                    value = str()
 
             setattr(self, t, value)
 
@@ -74,7 +77,24 @@ class ADObject:
                     max_length = len(member[0])
         for member in members:
             if not member[0].startswith('_'):
-                s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member[1])
+                if member[0] == 'msmqdigests':
+                    member_value = (',\n' + ' ' * (max_length + 2)).join(x.encode('hex') for x in member[1])
+                elif isinstance(member[1], list):
+                    if member[0] in ('logonhours',):
+                        member_value = member[1]
+                    elif member[0] in ('usercertificate',):
+                        member_value = (',\n' + ' ' * (max_length + 2)).join(
+                                '{}...'.format(x.encode('hex')[:100]) for x in member[1])
+                    else:
+                        member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member[1])
+                elif member[0] in('msmqsigncertificates', 'userparameters',
+                                  'jpegphoto', 'thumbnailphoto', 'usercertificate',
+                                  'msexchmailboxguid', 'msexchmailboxsecuritydescriptor',
+                                  'msrtcsip-userroutinggroupid', 'msexchumpinchecksum'):
+                    member_value = '{}...'.format(member[1].encode('hex')[:100])
+                else:
+                    member_value = member[1]
+                s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
 
         s = s[:-1]
         return s
@@ -116,5 +136,31 @@ class Subnet(ADObject):
     pass
 
 class GPO(ADObject):
+    pass
+
+class GptTmpl(ADObject):
+    def __str__(self):
+        s = str()
+        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
+        for member in members:
+            if not member[0].startswith('_'):
+                s += '{}:\n'.format(member[0])
+                member_value_str = str(member[1])
+                for line in member_value_str.split('\n'):
+                    s += '\t{}\n'.format(line)
+
+        s = s[:-1]
+        return s
+
+class GPOGroup(ADObject):
+    pass
+
+class Policy(ADObject):
+    pass
+
+class GPOComputerAdmin(ADObject):
+    pass
+
+class GPOLocation(ADObject):
     pass
 

@@ -20,8 +20,12 @@
 import socket
 from impacket.smbconnection import SMBConnection
 from impacket.ldap import ldap, ldapasn1
+from impacket.smbconnection import SMBConnection
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
+from impacket.dcerpc.v5.dcom import wmi
+from impacket.dcerpc.v5.dtypes import NULL
+from impacket.dcerpc.v5.dcomrt import DCOMConnection
 
 class LDAPRequester():
     def __init__(self, domain_controller, domain=str(), user=(), password=str(),
@@ -99,6 +103,9 @@ class LDAPRequester():
                 search_results = e.answers
             else:
                 raise e
+        # TODO: Filter parenthesis in LDAP filter
+        except ldap.LDAPFilterSyntaxError as e:
+            return list()
 
         for result in search_results:
             if not isinstance(result, ldapasn1.SearchResultEntry):
@@ -116,9 +123,9 @@ class LDAPRequester():
             ads_path = kwargs.get('ads_path', None)
             ads_prefix = kwargs.get('ads_prefix', None)
             if (not instance._ldap_connection) or \
-               (queried_domain is not None and queried_domain != instance._queried_domain) or \
-               (ads_path is not None and ads_path != instance._ads_path) or \
-               (ads_prefix is not None and ads_prefix != instance._ads_prefix):
+               (queried_domain != instance._queried_domain) or \
+               (ads_path != instance._ads_path) or \
+               (ads_prefix != instance._ads_prefix):
                 if instance._ldap_connection:
                     instance._ldap_connection.close()
                 instance._create_ldap_connection(queried_domain=queried_domain,
@@ -148,8 +155,11 @@ class RPCRequester():
         self._nthash = nthash
         self._pipe = None
         self._rpc_connection = None
+        self._dcom = None
+        self._wmi_connection = None
 
     def _create_rpc_connection(self, pipe):
+        # Here we build the DCE/RPC connection
         self._pipe = pipe
 
         binding_strings = dict()
@@ -184,8 +194,17 @@ class RPCRequester():
 
         self._rpc_connection = dce
 
+    def _create_wmi_connection(self):
+        self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
+                                    self._domain, self._lmhash, self._nthash)
+        i_interface = self._dcom.CoCreateInstanceEx(wmi.CLSID_WbemLevel1Login,
+                                                    wmi.IID_IWbemLevel1Login)
+        i_wbem_level1_login = wmi.IWbemLevel1Login(i_interface)
+        self._wmi_connection = i_wbem_level1_login.NTLMLogin('\\\\{}\\root\\cimv2'.format(self._target_computer),
+                                                             NULL, NULL)
+
     @staticmethod
-    def _rpc_connection_init(pipe):
+    def _rpc_connection_init(pipe=r'\srvsvc'):
         def decorator(f):
             def wrapper(*args, **kwargs):
                 instance = args[0]
@@ -193,6 +212,17 @@ class RPCRequester():
                     if instance._rpc_connection:
                         instance._rpc_connection.disconnect()
                     instance._create_rpc_connection(pipe=pipe)
+                return f(*args, **kwargs)
+            return wrapper
+        return decorator
+
+    @staticmethod
+    def _wmi_connection_init():
+        def decorator(f):
+            def wrapper(*args, **kwargs):
+                instance = args[0]
+                if not instance._wmi_connection:
+                    instance._create_wmi_connection()
                 return f(*args, **kwargs)
             return wrapper
         return decorator
@@ -221,11 +251,9 @@ class LDAPRPCRequester(LDAPRequester, RPCRequester):
         RPCRequester.__init__(self, target_computer, domain, user, password,
                                lmhash, nthash)
     def __enter__(self):
-        # If this LDAPRPCRequester is used to make RPC requests, this will raise
-        # and exception. We catch it and continue
         try:
             LDAPRequester.__enter__(self)
-        except socket.error:
+        except socket.error, IndexError:
             pass
         # This should work every time
         RPCRequester.__enter__(self)

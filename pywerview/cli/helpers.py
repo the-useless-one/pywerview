@@ -21,7 +21,7 @@
 from pywerview.functions.net import NetRequester
 from pywerview.functions.gpo import GPORequester
 from pywerview.functions.misc import Misc
-from pywerview.functions.hunting import UserHunter
+from pywerview.functions.hunting import UserHunter, ProcessHunter, EventHunter
 
 def get_adobject(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), queried_domain=str(), queried_sid=str(),
@@ -165,6 +165,20 @@ def get_netlocalgroup(target_computername, domain_controller, domain, user,
 	return requester.get_netlocalgroup(queried_groupname=queried_groupname,
                                            list_groups=list_groups, recurse=recurse)
 
+def get_netprocess(target_computername, domain, user, password=str(),
+                   lmhash=str(), nthash=str()):
+	requester = NetRequester(target_computername, domain, user, password,
+                                 lmhash, nthash)
+	return requester.get_netprocess()
+
+def get_userevent(target_computername, domain, user, password=str(),
+                   lmhash=str(), nthash=str(), event_type=['logon', 'tgt'],
+                   date_start=5):
+	requester = NetRequester(target_computername, domain, user, password,
+                                 lmhash, nthash)
+	return requester.get_userevent(event_type=event_type,
+                                       date_start=date_start)
+
 def get_netgpo(domain_controller, domain, user, password=str(),
                lmhash=str(), nthash=str(), queried_gponame='*',
                queried_displayname=str(), queried_domain=str(), ads_path=str()):
@@ -174,6 +188,57 @@ def get_netgpo(domain_controller, domain, user, password=str(),
                                     queried_displayname=queried_displayname,
                                     queried_domain=queried_domain, ads_path=ads_path)
 
+def get_domainpolicy(domain_controller, domain, user, password=str(),
+                     lmhash=str(), nthash=str(), source='domain', queried_domain=str(),
+                     resolve_sids=False):
+	requester = GPORequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+
+        return requester.get_domainpolicy(source=source, queried_domain=queried_domain,
+                                          resolve_sids=resolve_sids)
+
+def get_gpttmpl(gpttmpl_path, domain_controller, domain, user, password=str(), lmhash=str(),
+                nthash=str()):
+	requester = GPORequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+
+        return requester.get_gpttmpl(gpttmpl_path)
+
+def get_netgpogroup(domain_controller, domain, user, password=str(), lmhash=str(),
+                    nthash=str(), queried_gponame='*', queried_displayname=str(),
+                    queried_domain=str(), ads_path=str(), resolve_sids=False):
+	requester = GPORequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+
+        return requester.get_netgpogroup(queried_gponame=queried_gponame,
+                                         queried_displayname=queried_displayname,
+                                         queried_domain=queried_domain,
+                                         ads_path=ads_path,
+                                         resolve_sids=resolve_sids)
+
+def find_gpocomputeradmin(domain_controller, domain, user, password=str(), lmhash=str(),
+                          nthash=str(), queried_computername=str(),
+                          queried_ouname=str(), queried_domain=str(),
+                          recurse=False):
+	requester = GPORequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+
+        return requester.find_gpocomputeradmin(queried_computername=queried_computername,
+                                               queried_ouname=queried_ouname,
+                                               queried_domain=queried_domain,
+                                               recurse=recurse)
+
+def find_gpolocation(domain_controller, domain, user, password=str(), lmhash=str(),
+                     nthash=str(), queried_username=str(), queried_groupname=str(),
+                     queried_localgroup=str(), queried_domain=str()):
+	requester = GPORequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+
+        return requester.find_gpolocation(queried_username=queried_username,
+                                          queried_groupname=queried_groupname,
+                                          queried_localgroup=queried_localgroup,
+                                          queried_domain=queried_domain)
+
 def invoke_checklocaladminaccess(target_computername, domain, user, password=str(),
                                  lmhash=str(), nthash=str()):
     misc = Misc(target_computername, domain, user, password, lmhash, nthash)
@@ -182,24 +247,76 @@ def invoke_checklocaladminaccess(target_computername, domain, user, password=str
 
 def invoke_userhunter(domain_controller, domain, user, password=str(),
                       lmhash=str(), nthash=str(), queried_computername=list(),
-                      queried_computerfile=None, queried_computeradspath=str(),
-                      unconstrained=False, queried_groupname=str(), target_server=str(),
-                      queried_username=str(), queried_useradspath=str(), queried_userfile=None,
-                      threads=1, verbose=False, admin_count=False, allow_delegation=False,
-                      stop_on_success=False, check_access=False, queried_domain=str(), stealth=False,
-                      stealth_source=['dfs', 'dc', 'file'], show_all=False, foreign_users=False):
+                      queried_computerfile=None, queried_computerfilter=str(),
+                      queried_computeradspath=str(), unconstrained=False,
+                      queried_groupname=str(), target_server=str(),
+                      queried_username=str(), queried_useradspath=str(),
+                      queried_userfilter=str(), queried_userfile=None,
+                      threads=1, admin_count=False, allow_delegation=False,
+                      stop_on_success=False, check_access=False, queried_domain=str(),
+                      stealth=False, stealth_source=['dfs', 'dc', 'file'],
+                      show_all=False, foreign_users=False):
     user_hunter = UserHunter(domain_controller, domain, user, password,
                              lmhash, nthash)
     
     return user_hunter.invoke_userhunter(queried_computername=queried_computername,
                                          queried_computerfile=queried_computerfile,
+                                         queried_computerfilter=queried_computerfilter,
                                          queried_computeradspath=queried_computeradspath,
                                          unconstrained=unconstrained, queried_groupname=queried_groupname,
                                          target_server=target_server, queried_username=queried_username,
+                                         queried_userfilter=queried_userfilter,
                                          queried_useradspath=queried_useradspath, queried_userfile=queried_userfile,
-                                         threads=threads, verbose=verbose, admin_count=admin_count,
+                                         threads=threads, admin_count=admin_count,
                                          allow_delegation=allow_delegation, stop_on_success=stop_on_success,
                                          check_access=check_access, queried_domain=queried_domain, stealth=stealth,
                                          stealth_source=stealth_source, show_all=show_all,
                                          foreign_users=foreign_users)
+
+def invoke_processhunter(domain_controller, domain, user, password=str(),
+                         lmhash=str(), nthash=str(), queried_computername=list(),
+                         queried_computerfile=None, queried_computerfilter=str(),
+                         queried_computeradspath=str(), queried_processname=list(),
+                         queried_groupname=str(), target_server=str(),
+                         queried_username=str(), queried_useradspath=str(),
+                         queried_userfilter=str(), queried_userfile=None, threads=1,
+                         stop_on_success=False, queried_domain=str(), show_all=False):
+    process_hunter = ProcessHunter(domain_controller, domain, user, password,
+                                   lmhash, nthash)
+
+    return process_hunter.invoke_processhunter(queried_computername=queried_computername,
+                                               queried_computerfile=queried_computerfile,
+                                               queried_computerfilter=queried_computerfilter,
+                                               queried_computeradspath=queried_computeradspath,
+                                               queried_processname=queried_processname,
+                                               queried_groupname=queried_groupname,
+                                               target_server=target_server, queried_username=queried_username,
+                                               queried_userfilter=queried_userfilter,
+                                               queried_useradspath=queried_useradspath, queried_userfile=queried_userfile,
+                                               threads=threads, stop_on_success=stop_on_success,
+                                               queried_domain=queried_domain, show_all=show_all)
+
+def invoke_eventhunter(domain_controller, domain, user, password=str(),
+                       lmhash=str(), nthash=str(), queried_computername=list(),
+                       queried_computerfile=None, queried_computerfilter=str(),
+                       queried_computeradspath=str(), queried_groupname=str(),
+                       target_server=str(), queried_username=str(),
+                       queried_useradspath=str(), queried_userfilter=str(),
+                       queried_userfile=None, threads=1, queried_domain=str(),
+                       search_days=3):
+    event_hunter = EventHunter(domain_controller, domain, user, password,
+                                   lmhash, nthash)
+
+    return event_hunter.invoke_eventhunter(queried_computername=queried_computername,
+                                           queried_computerfile=queried_computerfile,
+                                           queried_computerfilter=queried_computerfilter,
+                                           queried_computeradspath=queried_computeradspath,
+                                           queried_groupname=queried_groupname,
+                                           target_server=target_server,
+                                           queried_userfilter=queried_userfilter,
+                                           queried_username=queried_username,
+                                           queried_useradspath=queried_useradspath,
+                                           queried_userfile=queried_userfile,
+                                           search_days=search_days,
+                                           threads=threads, queried_domain=queried_domain)
 

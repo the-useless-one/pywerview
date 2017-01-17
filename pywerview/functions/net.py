@@ -18,11 +18,12 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
 import socket
-from impacket.ldap import ldapasn1
+import datetime
 from impacket.dcerpc.v5.ndr import NULL
 from impacket.dcerpc.v5 import wkst, srvs, samr
 from impacket.dcerpc.v5.samr import DCERPCSessionError
 from impacket.dcerpc.v5.rpcrt import DCERPCException
+from impacket.dcerpc.v5.dcom.wmi import WBEM_FLAG_FORWARD_ONLY
 from bs4 import BeautifulSoup
 
 from pywerview.requester import LDAPRPCRequester
@@ -57,7 +58,6 @@ class NetRequester(LDAPRPCRequester):
             custom_filter += '(!(userAccountControl:1.2.840.113556.1.4.803:=1048574))'
 
         if admin_count:
-            admin_count_filter = LDAPRPCRequester._build_equality_match_filter('admincount', 1)
             custom_filter += '(admincount=1)'
 
         user_search_filter = '(samAccountType=805306368){}'.format(custom_filter)
@@ -76,15 +76,48 @@ class NetRequester(LDAPRPCRequester):
                      ads_path=str(), admin_count=False, full_data=False,
                      custom_filter=str()):
 
-        if admin_count:
-            custom_filter += '(admincount=1)'
-
-        group_search_filter = custom_filter
         if queried_username:
-            group_search_filter += '(samAccountName={})'.format(queried_username)
-            attributes = ['memberOf']
+            results = list()
+            sam_account_name_to_resolve = [queried_username]
+            first_run = True
+            sam_account_name_already_resolved = list()
+            while sam_account_name_to_resolve:
+                sam_account_name = sam_account_name_to_resolve.pop(0)
+                if first_run:
+                    first_run = False
+                    if admin_count:
+                        custom_filter = '(&{}(admincount=1))'.format(custom_filter)
+                    objects = self.get_adobject(queried_sam_account_name=sam_account_name,
+                                                queried_domain=queried_domain,
+                                                ads_path=ads_path, custom_filter=custom_filter)
+                else:
+                    objects = self.get_adobject(queried_sam_account_name=sam_account_name,
+                                                queried_domain=queried_domain)
+
+                for obj in objects:
+                    try:
+                        if not isinstance(obj.memberof, list):
+                            obj.memberof = [obj.memberof]
+                    except AttributeError:
+                        continue
+                    for group_dn in obj.memberof:
+                        group_sam_account_name = group_dn.split(',')[0].split('=')[1]
+                        if not group_sam_account_name in results:
+                            results.append(group_sam_account_name)
+                            sam_account_name_to_resolve.append(group_sam_account_name)
+            final_results = list()
+            for group_sam_account_name in results:
+                obj_member_of = adobj.Group(list())
+                setattr(obj_member_of, 'samaccountname', group_sam_account_name)
+                final_results.append(obj_member_of)
+            return final_results
         else:
+            if admin_count:
+                custom_filter += '(admincount=1)'
+
+            group_search_filter = custom_filter
             group_search_filter += '(objectCategory=group)'
+
             if queried_sid:
                 group_search_filter += '(objectSid={})'.format(queried_sid)
             elif queried_groupname:
@@ -95,21 +128,15 @@ class NetRequester(LDAPRPCRequester):
             else:
                 attributes=['samaccountname']
 
-        group_search_filter = '(&{})'.format(group_search_filter)
+            group_search_filter = '(&{})'.format(group_search_filter)
 
-        return self._ldap_search(group_search_filter, adobj.Group, attributes=attributes)
+            return self._ldap_search(group_search_filter, adobj.Group, attributes=attributes)
 
     @LDAPRPCRequester._ldap_connection_init
     def get_netcomputer(self, queried_computername='*', queried_spn=str(),
                         queried_os=str(), queried_sp=str(), queried_domain=str(),
                         ads_path=str(), printers=False, unconstrained=False,
                         ping=False, full_data=False, custom_filter=str()):
-
-        computer_search_filter = ldapasn1.Filter()
-        computer_search_filter['and'] = ldapasn1.And()
-
-        computer_filter = LDAPRPCRequester._build_equality_match_filter('samAccountType', '805306369')
-        computer_search_filter['and'][0] = computer_filter
 
         if unconstrained:
             custom_filter += '(userAccountControl:1.2.840.113556.1.4.803:=524288)'
@@ -279,7 +306,6 @@ class NetRequester(LDAPRPCRequester):
             attributes = ['name', 'siteobject']
 
         subnet_search_filter = '(&{})'.format(subnet_search_filter)
-        print subnet_search_filter
 
         return self._ldap_search(subnet_search_filter, adobj.Subnet, attributes=attributes)
 
@@ -484,7 +510,7 @@ class NetRequester(LDAPRPCRequester):
                     resp = samr.hSamrQueryInformationAlias(self._rpc_connection, alias_handle)
 
                     final_group = rpcobj.Group(resp['Buffer']['General'])
-                    final_group.add_atributes({'server': self._target_computer, 'sid': sid})
+                    final_group.add_attributes({'server': self._target_computer, 'sid': sid})
 
                     results.append(final_group)
 
@@ -559,7 +585,12 @@ class NetRequester(LDAPRPCRequester):
                         ad_object = self.get_adobject(queried_sid=member_sid)[0]
                         member_dn = ad_object.distinguishedname
                         member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
-                        attributes['name'] = '{}/{}'.format(member_domain, ad_object.samaccountname)
+                        try:
+                            attributes['name'] = '{}/{}'.format(member_domain, ad_object.samaccountname)
+                        except AttributeError:
+                            # Here, the member is a foreign security principal
+                            # TODO: resolve it properly
+                            attributes['name'] = '{}/{}'.format(member_domain, ad_object.objectsid)
                         attributes['isgroup'] = ad_object.isgroup
                         try:
                             attributes['lastlogin'] = ad_object.lastlogon
@@ -594,4 +625,76 @@ class NetRequester(LDAPRPCRequester):
                         results.append(rpcobj.RPCObject(domain_member_attributes))
 
         return results
+
+    @LDAPRPCRequester._wmi_connection_init()
+    def get_netprocess(self):
+        wmi_enum_process = self._wmi_connection.ExecQuery('SELECT * from Win32_Process',
+                                                          lFlags=WBEM_FLAG_FORWARD_ONLY)
+        while True:
+            try:
+                # TODO: do we have to get them one by one?
+                wmi_process = wmi_enum_process.Next(0xffffffff, 1)[0]
+                wmi_process_owner = wmi_process.GetOwner()
+                attributes = {'computername': self._target_computer,
+                              'processname': wmi_process.Name,
+                              'processid': wmi_process.ProcessId,
+                              'user': wmi_process_owner.User,
+                              'domain': wmi_process_owner.Domain}
+
+                result_process = rpcobj.Process(attributes)
+                yield result_process
+            except Exception, e:
+                if str(e).find('S_FALSE') < 0:
+                    raise e
+                else:
+                    break
+
+    @LDAPRPCRequester._wmi_connection_init()
+    def get_userevent(self, event_type=['logon', 'tgt'], date_start=5):
+        limit_date = (datetime.datetime.today() - datetime.timedelta(days=date_start)).strftime('%Y%m%d%H%M%S.%f-000')
+        if event_type == ['logon']:
+            where_clause = 'EventCode=4624'
+        elif event_type == ['tgt']:
+            where_clause = 'EventCode=4768'
+        else:
+            where_clause = '(EventCode=4624 OR EventCode=4768)'
+
+        wmi_enum_event = self._wmi_connection.ExecQuery('SELECT * from Win32_NTLogEvent where {}'\
+                                                        'and TimeGenerated >= \'{}\''.format(where_clause, limit_date),
+                                                        lFlags=WBEM_FLAG_FORWARD_ONLY)
+        while True:
+            try:
+                # TODO: do we have to get them one by one?
+                wmi_event = wmi_enum_event.Next(0xffffffff, 1)[0]
+                wmi_event_type = wmi_event.EventIdentifier
+                wmi_event_info = wmi_event.InsertionStrings
+                time = datetime.datetime.strptime(wmi_event.TimeGenerated, '%Y%m%d%H%M%S.%f-000')
+                if wmi_event_type == 4624:
+                    logon_type = int(wmi_event_info[8])
+                    user = wmi_event_info[5]
+                    domain = wmi_event_info[6]
+                    address = wmi_event_info[18]
+                    if logon_type not in [2, 3] or user.endswith('$') \
+                       or (user.lower == 'anonymous logon'):
+                        continue
+                else:
+                    logon_type = str()
+                    user = wmi_event_info[0]
+                    domain = wmi_event_info[1]
+                    address = wmi_event_info[9].replace('::ffff:', '')
+
+                attributes = {'computername': self._target_computer,
+                              'logontype': logon_type,
+                              'username': user,
+                              'domain': domain,
+                              'address': address,
+                              'time': time,
+                              'id': wmi_event_type}
+                result_event = rpcobj.Event(attributes)
+                yield result_event
+            except Exception, e:
+                if str(e).find('S_FALSE') < 0:
+                    raise e
+                else:
+                    break
 

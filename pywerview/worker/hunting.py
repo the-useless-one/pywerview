@@ -23,35 +23,38 @@ from pywerview.functions.net import NetRequester
 from pywerview.functions.misc import Misc
 import pywerview.objects.rpcobjects as rpcobj
 
-class UserHunterWorker(Process):
-    def __init__(self, pipe, domain, user, password, lmhash, nthash, foreign_users,
-                 verbose, stealth, target_users, domain_short_name, check_access):
+class HunterWorker(Process):
+    def __init__(self, pipe, domain, user, password, lmhash, nthash):
+        Process.__init__(self)
         self._pipe = pipe
         self._domain = domain
         self._user = user
         self._password = password
         self._lmhash = lmhash
         self._nthash = nthash
-        self._foreign_users = foreign_users
-        self._verbose = verbose
-        self._stealth = stealth
-        self._target_users = target_users
-        self._domain_short_name = domain_short_name
-        self._check_access = check_access
-        Process.__init__(self)
-
-    def run(self):
-        while True:
-            target_computer = self._pipe.recv()
-            result = self._enumerate_sessions(target_computer)
-            self._pipe.send(result)
 
     def terminate(self):
         self._pipe.close()
         Process.terminate(self)
 
+    def run(self):
+        while True:
+            target_computer = self._pipe.recv()
+            result = self._hunt(target_computer)
+            self._pipe.send(result)
+
+class UserHunterWorker(HunterWorker):
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, foreign_users,
+                 stealth, target_users, domain_short_name, check_access):
+        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash)
+        self._foreign_users = foreign_users
+        self._stealth = stealth
+        self._target_users = target_users
+        self._domain_short_name = domain_short_name
+        self._check_access = check_access
+
     # TODO: test foreign user hunting
-    def _enumerate_sessions(self, target_computer):
+    def _hunt(self, target_computer):
         # TODO: implement ping of target
         results = list()
         # First, we get every distant session on the target computer
@@ -104,9 +107,55 @@ class UserHunterWorker(Process):
                             attributes['localadmin'] = str()
 
                         results.append(rpcobj.RPCObject(attributes))
-                        # TODO: implement generator instead of verbose mode?
-                        if self._verbose:
-                            print results[-1], '\n'
 
         return results
 
+class ProcessHunterWorker(HunterWorker):
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, process_name,
+                 target_users):
+        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash)
+        self._process_name = process_name
+        self._target_users = target_users
+
+    def _hunt(self, target_computer):
+        results = list()
+
+        distant_processes = list()
+        with NetRequester(target_computer, self._domain, self._user, self._password,
+                          self._lmhash, self._nthash) as net_requester:
+            distant_processes = net_requester.get_netprocess()
+
+        for process in distant_processes:
+            if self._process_name:
+                for process_name in self._process_name:
+                    if process_name.lower() in process.processname.lower():
+                        results.append(process)
+            elif self._target_users:
+                for target_user in self._target_users:
+                    if target_user.membername.lower() in process.user.lower():
+                        results.append(process)
+
+        return results
+
+class EventHunterWorker(HunterWorker):
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, search_days,
+                 target_users):
+        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash)
+        self._target_users = target_users
+        self._search_days = search_days
+
+    def _hunt(self, target_computer):
+        results = list()
+
+        distant_processes = list()
+        with NetRequester(target_computer, self._domain, self._user, self._password,
+                          self._lmhash, self._nthash) as net_requester:
+            distant_events = net_requester.get_userevent(date_start=self._search_days)
+
+        for event in distant_events:
+            if self._target_users:
+                for target_user in self._target_users:
+                    if target_user.membername.lower() in event.username.lower():
+                        results.append(event)
+
+        return results

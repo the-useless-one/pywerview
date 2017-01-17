@@ -29,14 +29,20 @@ class RPCObject:
                 attributes[key] = obj[key]
         except AttributeError:
             attributes = obj
-        self.add_atributes(attributes)
+        self.add_attributes(attributes)
 
-    def add_atributes(self, attributes):
+    def add_attributes(self, attributes):
         for key, value in attributes.items():
-            #if isinstance(value, int):
-                #pass
-            #else:
-                #value = value.rstrip('\x00')
+            key = key.lower()
+            if key in ('wkui1_logon_domain', 'wkui1_logon_server',
+                       'wkui1_oth_domains', 'wkui1_username',
+                       'sesi10_cname', 'sesi10_username'):
+                value = value.rstrip('\x00')
+            if isinstance(value, str):
+                try:
+                    value = value.decode('utf-8')
+                except UnicodeDecodeError:
+                    pass
 
             setattr(self, key.lower(), value)
 
@@ -75,3 +81,13 @@ class Group(RPCObject):
 
 class Disk(RPCObject):
     pass
+
+class Process(RPCObject):
+    def __init__(self, obj):
+        RPCObject.__init__(self, obj)
+        self.user = str(self.user)
+        self.domain = str(self.domain)
+
+class Event(RPCObject):
+    pass
+
