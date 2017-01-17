@@ -581,33 +581,34 @@ class NetRequester(LDAPRPCRequester):
                 # It's a domain member
                 else:
                     attributes['isdomain'] = True
-                    try:
-                        ad_object = self.get_adobject(queried_sid=member_sid)[0]
-                        member_dn = ad_object.distinguishedname
-                        member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
+                    if self._ldap_connection is not None:
                         try:
-                            attributes['name'] = '{}/{}'.format(member_domain, ad_object.samaccountname)
-                        except AttributeError:
-                            # Here, the member is a foreign security principal
-                            # TODO: resolve it properly
-                            attributes['name'] = '{}/{}'.format(member_domain, ad_object.objectsid)
-                        attributes['isgroup'] = ad_object.isgroup
-                        try:
-                            attributes['lastlogin'] = ad_object.lastlogon
-                        except AttributeError:
+                            ad_object = self.get_adobject(queried_sid=member_sid)[0]
+                            member_dn = ad_object.distinguishedname
+                            member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
+                            try:
+                                attributes['name'] = '{}/{}'.format(member_domain, ad_object.samaccountname)
+                            except AttributeError:
+                                # Here, the member is a foreign security principal
+                                # TODO: resolve it properly
+                                attributes['name'] = '{}/{}'.format(member_domain, ad_object.objectsid)
+                            attributes['isgroup'] = ad_object.isgroup
+                            try:
+                                attributes['lastlogin'] = ad_object.lastlogon
+                            except AttributeError:
+                                attributes['lastlogin'] = str()
+                        except IndexError:
+                            # We did not manage to resolve this SID against the DC
+                            attributes['isdomain'] = False
+                            attributes['isgroup'] = False
+                            attributes['name'] = attributes['sid']
                             attributes['lastlogin'] = str()
-                    except IndexError:
-                        # We did not manage to resolve this SID against the DC
-                        attributes['isdomain'] = False
-                        attributes['isgroup'] = False
-                        attributes['name'] = attributes['sid']
-                        attributes['lastlogin'] = str()
 
                 results.append(rpcobj.RPCObject(attributes))
 
                 # If we recurse and the member is a domain group, we query every member
                 # TODO: implement check on self._domain_controller here?
-                if self._domain_controller and recurse and attributes['isdomain'] and attributes['isgroup']:
+                if self._ldap_connection and self._domain_controller and recurse and attributes['isdomain'] and attributes['isgroup']:
                     for domain_member in self.get_netgroupmember(full_data=True, recurse=True, queried_sid=attributes['sid']):
                         domain_member_attributes = dict()
                         domain_member_attributes['isdomain'] = True

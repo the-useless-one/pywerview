@@ -83,6 +83,9 @@ class LDAPRequester():
                                                       base_dn, self._domain_controller)
             else:
                 raise e
+        except socket.error, e:
+            print 'Warning: failed to establish LDAP connection to {}: {}'.format(self._domain_controller, e)
+            return
 
         ldap_connection.login(self._user, self._password, self._domain,
                               self._lmhash, self._nthash)
