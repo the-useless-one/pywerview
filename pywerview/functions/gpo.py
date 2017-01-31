@@ -412,8 +412,14 @@ class GPORequester(LDAPRequester):
         object_groups = net_requester.get_netgroup(queried_username=object_sam_account_name,
                                                    queried_domain=queried_domain)
         for object_group in object_groups:
-            object_group_sid = net_requester.get_adobject(queried_sam_account_name=object_group.samaccountname,
-                                                          queried_domain=queried_domain)[0].objectsid
+            try:
+                object_group_sid = net_requester.get_adobject(queried_sam_account_name=object_group.samaccountname,
+                                                              queried_domain=queried_domain)[0].objectsid
+            except IndexError:
+                # We may have the name of the group, but not its sam account name
+                object_group_sid = net_requester.get_adobject(queried_name=object_group.samaccountname,
+                                                              queried_domain=queried_domain)[0].objectsid
+
             target_sid.append(object_group_sid)
 
         gpo_groups = list()

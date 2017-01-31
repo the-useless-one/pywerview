@@ -80,7 +80,6 @@ class NetRequester(LDAPRPCRequester):
             results = list()
             sam_account_name_to_resolve = [queried_username]
             first_run = True
-            sam_account_name_already_resolved = list()
             while sam_account_name_to_resolve:
                 sam_account_name = sam_account_name_to_resolve.pop(0)
                 if first_run:
@@ -90,9 +89,14 @@ class NetRequester(LDAPRPCRequester):
                     objects = self.get_adobject(queried_sam_account_name=sam_account_name,
                                                 queried_domain=queried_domain,
                                                 ads_path=ads_path, custom_filter=custom_filter)
+                    objects += self.get_adobject(queried_name=sam_account_name,
+                                                 queried_domain=queried_domain,
+                                                 ads_path=ads_path, custom_filter=custom_filter)
                 else:
                     objects = self.get_adobject(queried_sam_account_name=sam_account_name,
                                                 queried_domain=queried_domain)
+                    objects += self.get_adobject(queried_name=sam_account_name,
+                                                 queried_domain=queried_domain)
 
                 for obj in objects:
                     try:
