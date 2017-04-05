@@ -18,6 +18,7 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
 import socket
+import ntpath
 from impacket.ldap import ldap, ldapasn1
 from impacket.smbconnection import SMBConnection
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
@@ -195,13 +196,13 @@ class RPCRequester():
 
         self._rpc_connection = dce
 
-    def _create_wmi_connection(self):
+    def _create_wmi_connection(self, namespace='root\\cimv2'):
         self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
                                     self._domain, self._lmhash, self._nthash)
         i_interface = self._dcom.CoCreateInstanceEx(wmi.CLSID_WbemLevel1Login,
                                                     wmi.IID_IWbemLevel1Login)
         i_wbem_level1_login = wmi.IWbemLevel1Login(i_interface)
-        self._wmi_connection = i_wbem_level1_login.NTLMLogin('\\\\{}\\root\\cimv2'.format(self._target_computer),
+        self._wmi_connection = i_wbem_level1_login.NTLMLogin(ntpath.join('\\\\{}\\'.format(self._target_computer), namespace),
                                                              NULL, NULL)
 
     @staticmethod
