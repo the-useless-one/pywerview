@@ -108,6 +108,8 @@ def main():
             help='Return user accounts that are not marked as \'sensitive and not allowed for delegation\'')
     get_netuser_parser.add_argument('--spn', action='store_true',
             help='Query only users with not-null Service Principal Names')
+    get_netuser_parser.add_argument('--custom-filter', dest='custom_filter',
+            default=str(), help='Custom filter')
     get_netuser_parser.set_defaults(func=get_netuser)
 
     # Parser for the get-netgroup command
