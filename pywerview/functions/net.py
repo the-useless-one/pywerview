@@ -64,7 +64,7 @@ class NetRequester(LDAPRPCRequester):
         if queried_username:
             user_search_filter += '(samAccountName={})'.format(queried_username)
         elif spn:
-            user_search_filter += '(servicePrincipalName={})'.format(spn)
+            user_search_filter += '(servicePrincipalName=*)'
 
         user_search_filter = '(&{})'.format(user_search_filter)
 
