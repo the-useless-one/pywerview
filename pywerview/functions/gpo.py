@@ -113,6 +113,8 @@ class GPORequester(LDAPRequester):
                             sids = member[1]
                         resolved_sids = list()
                         for sid in sids:
+                            if not sid:
+                                continue
                             try:
                                 resolved_sid = net_requester.get_adobject(queried_sid=sid)[0]
                             except IndexError:
