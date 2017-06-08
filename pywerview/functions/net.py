@@ -180,7 +180,7 @@ class NetRequester(LDAPRPCRequester):
             if len(split_path) >= 3:
                 return split_path[2]
 
-        results = list()
+        results = set()
         if target_users:
             users = list()
             for target_user in target_users:
@@ -189,14 +189,14 @@ class NetRequester(LDAPRPCRequester):
             users = self.get_netuser(queried_domain=queried_domain)
 
         for user in users:
-            if user.homedirectory:
-                results.append(split_path(user.homedirectory))
-            if user.scriptpath:
-                results.append(split_path(user.scriptpath))
-            if user.profilepath:
-                results.append(split_path(user.profilepath))
+            for full_path in (user.homedirectory, user.scriptpath, user.profilepath):
+                if not full_path:
+                    continue
+                path = split_path(full_path)
+                if path:
+                    results.add(path)
 
-        return results
+        return list(results)
 
     @LDAPRPCRequester._ldap_connection_init
     def get_dfsshare(self, version=['v1', 'v2'], queried_domain=str(), ads_path=str()):
