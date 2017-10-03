@@ -48,7 +48,7 @@ class GPORequester(LDAPRequester):
         content_io = StringIO()
 
         gpttmpl_path_split = gpttmpl_path.split('\\')
-        target = gpttmpl_path_split[2]
+        target = self._domain_controller
         share = gpttmpl_path_split[3]
         file_name = '\\'.join(gpttmpl_path_split[4:])
 
@@ -137,7 +137,7 @@ class GPORequester(LDAPRequester):
 
         groupsxml_path_split = groupsxml_path.split('\\')
         gpo_name = groupsxml_path_split[6]
-        target = groupsxml_path_split[2]
+        target = self._domain_controller
         share = groupsxml_path_split[3]
         file_name = '\\'.join(groupsxml_path_split[4:])
 
