@@ -322,7 +322,9 @@ class NetRequester(LDAPRPCRequester):
         def _get_members(_groupname=str(), _sid=str()):
             try:
                 if _groupname:
-                    groups = self.get_netgroup(queried_groupname=_groupname, full_data=True)
+                    groups = self.get_netgroup(queried_groupname=_groupname,
+                                               queried_domain=queried_domain,
+                                               full_data=True)
                 else:
                     if _sid:
                         queried_sid = _sid
@@ -332,7 +334,9 @@ class NetRequester(LDAPRPCRequester):
                                                            self._password, self._lmhash,
                                                            self._nthash) as misc_requester:
                             queried_sid = misc_requester.get_domainsid(queried_domain) + '-512'
-                    groups = self.get_netgroup(queried_sid=queried_sid, full_data=True)
+                    groups = self.get_netgroup(queried_sid=queried_sid,
+                                               queried_domain=queried_domain,
+                                               full_data=True)
             except IndexError:
                 raise ValueError('The group {} was not found'.format(_groupname))
 
@@ -343,14 +347,15 @@ class NetRequester(LDAPRPCRequester):
                 if recurse and use_matching_rule:
                     group_memberof_filter = '(&(samAccountType=805306368)(memberof:1.2.840.113556.1.4.1941:={}){})'.format(group.distinguishedname, custom_filter)
 
-                    members = self.get_netuser(custom_filter=group_memberof_filter)
+                    members = self.get_netuser(custom_filter=group_memberof_filter,
+                                               queried_domain=queried_domain)
                 else:
                     # TODO: range cycling
                     try:
                         for member in group.member:
                             dn_filter = '(distinguishedname={}){}'.format(member, custom_filter)
-                            members += self.get_netuser(custom_filter=dn_filter)
-                            members += self.get_netgroup(custom_filter=dn_filter, full_data=True)
+                            members += self.get_netuser(custom_filter=dn_filter, queried_domain=queried_domain)
+                            members += self.get_netgroup(custom_filter=dn_filter, queried_domain=queried_domain, full_data=True)
                     # The group doesn't have any members
                     except AttributeError:
                         continue
