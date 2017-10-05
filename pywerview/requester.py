@@ -26,6 +26,7 @@ from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
 from impacket.dcerpc.v5.dcom import wmi
 from impacket.dcerpc.v5.dtypes import NULL
 from impacket.dcerpc.v5.dcomrt import DCOMConnection
+from impacket.dcerpc.v5.rpcrt import DCERPCException
 
 class LDAPRequester():
     def __init__(self, domain_controller, domain=str(), user=(), password=str(),
@@ -42,7 +43,10 @@ class LDAPRequester():
         self._ldap_connection = None
 
     def _get_netfqdn(self):
-        smb = SMBConnection(self._domain_controller, self._domain_controller)
+        try:
+            smb = SMBConnection(self._domain_controller, self._domain_controller)
+        except socket.error:
+            return str()
         smb.login('', '')
         fqdn = smb.getServerDNSDomainName()
         smb.logoff()
@@ -192,19 +196,26 @@ class RPCRequester():
         if self._pipe == r'\drsuapi':
             dce.set_auth_level(RPC_C_AUTHN_LEVEL_PKT_PRIVACY)
 
-        dce.connect()
-        dce.bind(binding_strings[self._pipe[1:]])
-
-        self._rpc_connection = dce
+        try:
+            dce.connect()
+        except socket.error:
+            self._rpc_connection = None
+        else:
+            dce.bind(binding_strings[self._pipe[1:]])
+            self._rpc_connection = dce
 
     def _create_wmi_connection(self, namespace='root\\cimv2'):
-        self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
-                                    self._domain, self._lmhash, self._nthash)
-        i_interface = self._dcom.CoCreateInstanceEx(wmi.CLSID_WbemLevel1Login,
-                                                    wmi.IID_IWbemLevel1Login)
-        i_wbem_level1_login = wmi.IWbemLevel1Login(i_interface)
-        self._wmi_connection = i_wbem_level1_login.NTLMLogin(ntpath.join('\\\\{}\\'.format(self._target_computer), namespace),
-                                                             NULL, NULL)
+        try:
+            self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
+                                        self._domain, self._lmhash, self._nthash)
+        except DCERPCException:
+            self._dcom = None
+        else:
+            i_interface = self._dcom.CoCreateInstanceEx(wmi.CLSID_WbemLevel1Login,
+                                                        wmi.IID_IWbemLevel1Login)
+            i_wbem_level1_login = wmi.IWbemLevel1Login(i_interface)
+            self._wmi_connection = i_wbem_level1_login.NTLMLogin(ntpath.join('\\\\{}\\'.format(self._target_computer), namespace),
+                                                                 NULL, NULL)
 
     @staticmethod
     def _rpc_connection_init(pipe=r'\srvsvc'):
@@ -215,6 +226,8 @@ class RPCRequester():
                     if instance._rpc_connection:
                         instance._rpc_connection.disconnect()
                     instance._create_rpc_connection(pipe=pipe)
+                if instance._rpc_connection is None:
+                    return None
                 return f(*args, **kwargs)
             return wrapper
         return decorator
@@ -226,6 +239,8 @@ class RPCRequester():
                 instance = args[0]
                 if not instance._wmi_connection:
                     instance._create_wmi_connection()
+                if instance._dcom is None:
+                    return None
                 return f(*args, **kwargs)
             return wrapper
         return decorator

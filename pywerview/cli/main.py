@@ -451,12 +451,13 @@ def main():
         #print >>sys.stderr, repr(e)
         #sys.exit(-1)
 
-    try:
-        for x in results:
-            x = str(x)
-            print x
-            if '\n' in x:
-                print ''
-    except TypeError:
-        print results
+    if results is not None:
+        try:
+            for x in results:
+                x = str(x)
+                print x
+                if '\n' in x:
+                    print ''
+        except TypeError:
+            print results
 
