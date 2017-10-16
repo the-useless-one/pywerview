@@ -115,6 +115,12 @@ def get_netsubnet(domain_controller, domain, user, password=str(),
 	return requester.get_netsubnet(queried_domain=queried_domain,
                                        queried_sitename=queried_sitename, ads_path=ads_path, full_data=full_data)
 
+def get_netdomaintrust(domain_controller, domain, user, password=str(),
+                  lmhash=str(), nthash=str(), queried_domain=str()):
+	requester = NetRequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+	return requester.get_netdomaintrust(queried_domain=queried_domain)
+
 def get_netgroupmember(domain_controller, domain, user, password=str(),
                        lmhash=str(), nthash=str(), queried_groupname=str(), queried_sid=str(),
                        queried_domain=str(), ads_path=str(), recurse=False, use_matching_rule=False,

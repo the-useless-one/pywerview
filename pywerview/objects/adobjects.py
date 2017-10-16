@@ -32,6 +32,8 @@ class ADObject:
             if t in ('logonhours', 'msds-generationid'):
                 value = str(attr['vals'][0])
                 value = [ord(x) for x in value]
+            elif t in ('trustdirection', 'trusttype'):
+                print type(attr['vals'][0])
             elif t in ('objectsid', 'ms-ds-creatorsid'):
                 value = str(attr['vals'][0]).encode('hex')
                 init_value = str(attr['vals'][0])
@@ -138,6 +140,22 @@ class Site(ADObject):
 
 class Subnet(ADObject):
     pass
+
+class Trust(ADObject):
+    __trust_attrib = {0x1: 'non_transitive', 0x2: 'uplevel_only',
+                      0x4: 'quarantined_domain', 0x8: 'forest_transitive',
+                      0x10: 'cross_organization', 0x20: 'within_forest',
+                      0x40: 'treat_as_external',
+                      0x80: 'trust_uses_rc4_encryption',
+                      0x100: 'trust_uses_aes_keys'}
+    __trust_direction = {0: 'disabled', 1: 'inbound',
+                         2: 'outbound', 3: 'bidirectional'}
+    def __init__(self, attributes):
+        ad_obj = ADObject(attributes)
+        self.targetname = ad_obj.name
+        self.objectguid = ad_obj.objectguid
+        self.trusttype= Trust.__trust_attrib.get(ad_obj.trustattributes, 'unknown')
+        self.trustdirection = Trust.__trust_direction.get(ad_obj.trustdirection, 'unknown')
 
 class GPO(ADObject):
     pass

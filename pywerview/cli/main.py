@@ -226,6 +226,13 @@ def main():
             help='If set, returns full information on the subnets, otherwise, just the name')
     get_netsubnet_parser.set_defaults(func=get_netsubnet)
 
+    # Parser for the get-netdomaintrust command
+    get_netdomaintrust_parser = subparsers.add_parser('get-netdomaintrust', help='Returns a list of all the '\
+        'trusts of the specified domain', parents=[ad_parser])
+    get_netdomaintrust_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_netdomaintrust_parser.set_defaults(func=get_netdomaintrust)
+
     # Parser for the get-netgpo command
     get_netgpo_parser = subparsers.add_parser('get-netgpo', help='Get a list of all current '\
         'GPOs in the domain', parents=[ad_parser])
