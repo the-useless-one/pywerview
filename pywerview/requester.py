@@ -76,18 +76,19 @@ class LDAPRequester():
         try:
             ldap_connection = ldap.LDAPConnection('ldap://{}'.format(self._domain_controller),
                                                   base_dn, self._domain_controller)
+            ldap_connection.login(self._user, self._password, self._domain,
+                                  self._lmhash, self._nthash)
         except ldap.LDAPSessionError, e:
             if str(e).find('strongerAuthRequired') >= 0:
                 # We need to try SSL
                 ldap_connection = ldap.LDAPConnection('ldaps://{}'.format(self._domain_controller),
                                                       base_dn, self._domain_controller)
+                ldap_connection.login(self._user, self._password, self._domain,
+                                      self._lmhash, self._nthash)
             else:
                 raise e
         except socket.error, e:
             return
-
-        ldap_connection.login(self._user, self._password, self._domain,
-                              self._lmhash, self._nthash)
 
         self._ldap_connection = ldap_connection
 

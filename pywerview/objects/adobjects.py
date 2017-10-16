@@ -20,6 +20,7 @@
 from datetime import datetime
 import inspect
 import struct
+import pyasn1
 
 class ADObject:
     def __init__(self, attributes):
@@ -62,7 +63,7 @@ class ADObject:
             else:
                 try:
                     value = str(attr['vals'][0])
-                except IndexError:
+                except (IndexError, pyasn1.error.PyAsn1Error):
                     value = str()
 
             setattr(self, t, value)
