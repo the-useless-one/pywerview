@@ -59,7 +59,7 @@ class LDAPRequester():
             self._domain = self._get_netfqdn()
 
         if not queried_domain:
-            queried_domain = self._domain
+            queried_domain = self._get_netfqdn()
         self._queried_domain = queried_domain
 
         base_dn = str()

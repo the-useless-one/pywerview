@@ -113,6 +113,8 @@ class GPORequester(LDAPRequester):
                             sids = member[1]
                         resolved_sids = list()
                         for sid in sids:
+                            if not sid:
+                                continue
                             try:
                                 resolved_sid = net_requester.get_adobject(queried_sid=sid, queried_domain=queried_domain)[0]
                             except IndexError:
@@ -422,7 +424,8 @@ class GPORequester(LDAPRequester):
                     object_group_sid = net_requester.get_adobject(queried_name=object_group.samaccountname,
                                                                   queried_domain=queried_domain)[0].objectsid
                 except IndexError:
-                    # We may fall into this block if there is some mix-domains shenanigans
+                    # Freak accident when someone is a member of a group, but
+                    # we can't find the group in the AD
                     continue
 
             target_sid.append(object_group_sid)

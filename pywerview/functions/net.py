@@ -64,7 +64,7 @@ class NetRequester(LDAPRPCRequester):
         if queried_username:
             user_search_filter += '(samAccountName={})'.format(queried_username)
         elif spn:
-            user_search_filter += '(servicePrincipalName={})'.format(spn)
+            user_search_filter += '(servicePrincipalName=*)'
 
         user_search_filter = '(&{})'.format(user_search_filter)
 
@@ -180,7 +180,7 @@ class NetRequester(LDAPRPCRequester):
             if len(split_path) >= 3:
                 return split_path[2]
 
-        results = list()
+        results = set()
         if target_users:
             users = list()
             for target_user in target_users:
@@ -189,12 +189,12 @@ class NetRequester(LDAPRPCRequester):
             users = self.get_netuser(queried_domain=queried_domain)
 
         for user in users:
-            if user.homedirectory:
-                results.append(split_path(user.homedirectory))
-            if user.scriptpath:
-                results.append(split_path(user.scriptpath))
-            if user.profilepath:
-                results.append(split_path(user.profilepath))
+            for full_path in (user.homedirectory, user.scriptpath, user.profilepath):
+                if not full_path:
+                    continue
+                path = split_path(full_path)
+                if path:
+                    results.add(path)
 
         final_results = list()
         for file_server_name in results:
