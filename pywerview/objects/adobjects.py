@@ -122,6 +122,9 @@ class Group(ADObject):
 class Computer(ADObject):
     pass
 
+class FileServer(ADObject):
+    pass
+
 class DFS(ADObject):
     pass
 

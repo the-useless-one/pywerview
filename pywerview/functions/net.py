@@ -196,7 +196,13 @@ class NetRequester(LDAPRPCRequester):
             if user.profilepath:
                 results.append(split_path(user.profilepath))
 
-        return results
+        final_results = list()
+        for file_server_name in results:
+            attributes = list()
+            attributes.append({'type': 'dnshostname', 'vals': [file_server_name]})
+            final_results.append(adobj.FileServer(attributes))
+
+        return final_results
 
     @LDAPRPCRequester._ldap_connection_init
     def get_dfsshare(self, version=['v1', 'v2'], queried_domain=str(), ads_path=str()):
