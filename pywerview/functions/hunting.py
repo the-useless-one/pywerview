@@ -17,6 +17,7 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
 
+import progressbar
 import random
 import multiprocessing
 import select
@@ -48,6 +49,7 @@ class Hunter(NetRequester):
                                 queried_computerfilter=str(), queried_computeradspath=str(),
                                 unconstrained=False, stealth=False,
                                 stealth_source=['dfs', 'dc', 'file']):
+        print '[!] Building target computers'
         if queried_computername:
             self._target_computers = queried_computername
 
@@ -76,6 +78,7 @@ class Hunter(NetRequester):
 
         # TODO: automatically convert server names to IP address (DNS, LLMNR, NBT-NS, etc.)
         self._target_computers = list(set(self._target_computers))
+        print '[+] Number of target computers: {nb_targets}'.format(nb_targets=len(self._target_computers))
         random.shuffle(self._target_computers)
 
         if not self._target_computer:
@@ -86,6 +89,7 @@ class Hunter(NetRequester):
                             queried_useradspath=str(), queried_userfile=None,
                             admin_count=False, allow_delegation=False,
                             show_all=False, foreign_users=False):
+        print '[!] Building target users'
         if show_all or foreign_users:
             attributes = {'memberdomain': str(), 'membername': str()}
             self._target_users.append(rpcobj.TargetUser(attributes))
@@ -131,11 +135,13 @@ class Hunter(NetRequester):
                                                               recurse=True)
 
         self._target_users = list(set(self._target_users))
+        print '[+] Number of target users: {nb_targets}'.format(nb_targets=len(self._target_users))
 
         if (not show_all) and (not foreign_users) and (not self._target_users):
             raise ValueError('No users to search for')
 
     def _build_workers(self, threads, worker_class, worker_args):
+        print '[!] Building workers'
         for i in xrange(threads):
             parent_pipe, worker_pipe = multiprocessing.Pipe()
             self._parent_pipes.append(parent_pipe)
@@ -147,17 +153,21 @@ class Hunter(NetRequester):
             self._workers.append(worker)
 
     def _process_workers(self):
+        print '[!] Ready to start'
         jobs_done, total_jobs = 0, len(self._target_computers)
+
+        widgets = [progressbar.Percentage(), progressbar.Bar()]
+        bar = progressbar.ProgressBar(widgets=widgets, maxval=total_jobs).start()
         try:
             while jobs_done < total_jobs:
                 if self._target_computers:
                     write_watch_list = self._parent_pipes
                 else:
                     write_watch_list = list()
-                rlist, wlist, _ = select.select(self._parent_pipes, write_watch_list, list())
-
+                rlist, wlist, _ = select.select(self._parent_pipes, write_watch_list, list(), 1)
                 for readable in rlist:
-                    jobs_done += 1 
+                    jobs_done += 1
+                    bar.update(jobs_done)
                     results = readable.recv()
                     for result in results:
                         yield result
@@ -172,6 +182,7 @@ class Hunter(NetRequester):
         finally:
             for worker in self._workers:
                 worker.terminate()
+        bar.finish()
 
 class UserHunter(Hunter):
     def invoke_userhunter(self, queried_computername=list(), queried_computerfile=None,
