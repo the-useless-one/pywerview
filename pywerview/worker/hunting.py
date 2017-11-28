@@ -39,9 +39,14 @@ class HunterWorker(Process):
 
     def run(self):
         while True:
-            target_computer = self._pipe.recv()
-            result = self._hunt(target_computer)
-            self._pipe.send(result)
+            try:
+                target_computer = self._pipe.recv()
+                result = self._hunt(target_computer)
+                self._pipe.send(result)
+            except:
+                # print stacktrace in debug mode
+                self._pipe.send('')
+                pass
 
 class UserHunterWorker(HunterWorker):
     def __init__(self, pipe, domain, user, password, lmhash, nthash, foreign_users,
@@ -84,7 +89,6 @@ class UserHunterWorker(HunterWorker):
                 # We see if it's in our target user group
                 for target_user in self._target_users:
                     if target_user.membername.lower() in username.lower():
-
                         # If we fall in this branch, we're looking for foreign users
                         # and found a user in the same domain
                         if self._domain_short_name and self._domain_short_name.lower() == userdomain.lower():
