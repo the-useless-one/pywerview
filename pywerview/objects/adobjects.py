@@ -53,8 +53,11 @@ class ADObject:
                 for val in attr['vals']:
                     value.append(str(datetime.strptime(str(val), '%Y%m%d%H%M%S.0Z')))
             elif t in ('pwdlastset', 'badpasswordtime', 'lastlogon', 'lastlogoff'):
-                timestamp = (int(str(attr['vals'][0])) - 116444736000000000)/10000000
-                value = datetime.fromtimestamp(timestamp)
+                try:
+                    timestamp = (int(str(attr['vals'][0])) - 116444736000000000)/10000000
+                    value = datetime.fromtimestamp(timestamp)
+                except (ValueError):
+                    value = datetime.min 
             elif t == 'isgroup':
                 value = attr['vals'][0]
             elif t == 'objectclass':
