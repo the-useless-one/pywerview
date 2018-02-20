@@ -51,7 +51,10 @@ class ADObject:
             elif t in ('dscorepropagationdata', 'whenchanged', 'whencreated'):
                 value = list()
                 for val in attr['vals']:
-                    value.append(str(datetime.strptime(str(val), '%Y%m%d%H%M%S.0Z')))
+                    try:
+                        value.append(str(datetime.strptime(str(val), '%Y%m%d%H%M%S.0Z')))
+                    except (ValueError):
+                        pass
             elif t in ('pwdlastset', 'badpasswordtime', 'lastlogon', 'lastlogoff'):
                 try:
                     timestamp = (int(str(attr['vals'][0])) - 116444736000000000)/10000000
