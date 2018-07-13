@@ -32,8 +32,8 @@ class ADObject:
             if t in ('logonhours', 'msds-generationid'):
                 value = str(attr['vals'][0])
                 value = [ord(x) for x in value]
-            elif t in ('trustdirection', 'trusttype'):
-                print type(attr['vals'][0])
+            elif t in ('trustattributes', 'trustdirection', 'trusttype'):
+                value = int(attr['vals'][0])
             elif t in ('objectsid', 'ms-ds-creatorsid'):
                 value = str(attr['vals'][0]).encode('hex')
                 init_value = str(attr['vals'][0])
@@ -143,19 +143,33 @@ class Subnet(ADObject):
 
 class Trust(ADObject):
     __trust_attrib = {0x1: 'non_transitive', 0x2: 'uplevel_only',
-                      0x4: 'quarantined_domain', 0x8: 'forest_transitive',
+                      0x4: 'filter_sids', 0x8: 'forest_transitive',
                       0x10: 'cross_organization', 0x20: 'within_forest',
                       0x40: 'treat_as_external',
                       0x80: 'trust_uses_rc4_encryption',
-                      0x100: 'trust_uses_aes_keys'}
+                      0x100: 'trust_uses_aes_keys',
+                      0X200: 'cross_organization_no_tgt_delegation',
+                      0x400: 'pim_trust'}
+
     __trust_direction = {0: 'disabled', 1: 'inbound',
                          2: 'outbound', 3: 'bidirectional'}
+
+    __trust_type = {1: 'windows_non_active_directory',
+                    2: 'windows_active_directory', 3: 'mit'}
+
     def __init__(self, attributes):
         ad_obj = ADObject(attributes)
         self.targetname = ad_obj.name
-        self.objectguid = ad_obj.objectguid
-        self.trusttype= Trust.__trust_attrib.get(ad_obj.trustattributes, 'unknown')
+
+        self.trustattributes = list()
+        for attrib_flag, attrib_label in Trust.__trust_attrib.items():
+            if ad_obj.trustattributes & attrib_flag:
+                self.trustattributes.append(attrib_label)
+
         self.trustdirection = Trust.__trust_direction.get(ad_obj.trustdirection, 'unknown')
+        self.trusttype = Trust.__trust_type.get(ad_obj.trusttype, 'unknown')
+        self.whencreated = ad_obj.whencreated
+        self.whenchanged = ad_obj.whenchanged
 
 class GPO(ADObject):
     pass
