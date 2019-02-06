@@ -47,7 +47,9 @@ class LDAPRequester():
             smb = SMBConnection(self._domain_controller, self._domain_controller)
         except socket.error:
             return str()
-        smb.login('', '')
+
+        smb.login(self._user, self._password, domain=self._domain,
+                lmhash=self._lmhash, nthash=self._nthash)
         fqdn = smb.getServerDNSDomainName()
         smb.logoff()
 
