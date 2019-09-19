@@ -49,6 +49,7 @@ class NetRequester(LDAPRPCRequester):
     def get_netuser(self, queried_username=str(), queried_domain=str(),
                     ads_path=str(), admin_count=False, spn=False,
                     unconstrained=False, allow_delegation=False,
+                    preauth_notreq=False,
                     custom_filter=str()):
 
         if unconstrained:
@@ -59,7 +60,9 @@ class NetRequester(LDAPRPCRequester):
 
         if admin_count:
             custom_filter += '(admincount=1)'
-
+        # LDAP filter from https://www.harmj0y.net/blog/activedirectory/roasting-as-reps/
+        if preauth_notreq:
+            custom_filter += '(userAccountControl:1.2.840.113556.1.4.803:=4194304)'
         user_search_filter = '(samAccountType=805306368){}'.format(custom_filter)
         if queried_username:
             user_search_filter += '(samAccountName={})'.format(queried_username)

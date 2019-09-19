@@ -106,6 +106,8 @@ def main():
             help='Query only users with adminCount=1')
     get_netuser_parser.add_argument('--allow-delegation', action='store_true',
             help='Return user accounts that are not marked as \'sensitive and not allowed for delegation\'')
+    get_netuser_parser.add_argument('--preauth-notreq', action='store_true',
+            help='Search for users with the PREAUTH_NOT_REQUIRED account control')
     get_netuser_parser.add_argument('--spn', action='store_true',
             help='Query only users with not-null Service Principal Names')
     get_netuser_parser.add_argument('--custom-filter', dest='custom_filter',
