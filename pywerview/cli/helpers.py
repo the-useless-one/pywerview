@@ -37,7 +37,7 @@ def get_adobject(domain_controller, domain, user, password=str(),
 def get_netuser(domain_controller, domain, user, password=str(), lmhash=str(),
                 nthash=str(), queried_username=str(), queried_domain=str(), ads_path=str(),
                 admin_count=False, spn=False, unconstrained=False, allow_delegation=False,
-                custom_filter=str()):
+                preauth_notreq=False, custom_filter=str()):
 	requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
 	return requester.get_netuser(queried_username=queried_username,
