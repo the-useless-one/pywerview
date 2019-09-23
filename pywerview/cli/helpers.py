@@ -43,7 +43,7 @@ def get_netuser(domain_controller, domain, user, password=str(), lmhash=str(),
 	return requester.get_netuser(queried_username=queried_username,
                                     queried_domain=queried_domain, ads_path=ads_path, admin_count=admin_count,
                                     spn=spn, unconstrained=unconstrained, allow_delegation=allow_delegation,
-                                    custom_filter=custom_filter)
+                                    preauth_notreq=preauth_notreq, custom_filter=custom_filter)
 
 def get_netgroup(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), queried_groupname='*', queried_sid=str(),
