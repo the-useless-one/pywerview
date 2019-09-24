@@ -23,6 +23,29 @@ import struct
 import pyasn1
 
 class ADObject:
+    __uac_flags = {0x0000001: 'SCRIPT',
+                   0x0000002: 'ACCOUNTDISABLE',
+                   0x0000008: 'HOMEDIR_REQUIRED',
+                   0x0000010: 'LOCKOUT',
+                   0x0000020: 'PASSWD_NOTREQD',
+                   0x0000040: 'PASSWD_CANT_CHANGE',
+                   0x0000080: 'ENCRYPTED_TEXT_PWD_ALLOWED',
+                   0x0000100: 'TEMP_DUPLICATE_ACCOUNT',
+                   0x0000200: 'NORMAL_ACCOUNT',
+                   0x0000800: 'INTERDOMAIN_TRUST_ACCOUNT',
+                   0x0001000: 'WORKSTATION_TRUST_ACCOUNT',
+                   0x0002000: 'SERVER_TRUST_ACCOUNT',
+                   0x0010000: 'DONT_EXPIRE_PASSWORD',
+                   0x0020000: 'MNS_LOGON_ACCOUNT',
+                   0x0040000: 'SMARTCARD_REQUIRED',
+                   0x0080000: 'TRUSTED_FOR_DELEGATION',
+                   0x0100000: 'NOT_DELEGATED',
+                   0x0200000: 'USE_DES_KEY_ONLY',
+                   0x0400000: 'DONT_REQ_PREAUTH',
+                   0x0800000: 'PASSWORD_EXPIRED',
+                   0x1000000: 'TRUSTED_TO_AUTH_FOR_DELEGATION',
+                   0x4000000: 'PARTIAL_SECRETS_ACCOUNT'}
+
     def __init__(self, attributes):
         self.add_attributes(attributes)
 
@@ -82,6 +105,11 @@ class ADObject:
             if not member[0].startswith('_'):
                 if member[0] == 'msmqdigests':
                     member_value = (',\n' + ' ' * (max_length + 2)).join(x.encode('hex') for x in member[1])
+                elif member[0] == 'useraccountcontrol':
+                    member_value = list()
+                    for uac_flag, uac_label in ADObject.__uac_flags.items():
+                        if int(member[1]) & uac_flag == uac_flag:
+                            member_value.append(uac_label)
                 elif isinstance(member[1], list):
                     if member[0] in ('logonhours',):
                         member_value = member[1]
