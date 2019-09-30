@@ -113,7 +113,8 @@ class ADObject:
                 elif isinstance(member[1], list):
                     if member[0] in ('logonhours',):
                         member_value = member[1]
-                    elif member[0] in ('usercertificate',):
+                    elif member[0] in ('usercertificate',
+                                       'protocom-sso-entries', 'protocom-sso-security-prefs',):
                         member_value = (',\n' + ' ' * (max_length + 2)).join(
                                 '{}...'.format(x.encode('hex')[:100]) for x in member[1])
                     else:
@@ -121,7 +122,9 @@ class ADObject:
                 elif member[0] in('msmqsigncertificates', 'userparameters',
                                   'jpegphoto', 'thumbnailphoto', 'usercertificate',
                                   'msexchmailboxguid', 'msexchmailboxsecuritydescriptor',
-                                  'msrtcsip-userroutinggroupid', 'msexchumpinchecksum'):
+                                  'msrtcsip-userroutinggroupid', 'msexchumpinchecksum',
+                                  'protocom-sso-auth-data', 'protocom-sso-entries-checksum',
+                                  'protocom-sso-security-prefs-checksum', ):
                     member_value = '{}...'.format(member[1].encode('hex')[:100])
                 else:
                     member_value = member[1]
