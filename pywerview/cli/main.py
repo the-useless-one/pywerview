@@ -464,9 +464,9 @@ def main():
         try:
             for x in results:
                 x = str(x)
-                print x
+                print(x)
                 if '\n' in x:
-                    print ''
+                    print('')
         except TypeError:
-            print results
+            print(results)
 

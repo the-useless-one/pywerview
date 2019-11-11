@@ -136,7 +136,7 @@ class Hunter(NetRequester):
             raise ValueError('No users to search for')
 
     def _build_workers(self, threads, worker_class, worker_args):
-        for i in xrange(threads):
+        for i in range(threads):
             parent_pipe, worker_pipe = multiprocessing.Pipe()
             self._parent_pipes.append(parent_pipe)
             worker = worker_class(worker_pipe, self._domain, self._user,

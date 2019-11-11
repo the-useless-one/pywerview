@@ -61,7 +61,7 @@ class ADObject:
                 value = str(attr['vals'][0]).encode('hex')
                 init_value = str(attr['vals'][0])
                 value = 'S-1-5'
-                for i in xrange(8, len(init_value), 4):
+                for i in range(8, len(init_value), 4):
                     value += '-{}'.format(str(struct.unpack('<I', init_value[i:i+4])[0]))
             elif t == 'objectguid':
                 init_value = str(attr['vals'][0])
