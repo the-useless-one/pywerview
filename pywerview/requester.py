@@ -84,7 +84,7 @@ class LDAPRequester():
                                                   base_dn, self._domain_controller)
             ldap_connection.login(self._user, self._password, self._domain,
                                   self._lmhash, self._nthash)
-        except ldap.LDAPSessionError, e:
+        except ldap.LDAPSessionError as e:
             if str(e).find('strongerAuthRequired') >= 0:
                 # We need to try SSL
                 ldap_connection = ldap.LDAPConnection('ldaps://{}'.format(self._domain_controller),
@@ -93,7 +93,7 @@ class LDAPRequester():
                                       self._lmhash, self._nthash)
             else:
                 raise e
-        except socket.error, e:
+        except socket.error as e:
             return
 
         self._ldap_connection = ldap_connection
@@ -273,7 +273,7 @@ class LDAPRPCRequester(LDAPRequester, RPCRequester):
     def __enter__(self):
         try:
             LDAPRequester.__enter__(self)
-        except socket.error, IndexError:
+        except (socket.error, IndexError):
             pass
         # This should work every time
         RPCRequester.__enter__(self)

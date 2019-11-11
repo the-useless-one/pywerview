@@ -40,7 +40,7 @@ class RPCObject:
                 value = value.rstrip('\x00')
             if isinstance(value, str):
                 try:
-                    value = value.decode('utf-8')
+                    value = value
                 except UnicodeDecodeError:
                     pass
 

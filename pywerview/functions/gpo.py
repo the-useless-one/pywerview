@@ -19,7 +19,7 @@
 
 import codecs
 from bs4 import BeautifulSoup
-from StringIO import StringIO
+from io import StringIO
 
 from impacket.smbconnection import SMBConnection, SessionError
 
@@ -438,7 +438,7 @@ class GPORequester(LDAPRequester):
                         try:
                             member = net_requester.get_adobject(queried_sam_account_name=member,
                                                                 queried_domain=queried_domain)[0].objectsid
-                        except IndexError, AttributeError:
+                        except (IndexError, AttributeError):
                             continue
                     if (member.upper() in target_sid) or (member.lower() in target_sid):
                         if (local_sid.upper() in gpo_group.memberof) or \

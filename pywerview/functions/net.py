@@ -672,7 +672,7 @@ class NetRequester(LDAPRPCRequester):
 
                 result_process = rpcobj.Process(attributes)
                 yield result_process
-            except Exception, e:
+            except Exception as e:
                 if str(e).find('S_FALSE') < 0:
                     raise e
                 else:
@@ -721,7 +721,7 @@ class NetRequester(LDAPRPCRequester):
                               'id': wmi_event_type}
                 result_event = rpcobj.Event(attributes)
                 yield result_event
-            except Exception, e:
+            except Exception as e:
                 if str(e).find('S_FALSE') < 0:
                     raise e
                 else:
