@@ -21,6 +21,8 @@ from datetime import datetime
 import inspect
 import struct
 import pyasn1
+import codecs
+import binascii
 
 class ADObject:
     __uac_flags = {0x0000001: 'SCRIPT',
@@ -58,19 +60,19 @@ class ADObject:
             elif t in ('trustattributes', 'trustdirection', 'trusttype'):
                 value = int(attr['vals'][0])
             elif t in ('objectsid', 'ms-ds-creatorsid'):
-                value = str(attr['vals'][0]).encode('hex')
-                init_value = str(attr['vals'][0])
+                value = binascii.hexlify(bytes(attr['vals'][0]))
+                init_value = bytes(attr['vals'][0])
                 value = 'S-1-5'
                 for i in range(8, len(init_value), 4):
                     value += '-{}'.format(str(struct.unpack('<I', init_value[i:i+4])[0]))
             elif t == 'objectguid':
-                init_value = str(attr['vals'][0])
+                init_value = bytes(attr['vals'][0])
                 value = str()
                 value += '{}-'.format(hex(struct.unpack('<I', init_value[0:4])[0])[2:].zfill(8))
                 value += '{}-'.format(hex(struct.unpack('<H', init_value[4:6])[0])[2:].zfill(4))
                 value += '{}-'.format(hex(struct.unpack('<H', init_value[6:8])[0])[2:].zfill(4))
-                value += '{}-'.format(init_value.encode('hex')[16:20])
-                value += init_value.encode('hex')[20:]
+                value += '{}-'.format(codecs.encode(init_value,'hex')[16:20])
+                value += init_value.hex()[20:]
             elif t in ('dscorepropagationdata', 'whenchanged', 'whencreated'):
                 value = list()
                 for val in attr['vals']:
