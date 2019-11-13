@@ -118,7 +118,7 @@ class ADObject:
                     elif member[0] in ('usercertificate',
                                        'protocom-sso-entries', 'protocom-sso-security-prefs',):
                         member_value = (',\n' + ' ' * (max_length + 2)).join(
-                                '{}...'.format(codecs.encode(x,'hex'))[:100]) for x in member[1])
+                                '{}...'.format(codecs.encode(x,'hex')[:100]) for x in member[1])
                     else:
                         member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member[1])
                 elif member[0] in('msmqsigncertificates', 'userparameters',
@@ -127,7 +127,7 @@ class ADObject:
                                   'msrtcsip-userroutinggroupid', 'msexchumpinchecksum',
                                   'protocom-sso-auth-data', 'protocom-sso-entries-checksum',
                                   'protocom-sso-security-prefs-checksum', ):
-                    member_value = '{}...'.format(codecs.encode(member[1]'hex'))[:100])
+                    member_value = '{}...'.format(codecs.encode(member[1]'hex')[:100])
                 else:
                     member_value = member[1]
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
