@@ -105,7 +105,7 @@ class ADObject:
         for member in members:
             if not member[0].startswith('_'):
                 if member[0] == 'msmqdigests':
-                    member_value = (',\n' + ' ' * (max_length + 2)).join(codecs.encode(bytes(x, encoding='utf8'),'hex') for x in member[1])
+                    member_value = (b',\n' + b' ' * (max_length + 2)).join(codecs.encode(bytes(x, encoding='utf8'),'hex') for x in member[1])
                 elif member[0] == 'useraccountcontrol':
                     member_value = list()
                     for uac_flag, uac_label in ADObject.__uac_flags.items():
