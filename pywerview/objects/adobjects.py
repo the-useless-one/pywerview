@@ -105,7 +105,7 @@ class ADObject:
         for member in members:
             if not member[0].startswith('_'):
                 if member[0] == 'msmqdigests':
-                    member_value = (b',\n' + b' ' * (max_length + 2)).join(codecs.encode(bytes(x, encoding='utf8'),'hex') for x in member[1])
+                    member_value = (',\n' + ' ' * (max_length + 2)).join(x.encode('utf-8').hex() for x in member[1])
                 elif member[0] == 'useraccountcontrol':
                     member_value = list()
                     for uac_flag, uac_label in ADObject.__uac_flags.items():
@@ -117,7 +117,7 @@ class ADObject:
                     elif member[0] in ('usercertificate',
                                        'protocom-sso-entries', 'protocom-sso-security-prefs',):
                         member_value = (',\n' + ' ' * (max_length + 2)).join(
-                                '{}...'.format(codecs.encode(bytes(x, encoding='utf8'),'hex')[:100]) for x in member[1])
+                                '{}...'.format(x.encode('utf-8').hex()[:100]) for x in member[1])
                     else:
                         member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member[1])
                 elif member[0] in('msmqsigncertificates', 'userparameters',
@@ -126,7 +126,7 @@ class ADObject:
                                   'msrtcsip-userroutinggroupid', 'msexchumpinchecksum',
                                   'protocom-sso-auth-data', 'protocom-sso-entries-checksum',
                                   'protocom-sso-security-prefs-checksum', ):
-                    member_value = '{}...'.format(codecs.encode(bytes(member[1], encoding='utf8'),'hex')[:100])
+                    member_value = '{}...'.format(member[1].encode('utf-8').hex()[:100])
                 else:
                     member_value = member[1]
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
