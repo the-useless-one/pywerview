@@ -112,6 +112,8 @@ def main():
             help='Query only users with not-null Service Principal Names')
     get_netuser_parser.add_argument('--custom-filter', dest='custom_filter',
             default=str(), help='Custom filter')
+    get_netuser_parser.add_argument('--attributes', nargs='+', dest='attributes',
+            default=[], help='Object attributes to return')
     get_netuser_parser.set_defaults(func=get_netuser)
 
     # Parser for the get-netgroup command
@@ -156,6 +158,8 @@ def main():
             help='Ping computers (will only return up computers)')
     get_netcomputer_parser.add_argument('--full-data', action='store_true',
             help='If set, returns full information on the groups, otherwise, just the dnsHostName')
+    get_netcomputer_parser.add_argument('--attributes', nargs='+', dest='attributes',
+            default=[], help='Object attributes to return')
     get_netcomputer_parser.set_defaults(func=get_netcomputer)
 
     # Parser for the get-netdomaincontroller command
