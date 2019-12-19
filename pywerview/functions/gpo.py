@@ -19,7 +19,7 @@
 
 import codecs
 from bs4 import BeautifulSoup
-from io import StringIO
+from io import BytesIO
 
 from impacket.smbconnection import SMBConnection, SessionError
 
@@ -45,7 +45,7 @@ class GPORequester(LDAPRequester):
         return self._ldap_search(gpo_search_filter, GPO)
 
     def get_gpttmpl(self, gpttmpl_path):
-        content_io = StringIO()
+        content_io = BytesIO()
 
         gpttmpl_path_split = gpttmpl_path.split('\\')
         target = self._domain_controller
@@ -59,11 +59,10 @@ class GPORequester(LDAPRequester):
 
         smb_connection.connectTree(share)
         smb_connection.getFile(share, file_name, content_io.write)
-
         try:
-            content = codecs.decode(content_io.getvalue(), 'utf_16_le')[1:].replace('\r', '')
+            content = codecs.decode(content_io.getvalue(), 'utf-16le')[1:].replace('\r', '')
         except UnicodeDecodeError:
-            content = content_io.getvalue().replace('\r', '')
+            content = str(content_io.getvalue()).replace('\r', '')
 
         gpttmpl_final = GptTmpl(list())
         for l in content.split('\n'):
