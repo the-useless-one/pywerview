@@ -435,6 +435,8 @@ def main():
     invoke_eventhunter_parser.set_defaults(func=invoke_eventhunter)
 
     args = parser.parse_args()
+    if hasattr(args,'queried_groupname'):
+        args.queried_groupname = args.queried_groupname.encode('utf-8').decode('latin1')
     if args.hashes:
         try:
             args.lmhash, args.nthash = args.hashes.split(':')
@@ -463,7 +465,7 @@ def main():
     if results is not None:
         try:
             for x in results:
-                x = str(x)
+                x = str(x).encode('latin1').decode('utf-8')
                 print(x)
                 if '\n' in x:
                     print('')
