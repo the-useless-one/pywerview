@@ -90,6 +90,7 @@ class Hunter(NetRequester):
             attributes = {'memberdomain': str(), 'membername': str()}
             self._target_users.append(rpcobj.TargetUser(attributes))
         elif target_server:
+            global domain, user, password, lmhash, nthash, domain_controller
             with NetRequester(target_server, domain, user, password, lmhash,
                               nthash, domain_controller) as target_server_requester:
                 for x in target_server_requester.get_netlocalgroup(recurse=True):
