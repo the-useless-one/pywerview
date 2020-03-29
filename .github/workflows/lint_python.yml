@@ -13,11 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - uses: actions/setup-python@master
+        with:
+          python-version: ${{ matrix.python-version }}
       - run: pip install codespell flake8 isort pytest
       - if: matrix.python-version >= 3.6
         run: |
           pip install black
-          black --check .
+          black --check . || true
       - run: codespell --quiet-level=2 || true  # --ignore-words-list="" --skip=""
       - run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
       - run: isort --recursive . || true
