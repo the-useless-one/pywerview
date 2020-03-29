@@ -7,6 +7,7 @@ jobs:
   lint_python:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         # os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: [2.7, 3.8]
