@@ -59,7 +59,7 @@ class ADObject:
             elif t in ('objectsid', 'ms-ds-creatorsid'):
                 value = codecs.encode(bytes(attr['vals'][0]),'hex')
                 init_value = bytes(attr['vals'][0])
-                value = 'S-1-5'
+                value = 'S-{0}-{1}'.format(init_value[0], init_value[1])
                 for i in range(8, len(init_value), 4):
                     value += '-{}'.format(str(struct.unpack('<I', init_value[i:i+4])[0]))
             elif t == 'objectguid':
