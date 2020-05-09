@@ -194,15 +194,26 @@ class Trust(ADObject):
         ad_obj = ADObject(attributes)
         self.targetname = ad_obj.name
 
+        self.trustdirection = Trust.__trust_direction.get(ad_obj.trustdirection, 'unknown')
+        self.trusttype = Trust.__trust_type.get(ad_obj.trusttype, 'unknown')
+        self.whencreated = ad_obj.whencreated
+        self.whenchanged = ad_obj.whenchanged
+
         self.trustattributes = list()
         for attrib_flag, attrib_label in Trust.__trust_attrib.items():
             if ad_obj.trustattributes & attrib_flag:
                 self.trustattributes.append(attrib_label)
 
-        self.trustdirection = Trust.__trust_direction.get(ad_obj.trustdirection, 'unknown')
-        self.trusttype = Trust.__trust_type.get(ad_obj.trusttype, 'unknown')
-        self.whencreated = ad_obj.whencreated
-        self.whenchanged = ad_obj.whenchanged
+        # If the filter SIDs attribute is not manually set, we check if we're
+        # not in a use case where SIDs are implicitly filtered
+        # Based on https://github.com/vletoux/pingcastle/blob/master/Healthcheck/TrustAnalyzer.cs
+        if 'filter_sids' not in self.trustattributes:
+            if not (self.trustdirection == 'disabled' or \
+                    self.trustdirection == 'inbound' or \
+                    'within_forest' in self.trustattributes or \
+                    'pim_trust' in self.trustattributes):
+                if 'forest_transitive' in self.trustattributes and 'treat_as_external' not in self.trustattributes:
+                    self.trustattributes.append('filter_sids')
 
 class GPO(ADObject):
     pass

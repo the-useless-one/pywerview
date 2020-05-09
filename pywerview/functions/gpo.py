@@ -71,7 +71,11 @@ class GPORequester(LDAPRequester):
                 property_name, property_values = [x.strip() for x in l.split('=')]
                 if ',' in property_values:
                     property_values = property_values.split(',')
-                setattr(getattr(gpttmpl_final, section_name), property_name, property_values)
+                try:
+                    setattr(getattr(gpttmpl_final, section_name), property_name, property_values)
+                except UnicodeEncodeError:
+                    property_name = property_name.encode('utf-8')
+                    setattr(getattr(gpttmpl_final, section_name), property_name, property_values)
 
         return gpttmpl_final
 
