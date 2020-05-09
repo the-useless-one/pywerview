@@ -21,6 +21,9 @@ import argparse
 from pywerview.cli.helpers import *
 from pywerview.functions.hunting import *
 
+def commandline_arg(str_):
+    return str_.encode('utf-8').decode('latin1')
+
 def main():
     # Main parser
     parser = argparse.ArgumentParser(description='Rewriting of some PowerView\'s functionalities in Python')
@@ -58,12 +61,12 @@ def main():
             type=str, default=str(), help='Custom filter used to search computers against the DC')
     hunter_parser.add_argument('--computer-adspath', dest='queried_computeradspath',
             type=str, default=str(), help='ADS path used to search computers against the DC')
-    hunter_parser.add_argument('--groupname', dest='queried_groupname',
+    hunter_parser.add_argument('--groupname', dest='queried_groupname', type=commandline_arg,
             help='Group name to query for target users')
     hunter_parser.add_argument('--targetserver', dest='target_server',
             help='Hunt for users who are effective local admins on this target server')
     hunter_parser.add_argument('--username', dest='queried_username',
-            help='Hunt for a specific user name')
+            help='Hunt for a specific user name', type=commandline_arg)
     hunter_parser.add_argument('--user-filter', dest='queried_userfilter',
             type=str, default=str(), help='Custom filter used to search users against the DC')
     hunter_parser.add_argument('--user-adspath', dest='queried_useradspath',
@@ -116,12 +119,12 @@ def main():
     # Parser for the get-netgroup command
     get_netgroup_parser = subparsers.add_parser('get-netgroup', help='Get a list of all current '\
         'domain groups, or a list of groups a domain user is member of', parents=[ad_parser])
-    get_netgroup_parser.add_argument('--groupname', dest='queried_groupname',
+    get_netgroup_parser.add_argument('--groupname', dest='queried_groupname', type=commandline_arg,
             default='*', help='Group to query (wildcards accepted)')
     get_netgroup_parser.add_argument('--sid', dest='queried_sid',
             help='Group SID to query')
     get_netgroup_parser.add_argument('--username', dest='queried_username',
-            help='Username to query: will list the groups this user is a member of (wildcards accepted)')
+            help='Username to query: will list the groups this user is a member of (wildcards accepted)', type=commandline_arg)
     get_netgroup_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
     get_netgroup_parser.add_argument('-a', '--ads-path', dest='ads_path',
@@ -299,7 +302,7 @@ def main():
         'the computers it has administrative access to via GPO', parents=[ad_parser])
     find_gpolocation_parser.add_argument('--username', dest='queried_username',
             default=str(), help='The username to query for access (no wildcard)')
-    find_gpolocation_parser.add_argument('--groupname', dest='queried_groupname',
+    find_gpolocation_parser.add_argument('--groupname', dest='queried_groupname', type=commandline_arg,
             default=str(), help='The group name to query for access (no wildcard)')
     find_gpolocation_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
@@ -310,7 +313,7 @@ def main():
 
     # Parser for the get-netgroup command
     get_netgroupmember_parser = subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain group', parents=[ad_parser])
-    get_netgroupmember_parser.add_argument('--groupname', dest='queried_groupname',
+    get_netgroupmember_parser.add_argument('--groupname', dest='queried_groupname', type=commandline_arg,
             help='Group to query, defaults to the \'Domain Admins\' group (wildcards accepted)')
     get_netgroupmember_parser.add_argument('--sid', dest='queried_sid',
             help='SID to query')
@@ -358,7 +361,7 @@ def main():
         'members of a local group on a machine, or returns every local group. You can use local '\
         'credentials instead of domain credentials, however, domain credentials are needed to '\
         'resolve domain SIDs.', parents=[target_parser])
-    get_netlocalgroup_parser.add_argument('--groupname', dest='queried_groupname',
+    get_netlocalgroup_parser.add_argument('--groupname', dest='queried_groupname', type=commandline_arg,
             help='Group to list the members of (defaults to the local \'Administrators\' group')
     get_netlocalgroup_parser.add_argument('--list-groups', action='store_true',
             help='If set, returns a list of the local groups on the targets')
@@ -462,7 +465,7 @@ def main():
     if results is not None:
         try:
             for x in results:
-                x = str(x)
+                x = str(x).encode('latin1').decode('utf-8')
                 print(x)
                 if '\n' in x:
                     print('')
