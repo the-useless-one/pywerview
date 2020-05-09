@@ -54,8 +54,8 @@ class ADObject:
         for attr in attributes:
             t = str(attr['type']).lower()
             if t in ('logonhours', 'msds-generationid'):
-                value = str(attr['vals'][0])
-                value = [ord(x) for x in value]
+                value = bytes(attr['vals'][0])
+                value = [x for x in value]
             elif t in ('trustattributes', 'trustdirection', 'trusttype'):
                 value = int(attr['vals'][0])
             elif t in ('objectsid', 'ms-ds-creatorsid'):
@@ -85,7 +85,10 @@ class ADObject:
                 value = [str(x) for x in attr['vals']]
                 setattr(self, 'isgroup', ('group' in value))
             elif len(attr['vals']) > 1:
-                value = [str(x) for x in attr['vals']]
+                try:
+                    value = [str(x) for x in attr['vals']]
+                except(pyasn1.error.PyAsn1UnicodeDecodeError):
+                    value = [bytes(x) for x in attr['vals']]
             else:
                 try:
                     value = str(attr['vals'][0])
@@ -117,7 +120,7 @@ class ADObject:
                     elif member[0] in ('usercertificate',
                                        'protocom-sso-entries', 'protocom-sso-security-prefs',):
                         member_value = (',\n' + ' ' * (max_length + 2)).join(
-                                '{}...'.format(x.encode('utf-8').hex()[:100]) for x in member[1])
+                                '{}...'.format(x.hex()[:100]) for x in member[1])
                     else:
                         member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member[1])
                 elif member[0] in('msmqsigncertificates', 'userparameters',
