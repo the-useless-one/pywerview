@@ -99,12 +99,13 @@ def get_netou(domain_controller, domain, user, password=str(), lmhash=str(),
 
 def get_netsite(domain_controller, domain, user, password=str(), lmhash=str(),
                 nthash=str(), queried_domain=str(), queried_sitename=str(),
-                queried_guid=str(), ads_path=str(), full_data=False):
+                queried_guid=str(), ads_path=str(), ads_prefix='CN=Sites,CN=Configuration',
+                full_data=False):
     requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
     return requester.get_netsite(queried_domain=queried_domain,
                                     queried_sitename=queried_sitename, queried_guid=queried_guid,
-                                    ads_path=ads_path, full_data=full_data)
+                                    ads_path=ads_path, ads_prefix=ads_prefix, full_data=full_data)
 
 def get_netsubnet(domain_controller, domain, user, password=str(),
                   lmhash=str(), nthash=str(), queried_domain=str(), queried_sitename=str(),

@@ -281,7 +281,8 @@ class NetRequester(LDAPRPCRequester):
 
     @LDAPRPCRequester._ldap_connection_init
     def get_netsite(self, queried_domain=str(), queried_sitename=str(),
-                    queried_guid=str(), ads_path=str(), full_data=False):
+                    queried_guid=str(), ads_path=str(), ads_prefix=str(),
+                    full_data=False):
 
         site_search_filter = '(objectCategory=site)'
 
