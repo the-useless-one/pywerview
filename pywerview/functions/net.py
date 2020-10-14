@@ -303,7 +303,7 @@ class NetRequester(LDAPRPCRequester):
 
     @LDAPRPCRequester._ldap_connection_init
     def get_netsubnet(self, queried_domain=str(), queried_sitename=str(),
-                      ads_path=str(), full_data=False):
+                      ads_path=str(), ads_prefix=str(), full_data=False):
 
         subnet_search_filter = '(objectCategory=subnet)'
 
