@@ -68,7 +68,7 @@ class ADObject:
                 value += '{}-'.format(hex(struct.unpack('<I', init_value[0:4])[0])[2:].zfill(8))
                 value += '{}-'.format(hex(struct.unpack('<H', init_value[4:6])[0])[2:].zfill(4))
                 value += '{}-'.format(hex(struct.unpack('<H', init_value[6:8])[0])[2:].zfill(4))
-                value += '{}-'.format(codecs.encode(init_value,'hex')[16:20])
+                value += '{}-'.format((codecs.encode(init_value,'hex')[16:20]).decode('utf-8'))
                 value += init_value.hex()[20:]
             elif t in ('dscorepropagationdata', 'whenchanged', 'whencreated'):
                 value = list()
