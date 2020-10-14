@@ -106,7 +106,7 @@ class ADObject:
         for member in members:
             if not member[0].startswith('_'):
                 if member[0] == 'msmqdigests':
-                    member_value = (',\n' + ' ' * (max_length + 2)).join(x.encode('utf-8').hex() for x in member[1])
+                    member_value = (',\n' + ' ' * (max_length + 2)).join(x.hex() for x in member[1])
                 elif member[0] == 'useraccountcontrol':
                     member_value = list()
                     for uac_flag, uac_label in ADObject.__uac_flags.items():
@@ -127,7 +127,11 @@ class ADObject:
                                   'msrtcsip-userroutinggroupid', 'msexchumpinchecksum',
                                   'protocom-sso-auth-data', 'protocom-sso-entries-checksum',
                                   'protocom-sso-security-prefs-checksum', ):
-                    member_value = '{}...'.format(member[1].encode('utf-8').hex()[:100])
+                    # Attribut exists but it is empty
+                    try:
+                        member_value = '{}...'.format(member[1].hex()[:100])
+                    except AttributeError:
+                        member_value = ''
                 else:
                     member_value = member[1]
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
