@@ -24,7 +24,10 @@ from pywerview.functions.hunting import *
 def main():
     # Main parser
     parser = argparse.ArgumentParser(description='Rewriting of some PowerView\'s functionalities in Python')
-    subparsers = parser.add_subparsers(title='Subcommands', description='Available subcommands')
+    subparsers = parser.add_subparsers(title='Subcommands', description='Available subcommands', dest='submodule')
+    
+    # hack for python < 3.9 : https://stackoverflow.com/questions/23349349/argparse-with-required-subparser
+    subparsers.required = True
 
     # TODO: support keberos authentication
     # Credentials parser
