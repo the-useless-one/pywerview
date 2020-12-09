@@ -453,7 +453,7 @@ def main():
 
     parsed_args = dict()
     for k, v in vars(args).items():
-        if k not in ('func', 'hashes'):
+        if k not in ('func', 'hashes', 'submodule'):
             parsed_args[k] = v
 
     #try:
