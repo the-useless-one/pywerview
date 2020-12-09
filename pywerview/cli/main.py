@@ -463,6 +463,10 @@ def main():
         #sys.exit(-1)
 
     if results is not None:
-        for x in results:
-                print(x)
+        try:
+            for x in results:
+                    print(x)
+        # for example, invoke_checklocaladminaccess returns a bool 
+        except TypeError:
+            print(results)
 
