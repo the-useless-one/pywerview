@@ -50,20 +50,21 @@ class ADObject:
 
     def add_attributes(self, attributes):
         for attr in attributes:
-            t = str(attr['type']).lower()
+            #print(attributes[attr])
+            t = str(attr).lower()
             if t in ('logonhours', 'msds-generationid'):
-                value = bytes(attr['vals'][0])
+                value = bytes(attributes[attr][0])
                 value = [x for x in value]
             elif t in ('trustattributes', 'trustdirection', 'trusttype'):
-                value = int(attr['vals'][0])
+                value = int(attributes[attr][0])
             elif t in ('objectsid', 'ms-ds-creatorsid'):
-                value = codecs.encode(bytes(attr['vals'][0]),'hex')
-                init_value = bytes(attr['vals'][0])
+                value = codecs.encode(bytes(attributes[attr][0]),'hex')
+                init_value = bytes(attributes[attr][0])
                 value = 'S-{0}-{1}'.format(init_value[0], init_value[1])
                 for i in range(8, len(init_value), 4):
                     value += '-{}'.format(str(struct.unpack('<I', init_value[i:i+4])[0]))
             elif t == 'objectguid':
-                init_value = bytes(attr['vals'][0])
+                init_value = bytes(attributes[attr][0])
                 value = str()
                 value += '{}-'.format(hex(struct.unpack('<I', init_value[0:4])[0])[2:].zfill(8))
                 value += '{}-'.format(hex(struct.unpack('<H', init_value[4:6])[0])[2:].zfill(4))
@@ -72,25 +73,25 @@ class ADObject:
                 value += init_value.hex()[20:]
             elif t in ('dscorepropagationdata', 'whenchanged', 'whencreated'):
                 value = list()
-                for val in attr['vals']:
-                    value.append(str(datetime.strptime(str(val), '%Y%m%d%H%M%S.0Z')))
+                for val in attributes[attr]:
+                    value.append(str(datetime.strptime(str(val.decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
             elif t in ('pwdlastset', 'badpasswordtime', 'lastlogon', 'lastlogoff'):
-                timestamp = (int(str(attr['vals'][0])) - 116444736000000000)/10000000
+                timestamp = (int(str(attributes[attr][0].decode('utf-8'))) - 116444736000000000)/10000000
                 value = datetime.fromtimestamp(timestamp)
             elif t == 'isgroup':
-                value = attr['vals'][0]
+                value = attributes[attr][0]
             elif t == 'objectclass':
-                value = [str(x) for x in attr['vals']]
+                value = [str(x) for x in attributes[attr]]
                 setattr(self, 'isgroup', ('group' in value))
-            elif len(attr['vals']) > 1:
+            elif len(attributes[attr]) > 1:
                 try:
-                    value = [str(x) for x in attr['vals']]
+                    value = [str(x) for x in attributes[attr]]
                 except(pyasn1.error.PyAsn1UnicodeDecodeError):
-                    value = [bytes(x) for x in attr['vals']]
+                    value = [bytes(x) for x in attributes[attr]]
             else:
                 try:
-                    value = str(attr['vals'][0])
-                except (IndexError, pyasn1.error.PyAsn1Error):
+                    value = attributes[attr][0].decode('utf-8')
+                except (IndexError):
                     value = str()
 
             setattr(self, t, value)

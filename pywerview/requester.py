@@ -40,6 +40,7 @@ class LDAPRequester():
         self._ads_path = None
         self._ads_prefix = None
         self._ldap_connection = None
+        self._base_dn = None
 
     def _get_netfqdn(self):
         try:
@@ -78,7 +79,8 @@ class LDAPRequester():
         else:
             base_dn += ','.join('dc={}'.format(x) for x in self._queried_domain.split('.'))
 
-        print(base_dn)        
+        self._base_dn = base_dn
+        #print(base_dn)
 
         try:
             ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
@@ -119,29 +121,29 @@ class LDAPRequester():
 
         self._ldap_connection = ldap_connection
 
-    def _ldap_search(self, search_filter, class_result, attributes=list()):
+    def _ldap_search(self, search_filter, class_result, attributes=None):
         results = list()
-        paged_search_control = ldapasn1.SimplePagedResultsControl(criticality=True,
-                                                                   size=1000)
-        try:
-            search_results = self._ldap_connection.search(searchFilter=search_filter,
-                                                          searchControls=[paged_search_control],
-                                                          attributes=attributes)
-        except ldap.LDAPSearchError as e:
-            # If we got a "size exceeded" error, we get the partial results
-            if e.error == 4:
-                search_results = e.answers
-            else:
-                raise e
-        # TODO: Filter parenthesis in LDAP filter
-        except ldap.LDAPFilterSyntaxError as e:
-            return list()
+        
+        if attributes is None:
+            print('No attribute = all attributes ;)')
+            attributes =  ldap3.ALL_ATTRIBUTES 
+        
+        # Microsoft Active Directory set an hard limit of 1000 entries returned by any search 
+        search_results = self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
+                                                                           search_filter = search_filter,
+                                                                           attributes = attributes,
+                                                                           paged_size = 1000,
+                                                                           generator=True)
+
+       # print(search_results)
 
         for result in search_results:
-            if not isinstance(result, ldapasn1.SearchResultEntry):
+         #   print(result)
+        #    print(type(result))
+            if result['type'] is not 'searchResEntry':
                 continue
-
-            results.append(class_result(result['attributes']))
+            #print(result['raw_attributes'])
+            results.append(class_result(result['raw_attributes']))
 
         return results
 
