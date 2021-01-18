@@ -50,7 +50,8 @@ class ADObject:
 
     def add_attributes(self, attributes):
         for attr in attributes:
-            #print(attributes[attr], attr)
+            print(attr)
+            print(attributes[attr], attr)
             t = str(attr).lower()
             if t in ('logonhours', 'msds-generationid'):
                 value = bytes(attributes[attr][0])

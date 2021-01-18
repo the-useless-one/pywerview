@@ -126,9 +126,11 @@ class LDAPRequester():
         # if no attribute name specified, we return all attributes 
         if not attributes:
             attributes =  ldap3.ALL_ATTRIBUTES 
-        
-        # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
+
+         #print(search_filter)
+
         try: 
+            # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
             search_results = self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
                                                                                 search_filter = search_filter,
                                                                                 attributes = attributes,
@@ -143,7 +145,7 @@ class LDAPRequester():
         for result in search_results:
             if result['type'] is not 'searchResEntry':
                 continue
-            #print(result['raw_attributes'])
+            print(result['raw_attributes'])
             results.append(class_result(result['raw_attributes']))
 
         return results

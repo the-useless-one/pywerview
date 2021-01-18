@@ -23,6 +23,7 @@ from impacket.dcerpc.v5.samr import DCERPCSessionError
 from impacket.dcerpc.v5.rpcrt import DCERPCException
 from impacket.dcerpc.v5.dcom.wmi import WBEM_FLAG_FORWARD_ONLY
 from bs4 import BeautifulSoup
+from ldap3.utils.conv import escape_filter_chars
 
 from pywerview.requester import LDAPRPCRequester
 import pywerview.objects.adobjects as adobj
@@ -69,6 +70,8 @@ class NetRequester(LDAPRPCRequester):
 
         user_search_filter = '(&{})'.format(user_search_filter)
 
+        #print(user_search_filter)
+    
         return self._ldap_search(user_search_filter, adobj.User)
 
     @LDAPRPCRequester._ldap_connection_init
@@ -361,6 +364,8 @@ class NetRequester(LDAPRPCRequester):
                     # TODO: range cycling
                     try:
                         for member in group.member:
+                            # RFC 4515, section 3
+                            member = escape_filter_chars(member, encoding='utf-8')
                             dn_filter = '(distinguishedname={}){}'.format(member, custom_filter)
                             members += self.get_netuser(custom_filter=dn_filter, queried_domain=queried_domain)
                             members += self.get_netgroup(custom_filter=dn_filter, queried_domain=queried_domain, full_data=True)
