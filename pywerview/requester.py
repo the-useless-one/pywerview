@@ -90,18 +90,17 @@ class LDAPRequester():
             
             # Choose between password or pth    
             if self._lmhash and self._nthash:
-                print('pth')
                 lm_nt_hash  = '{}:{}'.format(self._lmhash, self._nthash)
                 ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
                                               authentication = ldap3.NTLM)
             else:
-                print('password', user, self._password)
                 ldap_connection = ldap3.Connection(ldap_server, user, self._password,
                                               authentication = ldap3.NTLM)
             
             if not ldap_connection.bind():
                 print('error in bind', ldap_connection.result())
 
+        # TODO : How to trigger a strongerAuthRequired ?
         #except ldap.LDAPSessionError as e:
         #    if str(e).find('strongerAuthRequired') >= 0:
                 # We need to try SSL
@@ -121,25 +120,27 @@ class LDAPRequester():
 
         self._ldap_connection = ldap_connection
 
-    def _ldap_search(self, search_filter, class_result, attributes=None):
+    def _ldap_search(self, search_filter, class_result, attributes=list()):
         results = list()
-        
-        if attributes is None:
-            print('No attribute = all attributes ;)')
+       
+        # if no attribute name specified, we return all attributes 
+        if not attributes:
             attributes =  ldap3.ALL_ATTRIBUTES 
         
-        # Microsoft Active Directory set an hard limit of 1000 entries returned by any search 
-        search_results = self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
-                                                                           search_filter = search_filter,
-                                                                           attributes = attributes,
-                                                                           paged_size = 1000,
-                                                                           generator=True)
+        # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
+        try: 
+            search_results = self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
+                                                                                search_filter = search_filter,
+                                                                                attributes = attributes,
+                                                                                paged_size = 1000,
+                                                                                generator=True)
+        # TODO: for debug only
+        except Exception as e:
+            import sys
+            print('Except: ', sys.exc_info()[0])
 
-       # print(search_results)
-
+        # Skip searchResRef
         for result in search_results:
-         #   print(result)
-        #    print(type(result))
             if result['type'] is not 'searchResEntry':
                 continue
             #print(result['raw_attributes'])
