@@ -17,7 +17,8 @@
 
 import socket
 import ntpath
-from impacket.ldap import ldap, ldapasn1
+import ldap3
+#from impacket.ldap import ldap, ldapasn1
 from impacket.smbconnection import SMBConnection
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
@@ -77,22 +78,44 @@ class LDAPRequester():
         else:
             base_dn += ','.join('dc={}'.format(x) for x in self._queried_domain.split('.'))
 
+        print(base_dn)        
+
         try:
-            ldap_connection = ldap.LDAPConnection('ldap://{}'.format(self._domain_controller),
-                                                  base_dn, self._domain_controller)
-            ldap_connection.login(self._user, self._password, self._domain,
-                                  self._lmhash, self._nthash)
-        except ldap.LDAPSessionError as e:
-            if str(e).find('strongerAuthRequired') >= 0:
-                # We need to try SSL
-                ldap_connection = ldap.LDAPConnection('ldaps://{}'.format(self._domain_controller),
-                                                      base_dn, self._domain_controller)
-                ldap_connection.login(self._user, self._password, self._domain,
-                                      self._lmhash, self._nthash)
+            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
+            
+            # Format the username and the domain
+            user = '{}\\{}'.format(self._domain, self._user)
+            
+            # Choose between password or pth    
+            if self._lmhash and self._nthash:
+                print('pth')
+                lm_nt_hash  = '{}:{}'.format(self._lmhash, self._nthash)
+                ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
+                                              authentication = ldap3.NTLM)
             else:
-                raise e
-        except socket.error as e:
-            return
+                print('password', user, self._password)
+                ldap_connection = ldap3.Connection(ldap_server, user, self._password,
+                                              authentication = ldap3.NTLM)
+            
+            if not ldap_connection.bind():
+                print('error in bind', ldap_connection.result())
+
+        #except ldap.LDAPSessionError as e:
+        #    if str(e).find('strongerAuthRequired') >= 0:
+                # We need to try SSL
+        #        ldap_connection = ldap.LDAPConnection('ldaps://{}'.format(self._domain_controller),
+        #                                              base_dn, self._domain_controller)
+        #        ldap_connection.login(self._user, self._password, self._domain,
+        #                             self._lmhash, self._nthash)
+        #    else:
+        #        raise e
+        #except socket.error as e:
+        #    return
+
+        # TODO: for debug only
+        except Exception as inst:
+            import sys
+            print('Except: ', sys.exc_info()[0])
 
         self._ldap_connection = ldap_connection
 
