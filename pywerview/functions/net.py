@@ -70,8 +70,6 @@ class NetRequester(LDAPRPCRequester):
 
         user_search_filter = '(&{})'.format(user_search_filter)
 
-        #print(user_search_filter)
-    
         return self._ldap_search(user_search_filter, adobj.User)
 
     @LDAPRPCRequester._ldap_connection_init
@@ -374,6 +372,7 @@ class NetRequester(LDAPRPCRequester):
                         continue
 
                 for member in members:
+                    #print(member)
                     if full_data:
                         final_member = member
                     else:
@@ -386,17 +385,17 @@ class NetRequester(LDAPRPCRequester):
                         member_domain = str()
                     is_group = (member.samaccounttype != '805306368')
 
-                    attributes = list()
+                    attributes = dict()
                     if queried_domain:
-                        attributes.append({'type': 'groupdomain', 'vals': [queried_domain]})
+                        attributes['groupdomain'] = queried_domain
                     else:
-                        attributes.append({'type': 'groupdomain', 'vals': [self._domain]})
-                    attributes.append({'type': 'groupname', 'vals': [group.name]})
-                    attributes.append({'type': 'membername', 'vals': [member.samaccountname]})
-                    attributes.append({'type': 'memberdomain', 'vals': [member_domain]})
-                    attributes.append({'type': 'isgroup', 'vals': [is_group]})
-                    attributes.append({'type': 'memberdn', 'vals': [member_dn]})
-                    attributes.append({'type': 'membersid', 'vals': [member.objectsid]})
+                        attributes['groupdomain'] = self._domain
+                    attributes['groupname'] = group.name
+                    attributes['membername'] = member.samaccountname
+                    attributes['memberdomain'] = member_domain
+                    attributes['isgroup'] = is_group
+                    attributes['memberdn'] = member_dn
+                    attributes['membersid'] = member.objectsid
 
                     final_member.add_attributes(attributes)
 
@@ -409,6 +408,9 @@ class NetRequester(LDAPRPCRequester):
 
         while groups_to_process:
             groupname, sid = groups_to_process.pop(0)
+            
+            #RFC 4515, sction 3
+            groupname = escape_filter_chars(groupname, encoding='utf-8')
             members = _get_members(groupname, sid)
 
             for member in members:

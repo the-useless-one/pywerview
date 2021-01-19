@@ -50,8 +50,8 @@ class ADObject:
 
     def add_attributes(self, attributes):
         for attr in attributes:
-            print(attr)
-            print(attributes[attr], attr)
+            #print(attr)
+            #print(attributes[attr], attr)
             t = str(attr).lower()
             if t in ('logonhours', 'msds-generationid'):
                 value = bytes(attributes[attr][0])
@@ -80,7 +80,7 @@ class ADObject:
                 timestamp = (int(str(attributes[attr][0].decode('utf-8'))) - 116444736000000000)/10000000
                 value = datetime.fromtimestamp(timestamp)
             elif t == 'isgroup':
-                value = attributes[attr][0]
+                value = attributes[attr]
             elif t == 'objectclass':
                 value = [x.decode('utf-8') for x in attributes[attr]]
                 setattr(self, 'isgroup', ('group' in value))
@@ -89,6 +89,8 @@ class ADObject:
                     value = [x.decode('utf-8') for x in attributes[attr]]
                 except (UnicodeDecodeError):
                     value = [x for x in attributes[attr]]
+                except (AttributeError):
+                    value = attributes[attr]
             else:
                 try:
                     value = attributes[attr][0].decode('utf-8')

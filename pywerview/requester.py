@@ -114,6 +114,7 @@ class LDAPRequester():
                                                    authentication = ldap3.NTLM)
             except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult as e:
                 # We nedd to try SSL (password version)
+                print('ssl fallback')
                 if str(e).find('strongerAuthRequired') >= 0:
                     ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
                     ldap_connection = ldap3.Connection(ldap_server, user, self._password,
@@ -152,7 +153,7 @@ class LDAPRequester():
         for result in search_results:
             if result['type'] is not 'searchResEntry':
                 continue
-            print(result['raw_attributes'])
+           # print(result['raw_attributes'])
             results.append(class_result(result['raw_attributes']))
 
         return results
