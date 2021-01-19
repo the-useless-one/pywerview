@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
 import codecs
 from bs4 import BeautifulSoup

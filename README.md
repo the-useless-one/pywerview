@@ -30,7 +30,7 @@ shame that there were no complete Windows/Active Directory enumeration tool on
 Linux.
 
 That's why I decided to rewrite some of PowerView's functionalities in Python,
-using the wonderful [impacket](https://github.com/CoreSecurity/impacket/)
+using the wonderful [impacket](https://github.com/SecureAuthCorp/impacket)
 library.
 
 *Update:* I haven't tested the last version of PowerView yet, which can run
@@ -184,7 +184,7 @@ an argument, and __not__ `USELESSDOMAIN`.
 
 PywerView - A Python rewriting of PowerSploit's PowerView
 
-Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
+Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
 This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
