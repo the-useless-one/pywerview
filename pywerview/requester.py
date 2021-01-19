@@ -79,7 +79,10 @@ class LDAPRequester():
         else:
             base_dn += ','.join('dc={}'.format(x) for x in self._queried_domain.split('.'))
 
+        # base_dn is no longer used within `_create_ldap_connection()`, but I don't want to break
+        # the function call. So we store it in an attriute and use it in `_ldap_search()`
         self._base_dn = base_dn
+        
         #print(base_dn)
 
         try:
@@ -92,11 +95,12 @@ class LDAPRequester():
             if self._lmhash and self._nthash:
                 lm_nt_hash  = '{}:{}'.format(self._lmhash, self._nthash)
                 ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
-                                              authentication = ldap3.NTLM)
+                                                   authentication = ldap3.NTLM)
             else:
                 ldap_connection = ldap3.Connection(ldap_server, user, self._password,
-                                              authentication = ldap3.NTLM)
+                                                   authentication = ldap3.NTLM)
             
+            # TODO: exit on error ?
             if not ldap_connection.bind():
                 print('error in bind', ldap_connection.result())
 
@@ -132,9 +136,9 @@ class LDAPRequester():
         try: 
             # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
             search_results = self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
-                                                                                search_filter = search_filter,
-                                                                                attributes = attributes,
-                                                                                paged_size = 1000,
+                                                                                search_filter=search_filter,
+                                                                                attributes=attributes,
+                                                                                paged_size=1000,
                                                                                 generator=True)
         # TODO: for debug only
         except Exception as e:
