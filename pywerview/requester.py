@@ -18,7 +18,7 @@
 import socket
 import ntpath
 import ldap3
-#from impacket.ldap import ldap, ldapasn1
+
 from impacket.smbconnection import SMBConnection
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
@@ -83,44 +83,46 @@ class LDAPRequester():
         # the function call. So we store it in an attriute and use it in `_ldap_search()`
         self._base_dn = base_dn
         
+        # TODO: real debug mode ?
         #print(base_dn)
-
-        try:
+        
+        # Format the username and the domain
+        # ldap3 seems not compatible with USER@DOMAIN format
+        user = '{}\\{}'.format(self._domain, self._user)
+        
+        # Choose between password or pth  
+        # TODO: Test the SSL fallbck, is cert verification disabled ?  
+        if self._lmhash and self._nthash:
+            lm_nt_hash  = '{}:{}'.format(self._lmhash, self._nthash)
+            
             ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
             
-            # Format the username and the domain
-            user = '{}\\{}'.format(self._domain, self._user)
-            
-            # Choose between password or pth    
-            if self._lmhash and self._nthash:
-                lm_nt_hash  = '{}:{}'.format(self._lmhash, self._nthash)
+            try:
                 ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
                                                    authentication = ldap3.NTLM)
-            else:
+            except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult as e:
+                # We need to try SSL (pth version)
+                if str(e).find('strongerAuthRequired') >= 0:
+                    ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
+                    ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
+                                                       authentication = ldap3.NTLM)
+                
+        else:
+            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
+            try:
                 ldap_connection = ldap3.Connection(ldap_server, user, self._password,
                                                    authentication = ldap3.NTLM)
-            
-            # TODO: exit on error ?
-            if not ldap_connection.bind():
-                print('error in bind', ldap_connection.result())
+            except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult as e:
+                # We nedd to try SSL (password version)
+                if str(e).find('strongerAuthRequired') >= 0:
+                    ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
+                    ldap_connection = ldap3.Connection(ldap_server, user, self._password,
+                                                       authentication = ldap3.NTLM)        
 
-        # TODO : How to trigger a strongerAuthRequired ?
-        #except ldap.LDAPSessionError as e:
-        #    if str(e).find('strongerAuthRequired') >= 0:
-                # We need to try SSL
-        #        ldap_connection = ldap.LDAPConnection('ldaps://{}'.format(self._domain_controller),
-        #                                              base_dn, self._domain_controller)
-        #        ldap_connection.login(self._user, self._password, self._domain,
-        #                             self._lmhash, self._nthash)
-        #    else:
-        #        raise e
-        #except socket.error as e:
-        #    return
-
-        # TODO: for debug only
-        except Exception as inst:
-            import sys
-            print('Except: ', sys.exc_info()[0])
+        # TODO: exit on error ?
+        if not ldap_connection.bind():
+            print('error in bind', ldap_connection.result())
+            return
 
         self._ldap_connection = ldap_connection
 
@@ -131,15 +133,16 @@ class LDAPRequester():
         if not attributes:
             attributes =  ldap3.ALL_ATTRIBUTES 
 
+         # TODO: real debug mode ?
          #print(search_filter)
 
         try: 
             # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
             search_results = self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
-                                                                                search_filter=search_filter,
-                                                                                attributes=attributes,
-                                                                                paged_size=1000,
-                                                                                generator=True)
+                                                                                search_filter = search_filter,
+                                                                                attributes    = attributes,
+                                                                                paged_size    = 1000,
+                                                                                generator     = True)
         # TODO: for debug only
         except Exception as e:
             import sys
