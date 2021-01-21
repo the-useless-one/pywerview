@@ -49,7 +49,7 @@ class NetRequester(LDAPRPCRequester):
                     ads_path=str(), admin_count=False, spn=False,
                     unconstrained=False, allow_delegation=False,
                     preauth_notreq=False,
-                    custom_filter=str()):
+                    custom_filter=str(), attributes=[]):
 
         if unconstrained:
             custom_filter += '(userAccountControl:1.2.840.113556.1.4.803:=524288)'
@@ -70,7 +70,7 @@ class NetRequester(LDAPRPCRequester):
 
         user_search_filter = '(&{})'.format(user_search_filter)
 
-        return self._ldap_search(user_search_filter, adobj.User)
+        return self._ldap_search(user_search_filter, adobj.User, attributes=attributes)
 
     @LDAPRPCRequester._ldap_connection_init
     def get_netgroup(self, queried_groupname='*', queried_sid=str(),
@@ -142,7 +142,7 @@ class NetRequester(LDAPRPCRequester):
     def get_netcomputer(self, queried_computername='*', queried_spn=str(),
                         queried_os=str(), queried_sp=str(), queried_domain=str(),
                         ads_path=str(), printers=False, unconstrained=False,
-                        ping=False, full_data=False, custom_filter=str()):
+                        ping=False, full_data=False, custom_filter=str(), attributes=[]):
 
         if unconstrained:
             custom_filter += '(userAccountControl:1.2.840.113556.1.4.803:=524288)'
@@ -160,7 +160,8 @@ class NetRequester(LDAPRPCRequester):
         if full_data:
             attributes=list()
         else:
-            attributes=['dnsHostName']
+            if not attributes:
+                attributes=['dnsHostName']
 
         computer_search_filter = '(&{})'.format(computer_search_filter)
 

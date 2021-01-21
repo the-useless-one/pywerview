@@ -151,7 +151,9 @@ class ADObject:
 class User(ADObject):
     def __init__(self, attributes):
         ADObject.__init__(self, attributes)
-        for attr in ('homedirectory', 'scriptpath', 'profilepath'):
+        for attr in filter(lambda _: _ in attributes, ('homedirectory',
+                                                       'scriptpath',
+                                                       'profilepath')):
             if not hasattr(self, attr):
                 setattr(self, attr, str())
 
