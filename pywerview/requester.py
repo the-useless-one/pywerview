@@ -153,7 +153,7 @@ class LDAPRequester():
         for result in search_results:
             if result['type'] is not 'searchResEntry':
                 continue
-           # print(result['raw_attributes'])
+         #   print(result['raw_attributes'])
             results.append(class_result(result['raw_attributes']))
 
         return results

@@ -78,6 +78,10 @@ class NetRequester(LDAPRPCRequester):
                      ads_path=str(), admin_count=False, full_data=False,
                      custom_filter=str()):
 
+        #RFC 4515, section 3
+        if queried_groupname is not '*':
+            queried_groupname = escape_filter_chars(queried_groupname)
+
         if queried_username:
             results = list()
             sam_account_name_to_resolve = [queried_username]
