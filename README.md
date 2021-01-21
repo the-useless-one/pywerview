@@ -58,8 +58,9 @@ Also, blah blah blah, don't use it for evil purposes.
 
 ## REQUIREMENTS
 
-* Python 2.7
-* impacket >= 0.9.16-dev
+* Python 3.6
+* impacket >= 0.9.22
+* ldap3 >= 2.8.1
 
 ## FUNCTIONALITIES
 
@@ -179,6 +180,7 @@ an argument, and __not__ `USELESSDOMAIN`.
   contributions.
 * Thanks to [@ThePirateWhoSmellsOfSunflowers](https://github.com/ThePirateWhoSmellsOfSunflowers)
   for his debugging, love you baby :heart:
+* Thanks to [@mpgn](https://github.com/mpgn) for his python 3 contributions.
 
 ## COPYRIGHT
 
