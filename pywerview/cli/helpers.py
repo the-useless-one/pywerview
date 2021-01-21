@@ -38,7 +38,7 @@ def get_netuser(domain_controller, domain, user, password=str(), lmhash=str(),
                 admin_count=False, spn=False, unconstrained=False, allow_delegation=False,
                 preauth_notreq=False, custom_filter=str(),
                 attributes=[]):
-	requester = NetRequester(domain_controller, domain, user, password,
+    requester = NetRequester(domain_controller, domain, user, password,
                              lmhash, nthash)
     return requester.get_netuser(queried_username=queried_username,
                                     queried_domain=queried_domain, ads_path=ads_path, admin_count=admin_count,
@@ -62,7 +62,7 @@ def get_netcomputer(domain_controller, domain, user, password=str(),
                     queried_os=str(), queried_sp=str(), queried_domain=str(), ads_path=str(),
                     printers=False, unconstrained=False, ping=False, full_data=False,
                     custom_filter=str(), attributes=[]):
-	requester = NetRequester(domain_controller, domain, user, password,
+    requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
     return requester.get_netcomputer(queried_computername=queried_computername,
                                         queried_spn=queried_spn, queried_os=queried_os, queried_sp=queried_sp,
