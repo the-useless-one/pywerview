@@ -78,8 +78,10 @@ class NetRequester(LDAPRPCRequester):
                      ads_path=str(), admin_count=False, full_data=False,
                      custom_filter=str()):
 
-        #RFC 4515, section 3
-        if queried_groupname is not '*':
+        # RFC 4515, section 3
+        # However if we escape *, we can no longer use wildcard within `--groupname`
+        # Maybe we can raise a warning here ? 
+        if not '*' in queried_groupname:
             queried_groupname = escape_filter_chars(queried_groupname)
 
         if queried_username:
@@ -139,7 +141,6 @@ class NetRequester(LDAPRPCRequester):
                 attributes=['samaccountname']
 
             group_search_filter = '(&{})'.format(group_search_filter)
-
             return self._ldap_search(group_search_filter, adobj.Group, attributes=attributes)
 
     @LDAPRPCRequester._ldap_connection_init
@@ -335,10 +336,13 @@ class NetRequester(LDAPRPCRequester):
 
         def _get_members(_groupname=str(), _sid=str()):
             try:
+                # `--groupname` option is supplied
                 if _groupname:
                     groups = self.get_netgroup(queried_groupname=_groupname,
                                                queried_domain=queried_domain,
                                                full_data=True)
+
+                # `--groupname` option is missing, falling back to the "Domain Admins"
                 else:
                     if _sid:
                         queried_sid = _sid
@@ -413,9 +417,6 @@ class NetRequester(LDAPRPCRequester):
 
         while groups_to_process:
             groupname, sid = groups_to_process.pop(0)
-            
-            #RFC 4515, sction 3
-            groupname = escape_filter_chars(groupname, encoding='utf-8')
             members = _get_members(groupname, sid)
 
             for member in members:
