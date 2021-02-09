@@ -50,6 +50,70 @@ class ADObject:
 
     def add_attributes(self, attributes):
         for attr in attributes:
+            t = str(attr).lower()
+            setattr(self, t, attributes[attr])
+
+    def __str__(self):
+        s = str()
+        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
+        max_length = 0
+        for member in members:
+            if not member[0].startswith('_'):
+                if len(member[0]) > max_length:
+                    max_length = len(member[0])
+        for member in members:
+            if not member[0].startswith('_'):
+                print(member)
+                if member[0] in ('logonhours', 'msds-generationid'):        
+                    value = member[1][0]
+                    member_value = [x for x in value]
+                elif member[0] in ('objectsid', 'ms-ds-creatorsid'):
+                    init_value = member[1][0]
+                    member_value = 'S-{0}-{1}'.format(init_value[0], init_value[1])
+                    for i in range(8, len(init_value), 4):
+                        member_value += '-{}'.format(str(struct.unpack('<I', init_value[i:i+4])[0]))
+                elif member[0] == 'objectguid':
+                    init_value = member[1][0]
+                    member_value = str()
+                    member_value += '{}-'.format(hex(struct.unpack('<I', init_value[0:4])[0])[2:].zfill(8))
+                    member_value += '{}-'.format(hex(struct.unpack('<H', init_value[4:6])[0])[2:].zfill(4))
+                    member_value += '{}-'.format(hex(struct.unpack('<H', init_value[6:8])[0])[2:].zfill(4))
+                    member_value += '{}-'.format((codecs.encode(init_value,'hex')[16:20]).decode('utf-8'))
+                    member_value += init_value.hex()[20:]
+                elif member[0] in ('dscorepropagationdata', 'whenchanged', 'whencreated'):
+                    member_value = list()
+                    for val in member[1]:
+                        member_value.append(str(datetime.strptime(str(val.decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
+                elif member[0] in ('pwdlastset', 'badpasswordtime', 'lastlogon', 'lastlogoff'):
+                    timestamp = (int(member[1][0].decode('utf-8')) - 116444736000000000)/10000000
+                    member_value = datetime.fromtimestamp(timestamp)
+                elif member[0] == 'isgroup':
+                    member_value = member[1]
+                # ???
+                elif member[0] == 'objectclass':
+                    member_value = [x.decode('utf-8') for x in member[1]]
+                    setattr(self, 'isgroup', ('group' in member_value))
+                
+                elif len(member[1]) > 1:
+                    try:
+                        member_value_temp = [x.decode('utf-8') for x in member[1]]
+                        member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member_value_temp)
+                    except (UnicodeDecodeError):
+                        value = [x for x in member[1]]
+                    except (AttributeError):
+                        value = member[1]
+
+                else:
+                    member_value = member[1][0].decode('utf-8')
+                s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
+
+        s = s[:-1]
+        return s
+             
+
+
+    def add_attributes_old(self, attributes):
+        for attr in attributes:
             #print(attr)
             #print(attributes[attr], attr)
             t = str(attr).lower()
@@ -101,7 +165,7 @@ class ADObject:
 
             setattr(self, t, value)
 
-    def __str__(self):
+    def old_to_s(self):
         s = str()
         members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
         max_length = 0
