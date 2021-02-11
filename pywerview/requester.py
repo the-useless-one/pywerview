@@ -132,11 +132,9 @@ class LDAPRequester():
 
         try: 
             # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
-            search_results = self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
-                                                                                search_filter = search_filter,
-                                                                                attributes    = attributes,
-                                                                                paged_size    = 1000,
-                                                                                generator     = True)
+            search_results=self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
+                    search_filter=search_filter, attributes=attributes,
+                    paged_size=1000, generator=True)
         # TODO: for debug only
         except Exception as e:
             import sys
