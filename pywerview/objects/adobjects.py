@@ -115,65 +115,15 @@ class ADObject:
                         member_value = member[1][0].decode('utf-8')
                     except (UnicodeError):
                         member_value = '{}...'.format(member[1][0].hex()[:100])
+                    # Attribut exists but it is empty
+                    except (AttributeError):
+                        member_value = ''
+
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
 
         s = s[:-1]
         return s
              
-
-
-    def add_attributes_old(self, attributes):
-        for attr in attributes:
-            #print(attr)
-            #print(attributes[attr], attr)
-            t = str(attr).lower()
-            if t in ('logonhours', 'msds-generationid'):
-                value = bytes(attributes[attr][0])
-                value = [x for x in value]
-            elif t in ('trustattributes', 'trustdirection', 'trusttype'):
-                value = int(attributes[attr][0])
-            elif t in ('objectsid', 'ms-ds-creatorsid'):
-                value = codecs.encode(bytes(attributes[attr][0]),'hex')
-                init_value = bytes(attributes[attr][0])
-                value = 'S-{0}-{1}'.format(init_value[0], init_value[1])
-                for i in range(8, len(init_value), 4):
-                    value += '-{}'.format(str(struct.unpack('<I', init_value[i:i+4])[0]))
-            elif t == 'objectguid':
-                init_value = bytes(attributes[attr][0])
-                value = str()
-                value += '{}-'.format(hex(struct.unpack('<I', init_value[0:4])[0])[2:].zfill(8))
-                value += '{}-'.format(hex(struct.unpack('<H', init_value[4:6])[0])[2:].zfill(4))
-                value += '{}-'.format(hex(struct.unpack('<H', init_value[6:8])[0])[2:].zfill(4))
-                value += '{}-'.format((codecs.encode(init_value,'hex')[16:20]).decode('utf-8'))
-                value += init_value.hex()[20:]
-            elif t in ('dscorepropagationdata', 'whenchanged', 'whencreated'):
-                value = list()
-                for val in attributes[attr]:
-                    value.append(str(datetime.strptime(str(val.decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
-            elif t in ('pwdlastset', 'badpasswordtime', 'lastlogon', 'lastlogoff'):
-                timestamp = (int(str(attributes[attr][0].decode('utf-8'))) - 116444736000000000)/10000000
-                value = datetime.fromtimestamp(timestamp)
-            elif t == 'isgroup':
-                value = attributes[attr]
-            elif t == 'objectclass':
-                value = [x.decode('utf-8') for x in attributes[attr]]
-                setattr(self, 'isgroup', ('group' in value))
-            elif len(attributes[attr]) > 1:
-                try:
-                    value = [x.decode('utf-8') for x in attributes[attr]]
-                except (UnicodeDecodeError):
-                    value = [x for x in attributes[attr]]
-                except (AttributeError):
-                    value = attributes[attr]
-            else:
-                try:
-                    value = attributes[attr][0].decode('utf-8')
-                except (IndexError):
-                    value = str()
-                except (UnicodeDecodeError):
-                    value = attributes[attr][0]
-
-            setattr(self, t, value)
 
     def old_to_s(self):
         s = str()
