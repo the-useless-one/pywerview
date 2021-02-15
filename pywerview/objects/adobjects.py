@@ -63,7 +63,7 @@ class ADObject:
                     max_length = len(member[0])
         for member in members:
             if not member[0].startswith('_'):
-                print(member)
+                #print(member)
                 if member[0] in ('logonhours', 'msds-generationid'):        
                     value = member[1][0]
                     member_value = [x for x in value]
@@ -81,10 +81,11 @@ class ADObject:
                     member_value += '{}-'.format((codecs.encode(init_value,'hex')[16:20]).decode('utf-8'))
                     member_value += init_value.hex()[20:]
                 elif member[0] in ('dscorepropagationdata', 'whenchanged', 'whencreated'):
-                    member_value = list()
+                    member_value_temp = list()
                     for val in member[1]:
-                        member_value.append(str(datetime.strptime(str(val.decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
-                elif member[0] in ('pwdlastset', 'badpasswordtime', 'lastlogon', 'lastlogoff'):
+                        member_value_temp.append(str(datetime.strptime(str(val.decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
+                    member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member_value_temp)
+                elif member[0] in ('pwdlastset', 'badpasswordtime', 'lastlogontimestamp', 'lastlogon', 'lastlogoff'):
                     timestamp = (int(member[1][0].decode('utf-8')) - 116444736000000000)/10000000
                     member_value = datetime.fromtimestamp(timestamp)
                 elif member[0] == 'isgroup':
@@ -93,7 +94,13 @@ class ADObject:
                 elif member[0] == 'objectclass':
                     member_value = [x.decode('utf-8') for x in member[1]]
                     setattr(self, 'isgroup', ('group' in member_value))
-                
+
+                elif member[0] == 'useraccountcontrol':
+                    member_value = list()
+                    for uac_flag, uac_label in ADObject.__uac_flags.items():
+                        if int(member[1][0]) & uac_flag == uac_flag:
+                            member_value.append(uac_label)
+
                 elif len(member[1]) > 1:
                     try:
                         member_value_temp = [x.decode('utf-8') for x in member[1]]
@@ -104,7 +111,10 @@ class ADObject:
                         value = member[1]
 
                 else:
-                    member_value = member[1][0].decode('utf-8')
+                    try:
+                        member_value = member[1][0].decode('utf-8')
+                    except (UnicodeError):
+                        member_value = '{}...'.format(member[1][0].hex()[:100])
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
 
         s = s[:-1]
