@@ -83,9 +83,6 @@ class LDAPRequester():
         # the function call. So we store it in an attriute and use it in `_ldap_search()`
         self._base_dn = base_dn
         
-        # TODO: real debug mode ?
-        #print(base_dn)
-        
         # Format the username and the domain
         # ldap3 seems not compatible with USER@DOMAIN format
         user = '{}\\{}'.format(self._domain, self._user)
@@ -114,7 +111,6 @@ class LDAPRequester():
                                                    authentication = ldap3.NTLM)
             except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult as e:
                 # We nedd to try SSL (password version)
-                print('ssl fallback')
                 if str(e).find('strongerAuthRequired') >= 0:
                     ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
                     ldap_connection = ldap3.Connection(ldap_server, user, self._password,
@@ -134,16 +130,11 @@ class LDAPRequester():
         if not attributes:
             attributes =  ldap3.ALL_ATTRIBUTES 
 
-         # TODO: real debug mode ?
-         #print(search_filter)
-
         try: 
             # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
-            search_results = self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
-                                                                                search_filter = search_filter,
-                                                                                attributes    = attributes,
-                                                                                paged_size    = 1000,
-                                                                                generator     = True)
+            search_results=self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
+                    search_filter=search_filter, attributes=attributes,
+                    paged_size=1000, generator=True)
         # TODO: for debug only
         except Exception as e:
             import sys
@@ -153,7 +144,6 @@ class LDAPRequester():
         for result in search_results:
             if result['type'] is not 'searchResEntry':
                 continue
-         #   print(result['raw_attributes'])
             results.append(class_result(result['raw_attributes']))
 
         return results

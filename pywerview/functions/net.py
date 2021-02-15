@@ -381,7 +381,6 @@ class NetRequester(LDAPRPCRequester):
                         continue
 
                 for member in members:
-                    #print(member)
                     if full_data:
                         final_member = member
                     else:
