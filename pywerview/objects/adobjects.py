@@ -63,7 +63,8 @@ class ADObject:
                     max_length = len(member[0])
         for member in members:
             if not member[0].startswith('_'):
-                #print(member)
+                print(len(member[1]))
+                print(member)
                 if member[0] in ('logonhours', 'msds-generationid'):        
                     value = member[1][0]
                     member_value = [x for x in value]
@@ -106,9 +107,9 @@ class ADObject:
                         member_value_temp = [x.decode('utf-8') for x in member[1]]
                         member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member_value_temp)
                     except (UnicodeDecodeError):
-                        value = [x for x in member[1]]
+                        member_value = [x for x in member[1]]
                     except (AttributeError):
-                        value = member[1]
+                        member_value = member[1]
 
                 else:
                     try:
@@ -116,7 +117,7 @@ class ADObject:
                     except (UnicodeError):
                         member_value = '{}...'.format(member[1][0].hex()[:100])
                     # Attribut exists but it is empty
-                    except (AttributeError):
+                    except (AttributeError, IndexError):
                         member_value = ''
 
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
