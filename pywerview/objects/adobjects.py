@@ -103,17 +103,23 @@ class ADObject:
                             member_value.append(uac_label)
 
                 elif len(member[1]) > 1:
+                    # Value is a list of string
                     try:
                         member_value_temp = [x.decode('utf-8') for x in member[1]]
                         member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member_value_temp)
+                    # Value is a list of bytearray
                     except (UnicodeDecodeError):
-                        member_value = [x for x in member[1]]
+                        member_value_temp = [x for x in member[1]]
+                        member_value = (',\n' + ' ' * (max_length + 2)).join(x.hex()[:100] + '...' for x in member_value_temp)
+                    # Value is a list, but idk
                     except (AttributeError):
                         member_value = member[1]
 
                 else:
+                    # Value is a tring
                     try:
                         member_value = member[1][0].decode('utf-8')
+                    # Value is a bytearray
                     except (UnicodeError):
                         member_value = '{}...'.format(member[1][0].hex()[:100])
                     # Attribut exists but it is empty
