@@ -100,7 +100,6 @@ class ADObject:
                     else:
                         member_value_temp.append(str(datetime.strptime(str(member[1].decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
                     member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member_value_temp)
-
                 
                 # Attribute is a timestamp
                 elif member[0] in ('pwdlastset', 'badpasswordtime', 'lastlogontimestamp', 'lastlogon', 'lastlogoff'):
