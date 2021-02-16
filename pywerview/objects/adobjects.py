@@ -56,6 +56,7 @@ class ADObject:
             else:
                 setattr(self, t, attributes[attr][0])
 
+    # In this method, we try to pretty print common AD attributes
     def __str__(self):
         s = str()
         members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
@@ -102,9 +103,12 @@ class ADObject:
                     member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member_value_temp)
                 
                 # Attribute is a timestamp
-                elif member[0] in ('pwdlastset', 'badpasswordtime', 'lastlogontimestamp', 'lastlogon', 'lastlogoff'):
-                    timestamp = (int(member[1].decode('utf-8')) - 116444736000000000)/10000000
-                    member_value = datetime.fromtimestamp(timestamp)
+                elif member[0] in ('accountexpires', 'pwdlastset', 'badpasswordtime', 'lastlogontimestamp', 'lastlogon', 'lastlogoff'):
+                    if int(member[1].decode('utf-8')) != 9223372036854775807:
+                        timestamp = (int(member[1].decode('utf-8')) - 116444736000000000)/10000000
+                        member_value = datetime.fromtimestamp(timestamp)
+                    else:
+                        member_value = 'never'
                 
                 # The object is a group
                 elif member[0] == 'objectclass':
