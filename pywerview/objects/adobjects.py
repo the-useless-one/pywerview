@@ -63,16 +63,21 @@ class ADObject:
                     max_length = len(member[0])
         for member in members:
             if not member[0].startswith('_'):
-                print(len(member[1]))
-                print(member)
+                #print(len(member[1]))
+                #print(member)
+                # ??
                 if member[0] in ('logonhours', 'msds-generationid'):        
                     value = member[1][0]
                     member_value = [x for x in value]
+
+                # Attribute is a SID
                 elif member[0] in ('objectsid', 'ms-ds-creatorsid'):
                     init_value = member[1][0]
                     member_value = 'S-{0}-{1}'.format(init_value[0], init_value[1])
                     for i in range(8, len(init_value), 4):
                         member_value += '-{}'.format(str(struct.unpack('<I', init_value[i:i+4])[0]))
+                
+                # Attribute is a GUID
                 elif member[0] == 'objectguid':
                     init_value = member[1][0]
                     member_value = str()
@@ -81,27 +86,34 @@ class ADObject:
                     member_value += '{}-'.format(hex(struct.unpack('<H', init_value[6:8])[0])[2:].zfill(4))
                     member_value += '{}-'.format((codecs.encode(init_value,'hex')[16:20]).decode('utf-8'))
                     member_value += init_value.hex()[20:]
+
+                # Attribute is a list of timestamp
                 elif member[0] in ('dscorepropagationdata', 'whenchanged', 'whencreated'):
                     member_value_temp = list()
                     for val in member[1]:
                         member_value_temp.append(str(datetime.strptime(str(val.decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
                     member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member_value_temp)
+                
+                # Attribute is a timestamp
                 elif member[0] in ('pwdlastset', 'badpasswordtime', 'lastlogontimestamp', 'lastlogon', 'lastlogoff'):
                     timestamp = (int(member[1][0].decode('utf-8')) - 116444736000000000)/10000000
                     member_value = datetime.fromtimestamp(timestamp)
-                elif member[0] == 'isgroup':
-                    member_value = member[1]
-                # ???
+                
+                # The object is a group
                 elif member[0] == 'objectclass':
                     member_value = [x.decode('utf-8') for x in member[1]]
                     setattr(self, 'isgroup', ('group' in member_value))
+                elif member[0] == 'isgroup':
+                    member_value = member[1][0]
 
+                # We pretty print useraccountcontrol
                 elif member[0] == 'useraccountcontrol':
                     member_value = list()
                     for uac_flag, uac_label in ADObject.__uac_flags.items():
                         if int(member[1][0]) & uac_flag == uac_flag:
                             member_value.append(uac_label)
 
+                # Attribute is a list of value
                 elif len(member[1]) > 1:
                     # Value is a list of string
                     try:
@@ -115,6 +127,7 @@ class ADObject:
                     except (AttributeError):
                         member_value = member[1]
 
+                # Default case, attribute seems to be a simple string
                 else:
                     # Value is a tring
                     try:
@@ -131,51 +144,6 @@ class ADObject:
         s = s[:-1]
         return s
              
-
-    def old_to_s(self):
-        s = str()
-        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
-        max_length = 0
-        for member in members:
-            if not member[0].startswith('_'):
-                if len(member[0]) > max_length:
-                    max_length = len(member[0])
-        for member in members:
-            if not member[0].startswith('_'):
-                if member[0] == 'msmqdigests':
-                    member_value = (',\n' + ' ' * (max_length + 2)).join(x.hex() for x in member[1])
-                elif member[0] == 'useraccountcontrol':
-                    member_value = list()
-                    for uac_flag, uac_label in ADObject.__uac_flags.items():
-                        if int(member[1]) & uac_flag == uac_flag:
-                            member_value.append(uac_label)
-                elif isinstance(member[1], list):
-                    if member[0] in ('logonhours',):
-                        member_value = member[1]
-                    elif member[0] in ('usercertificate',
-                                       'protocom-sso-entries', 'protocom-sso-security-prefs',):
-                        member_value = (',\n' + ' ' * (max_length + 2)).join(
-                                '{}...'.format(x.hex()[:100]) for x in member[1])
-                    else:
-                        member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member[1])
-                elif member[0] in('msmqsigncertificates', 'userparameters',
-                                  'jpegphoto', 'thumbnailphoto', 'usercertificate',
-                                  'msexchmailboxguid', 'msexchmailboxsecuritydescriptor',
-                                  'msrtcsip-userroutinggroupid', 'msexchumpinchecksum',
-                                  'protocom-sso-auth-data', 'protocom-sso-entries-checksum',
-                                  'protocom-sso-security-prefs-checksum', ):
-                    # Attribut exists but it is empty
-                    try:
-                        member_value = '{}...'.format(member[1].hex()[:100])
-                    except AttributeError:
-                        member_value = ''
-                else:
-                    member_value = member[1]
-                s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
-
-        s = s[:-1]
-        return s
-
     def __repr__(self):
         return str(self)
 
