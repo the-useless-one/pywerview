@@ -228,9 +228,8 @@ class NetRequester(LDAPRPCRequester):
                 for remote_server in dfs.remoteservername:
                     remote_server = str(remote_server)
                     if '\\' in remote_server:
-                        attributes = list()
-                        attributes.append({'type': 'name', 'vals': [dfs.name]})
-                        attributes.append({'type': 'remoteservername', 'vals': [remote_server.split('\\')[2]]})
+                        attributes = {'name': dfs.name,
+                                'remoteservername': remote_server.split('\\')[2]}
                         results.append(adobj.DFS(attributes))
 
             return results
@@ -251,10 +250,8 @@ class NetRequester(LDAPRPCRequester):
                 for target in soup_target_list.targets.contents:
                     if '\\' in target.string:
                         server_name, dfs_root = target.string.split('\\')[2:4]
-                        attributes.append({'type': 'remoteservername',
-                                          'vals': [server_name]})
-                        attributes.append({'type': 'name',
-                                           'vals': ['{}{}'.format(dfs_root, share_name)]})
+                        attributes = {'name': '{}{}'.format(dfs_root, share_name),
+                                'remoteservername': server_name}
 
                 results.append(adobj.DFS(attributes))
 
