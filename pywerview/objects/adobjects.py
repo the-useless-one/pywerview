@@ -15,7 +15,7 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import inspect
 import struct
 import pyasn1
@@ -76,9 +76,9 @@ class ADObject:
                 value = list()
                 for val in attributes[attr]:
                     value.append(str(datetime.strptime(str(val.decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
-            elif t in ('pwdlastset', 'badpasswordtime', 'lastlogon', 'lastlogoff'):
+            elif t in ('accountexpires', 'pwdlastset', 'badpasswordtime', 'lastlogontimestamp', 'lastlogon', 'lastlogoff'):
                 timestamp = (int(str(attributes[attr][0].decode('utf-8'))) - 116444736000000000)/10000000
-                value = datetime.fromtimestamp(timestamp)
+                value = datetime.fromtimestamp(0) + timedelta(seconds=timestamp)
             elif t == 'isgroup':
                 value = attributes[attr]
             elif t == 'objectclass':
