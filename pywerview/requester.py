@@ -160,7 +160,7 @@ class LDAPRequester():
                (ads_path != instance._ads_path) or \
                (ads_prefix != instance._ads_prefix):
                 if instance._ldap_connection:
-                    instance._ldap_connection.close()
+                    instance._ldap_connection.unbind()
                 instance._create_ldap_connection(queried_domain=queried_domain,
                                                  ads_path=ads_path, ads_prefix=ads_prefix)
             return f(*args, **kwargs)
@@ -172,7 +172,7 @@ class LDAPRequester():
 
     def __exit__(self, type, value, traceback):
         try:
-            self._ldap_connection.close()
+            self._ldap_connection.unbind()
         except AttributeError:
             pass
         self._ldap_connection = None
