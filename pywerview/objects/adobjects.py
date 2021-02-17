@@ -77,8 +77,15 @@ class ADObject:
                 for val in attributes[attr]:
                     value.append(str(datetime.strptime(str(val.decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
             elif t in ('accountexpires', 'pwdlastset', 'badpasswordtime', 'lastlogontimestamp', 'lastlogon', 'lastlogoff'):
-                timestamp = (int(str(attributes[attr][0].decode('utf-8'))) - 116444736000000000)/10000000
-                value = datetime.fromtimestamp(0) + timedelta(seconds=timestamp)
+                try:
+                    filetimestamp = int(attributes[attr][0].decode('utf-8'))
+                    if filetimestamp != 9223372036854775807:
+                        timestamp = (filetimestamp - 116444736000000000)/10000000
+                        value = datetime.fromtimestamp(0) + timedelta(seconds=timestamp)
+                    else:
+                        value = 'never'
+                except IndexError:
+                    value = 'empty'
             elif t == 'isgroup':
                 value = attributes[attr]
             elif t == 'objectclass':
