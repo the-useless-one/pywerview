@@ -188,13 +188,16 @@ class NetRequester(LDAPRPCRequester):
             if len(split_path) >= 3:
                 return split_path[2]
 
+        file_server_attributes = ['homedirectory', 'scriptpath', 'profilepath']
         results = set()
         if target_users:
             users = list()
             for target_user in target_users:
-                users += self.get_netuser(target_user, queried_domain)
+                users += self.get_netuser(target_user, queried_domain,
+                        attributes=file_server_attributes)
         else:
-            users = self.get_netuser(queried_domain=queried_domain)
+            users = self.get_netuser(queried_domain=queried_domain,
+                    attributes=file_server_attributes)
 
         for user in users:
             for full_path in (user.homedirectory, user.scriptpath, user.profilepath):
