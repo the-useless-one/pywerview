@@ -76,7 +76,7 @@ class GPORequester(LDAPRequester):
                 except UnicodeEncodeError:
                     property_name = property_name.encode('utf-8')
                     setattr(getattr(gpttmpl_final, section_name), property_name, property_values)
-
+        #print(gpttmpl_final)
         return gpttmpl_final
 
     def get_domainpolicy(self, source='domain', queried_domain=str(),
@@ -87,7 +87,7 @@ class GPORequester(LDAPRequester):
             queried_gponame = '{6AC1786C-016F-11D2-945F-00C04FB984F9}'
         gpo = self.get_netgpo(queried_domain=queried_domain, queried_gponame=queried_gponame)[0]
 
-        gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath)
+        gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath.decode('utf-8'))
         gpttmpl = self.get_gpttmpl(gpttmpl_path)
 
         if source == 'domain':
