@@ -188,6 +188,7 @@ class DFS(ADObject):
 class OU(ADObject):
     def __init__(self, attributes):
         ADObject.__init__(self, attributes)
+        # TODO: Why ?
         self.distinguishedname = 'LDAP://{}'.format(self.distinguishedname)
 
 class Site(ADObject):
@@ -211,9 +212,6 @@ class Trust(ADObject):
 
     __trust_type = {1: 'windows_non_active_directory',
                     2: 'windows_active_directory', 3: 'mit'}
-
-    def __init__(self, attributes):
-        ADObject.add_attributes(self, attributes)
 
     # Pretty printing Trust object, we don't want to print all the attributes
     # so we only print useful ones (trustattributes, trustdirection, trustpartner
