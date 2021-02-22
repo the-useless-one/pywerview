@@ -279,7 +279,7 @@ class GPORequester(LDAPRequester):
                         except IndexError:
                             resolved_member = member
                         finally:
-                            resolved_members.append(resolved_member)
+                            resolved_members.append(resolved_member.encode('utf-8'))
                     gpo_group.members = resolved_members
 
                     for member in memberof:
@@ -292,7 +292,7 @@ class GPORequester(LDAPRequester):
                         except IndexError:
                             resolved_member = member
                         finally:
-                            resolved_memberof.append(resolved_member)
+                            resolved_memberof.append(resolved_member.encode('utf-8'))
                     gpo_group.memberof = memberof = resolved_memberof
 
         return results
