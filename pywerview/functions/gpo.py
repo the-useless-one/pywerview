@@ -156,6 +156,7 @@ class GPORequester(LDAPRequester):
         groupsxml_soup = BeautifulSoup(content.decode('utf-8'), 'xml')
 
         for group in groupsxml_soup.find_all('Group'):
+            #TODO: reach this block
             members = list()
             memberof = list()
             local_sid = group.Properties.get('groupSid', str())
@@ -269,8 +270,9 @@ class GPORequester(LDAPRequester):
                                   self._password, self._lmhash, self._nthash) as net_requester:
                     for member in members:
                         try:
+                            #TODO: clean
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=queried_domain)[0]
-                            resolved_member = resolved_member.distinguishedname.split(',')
+                            resolved_member = resolved_member.distinguishedname.decode('utf-8').split(',')
                             resolved_member_domain = '.'.join(resolved_member[1:])
                             resolved_member = '{}\\{}'.format(resolved_member_domain, resolved_member[0])
                             resolved_member = resolved_member.replace('CN=', '').replace('DC=', '')
@@ -282,8 +284,9 @@ class GPORequester(LDAPRequester):
 
                     for member in memberof:
                         try:
+                            # Clean
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=queried_domain)[0]
-                            resolved_member = resolved_member.distinguishedname.split(',')[:2]
+                            resolved_member = resolved_member.distinguishedname.decode('utf-8').split(',')[:2]
                             resolved_member = '{}\\{}'.format(resolved_member[1], resolved_member[0])
                             resolved_member = resolved_member.replace('CN=', '').replace('DC=', '')
                         except IndexError:
