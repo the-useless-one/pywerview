@@ -58,25 +58,21 @@ class GPORequester(LDAPRequester):
         smb_connection.connectTree(share)
         smb_connection.getFile(share, file_name, content_io.write)
         try:
-            content = codecs.decode(content_io.getvalue(), 'utf-16le')[1:].replace('\r', '')
+            content = codecs.decode(content_io.getvalue(), 'utf-16le')[1:].encode('utf-8').replace(b'\r', b'')
         except UnicodeDecodeError:
-            content = str(content_io.getvalue()).replace('\r', '')
+            content = content_io.getvalue().replace(b'\r', b'')
 
         gpttmpl_final = GptTmpl(list())
-        for l in content.split('\n'):
-            if l.startswith('['):
-                section_name = l.strip('[]').replace(' ', '').lower()
+        for l in content.split(b'\n'):
+            if l.startswith(b'['):
+                section_name = l.strip(b'[]').replace(b' ', b'').decode('utf-8').lower()
                 setattr(gpttmpl_final, section_name, Policy(list()))
-            elif '=' in l:
-                property_name, property_values = [x.strip() for x in l.split('=')]
-                if ',' in property_values:
-                    property_values = property_values.split(',')
-                try:
-                    setattr(getattr(gpttmpl_final, section_name), property_name, property_values)
-                except UnicodeEncodeError:
-                    property_name = property_name.encode('utf-8')
-                    setattr(getattr(gpttmpl_final, section_name), property_name, property_values)
-        #print(gpttmpl_final)
+            elif b'=' in l:
+                property_name, property_values = [x.strip() for x in l.split(b'=')]
+                if b',' in property_values:
+                    property_values = property_values.split(b',')
+                setattr(getattr(gpttmpl_final, section_name), property_name.decode('utf-8'), property_values)
+
         return gpttmpl_final
 
     def get_domainpolicy(self, source='domain', queried_domain=str(),
@@ -116,14 +112,15 @@ class GPORequester(LDAPRequester):
                         for sid in sids:
                             if not sid:
                                 continue
+                            sid = sid.decode('utf-8').replace('*', '')
                             try:
                                 resolved_sid = net_requester.get_adobject(queried_sid=sid, queried_domain=queried_domain)[0]
                             except IndexError:
                                 resolved_sid = sid
                             else:
-                                resolved_sid = resolved_sid.distinguishedname.split(',')[:2]
-                                resolved_sid = '{}\\{}'.format(resolved_sid[1], resolved_sid[0])
-                                resolved_sid = resolved_sid.replace('CN=', '')
+                                resolved_sid = resolved_sid.distinguishedname.split(b',')[:2]
+                                resolved_sid = resolved_sid[1] + b'\\' + resolved_sid[0]
+                                resolved_sid = resolved_sid.replace(b'CN=', b'')
                                 resolved_sids.append(resolved_sid)
                         if len(resolved_sids) == 1:
                             resolved_sids = resolved_sids[0]
