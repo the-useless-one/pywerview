@@ -133,7 +133,7 @@ class GPORequester(LDAPRequester):
     def _get_groupsxml(self, groupsxml_path, gpo_display_name):
         gpo_groups = list()
 
-        content_io = StringIO()
+        content_io = BytesIO()
 
         groupsxml_path_split = groupsxml_path.split('\\')
         gpo_name = groupsxml_path_split[6]
@@ -152,8 +152,8 @@ class GPORequester(LDAPRequester):
         except SessionError:
             return list()
 
-        content = content_io.getvalue().replace('\r', '')
-        groupsxml_soup = BeautifulSoup(content, 'xml')
+        content = content_io.getvalue().replace(b'\r', b'')
+        groupsxml_soup = BeautifulSoup(content.decode('utf-8'), 'xml')
 
         for group in groupsxml_soup.find_all('Group'):
             members = list()
@@ -216,20 +216,20 @@ class GPORequester(LDAPRequester):
                     memberof_list = [m[1]]
                 else:
                     memberof_list = m[1]
-                memberof += [x.lstrip('*') for x in memberof_list]
+                memberof += [x.decode('utf-8').lstrip('*') for x in memberof_list]
             elif m[0].lower().endswith('__members'):
                 memberof.append(m[0].upper().lstrip('*').replace('__MEMBERS', ''))
                 if not isinstance(m[1], list):
                     members_list = [m[1]]
                 else:
                     members_list = m[1]
-                members += [x.lstrip('*') for x in members_list]
+                members += [x.decode('utf-8').lstrip('*') for x in members_list]
 
             if members and memberof:
                 gpo_group = GPOGroup(list())
                 setattr(gpo_group, 'gpodisplayname', gpo_display_name)
-                setattr(gpo_group, 'gponame', gpo_name)
-                setattr(gpo_group, 'gpopath', gpttmpl_path)
+                setattr(gpo_group, 'gponame', gpo_name.encode('utf-8'))
+                setattr(gpo_group, 'gpopath', gpttmpl_path.encode('utf-8'))
                 setattr(gpo_group, 'members', members)
                 setattr(gpo_group, 'memberof', memberof)
 
@@ -248,8 +248,8 @@ class GPORequester(LDAPRequester):
         for gpo in gpos:
             gpo_display_name = gpo.displayname
 
-            groupsxml_path = '{}\\MACHINE\\Preferences\\Groups\\Groups.xml'.format(gpo.gpcfilesyspath)
-            gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath)
+            groupsxml_path = '{}\\MACHINE\\Preferences\\Groups\\Groups.xml'.format(gpo.gpcfilesyspath.decode('utf-8'))
+            gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath.decode('utf-8'))
 
             results += self._get_groupsxml(groupsxml_path, gpo_display_name)
             try:
