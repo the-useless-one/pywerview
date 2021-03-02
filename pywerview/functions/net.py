@@ -387,6 +387,7 @@ class NetRequester(LDAPRPCRequester):
                         final_member = adobj.ADObject(list())
 
                     member_dn = member.distinguishedname
+                    print(member_dn)
                     try:
                         member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
                     except IndexError:
