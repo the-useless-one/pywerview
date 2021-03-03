@@ -92,7 +92,7 @@ class ADObject:
                     member_value += init_value.hex()[20:]
 
                 # Attribute is a datetime (or a list of datetime)
-                elif member[0] in ('dscorepropagationdata', 'whenchanged', 'whencreated'):
+                elif member[0] in ('dscorepropagationdata', 'whenchanged', 'whencreated','msexchwhenmailboxcreated'):
                     member_value_temp = list()
 
                     if isinstance(member[1], list):
