@@ -184,9 +184,9 @@ class NetRequester(LDAPRPCRequester):
     def get_netfileserver(self, queried_domain=str(), target_users=list()):
 
         def split_path(path):
-            split_path = path.split('\\')
+            split_path = path.decode('utf-8').split('\\')
             if len(split_path) >= 3:
-                return split_path[2]
+                return split_path[2].encode('utf-8')
 
         file_server_attributes = ['homedirectory', 'scriptpath', 'profilepath']
         results = set()
@@ -209,8 +209,8 @@ class NetRequester(LDAPRPCRequester):
 
         final_results = list()
         for file_server_name in results:
-            attributes = list()
-            attributes.append({'type': 'dnshostname', 'vals': [file_server_name]})
+            attributes = dict()
+            attributes['dnshostname'] = [file_server_name]
             final_results.append(adobj.FileServer(attributes))
 
         return final_results

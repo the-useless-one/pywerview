@@ -54,7 +54,11 @@ class ADObject:
             if len(attributes[attr]) > 1 :
                 setattr(self, t, attributes[attr])
             else:
-                setattr(self, t, attributes[attr][0])
+                try:
+                    setattr(self, t, attributes[attr][0])
+                # the server returns the attribute name but attribute value is empty
+                except IndexError:
+                    setattr(self, t, '')
 
     # In this method, we try to pretty print common AD attributes
     def __str__(self):
@@ -166,6 +170,7 @@ class User(ADObject):
                                                        'scriptpath',
                                                        'profilepath')):
             if not hasattr(self, attr):
+                print('pas ')
                 setattr(self, attr, str())
 
 class Group(ADObject):
