@@ -170,7 +170,6 @@ class User(ADObject):
                                                        'scriptpath',
                                                        'profilepath')):
             if not hasattr(self, attr):
-                print('pas ')
                 setattr(self, attr, str())
 
 class Group(ADObject):
