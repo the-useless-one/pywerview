@@ -15,7 +15,7 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import inspect
 import struct
 import pyasn1
@@ -106,7 +106,7 @@ class ADObject:
                 elif member[0] in ('accountexpires', 'pwdlastset', 'badpasswordtime', 'lastlogontimestamp', 'lastlogon', 'lastlogoff'):
                     if int(member[1].decode('utf-8')) != 9223372036854775807:
                         timestamp = (int(member[1].decode('utf-8')) - 116444736000000000)/10000000
-                        member_value = datetime.fromtimestamp(timestamp)
+                        member_value = datetime.fromtimestamp(0) + timedelta(seconds=timestamp)
                     else:
                         member_value = 'never'
                 
@@ -147,8 +147,9 @@ class ADObject:
                     except (UnicodeError):
                         member_value = '{}...'.format(member[1].hex()[:100])
                     # Attribut exists but it is empty
+                    # add some info to help debugging
                     except (AttributeError, IndexError):
-                        member_value = ''
+                        member_value = '*empty attribute or internal error*'
 
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
 
