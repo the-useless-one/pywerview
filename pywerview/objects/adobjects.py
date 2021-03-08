@@ -194,6 +194,9 @@ class OU(ADObject):
     def __init__(self, attributes):
         ADObject.__init__(self, attributes)
         # TODO: Why ?
+        # Because it is used in gpo.py :
+        # find_gpocomputeradmin and find_gpocomputeradmin
+        # need to fix that
         self.distinguishedname = 'LDAP://{}'.format(self.distinguishedname)
 
 class Site(ADObject):
