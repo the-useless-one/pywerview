@@ -270,29 +270,22 @@ class GPORequester(LDAPRequester):
                                   self._password, self._lmhash, self._nthash) as net_requester:
                     for member in members:
                         try:
-                            #TODO: clean
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=queried_domain)[0]
-                            resolved_member = resolved_member.distinguishedname.decode('utf-8')#.split(',')
-                            #resolved_member_domain = '.'.join(resolved_member[1:])
-                            #resolved_member = '{}\\{}'.format(resolved_member_domain, resolved_member[0])
-                            #resolved_member = resolved_member.replace('CN=', '').replace('DC=', '')
+                            resolved_member = resolved_member.distinguishedname
                         except IndexError:
                             resolved_member = member
                         finally:
-                            resolved_members.append(resolved_member.encode('utf-8'))
+                            resolved_members.append(resolved_member)
                     gpo_group.members = resolved_members
 
                     for member in memberof:
                         try:
-                            # Clean
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=queried_domain)[0]
-                            resolved_member = resolved_member.distinguishedname.decode('utf-8')#.split(',')[:2]
-                            #resolved_member = '{}\\{}'.format(resolved_member[1], resolved_member[0])
-                            #resolved_member = resolved_member.replace('CN=', '').replace('DC=', '')
+                            resolved_member = resolved_member.distinguishedname
                         except IndexError:
                             resolved_member = member
                         finally:
-                            resolved_memberof.append(resolved_member.encode('utf-8'))
+                            resolved_memberof.append(resolved_member)
                     gpo_group.memberof = memberof = resolved_memberof
 
         return results
@@ -316,8 +309,7 @@ class GPORequester(LDAPRequester):
 
             target_ous = list()
             for computer in computers:
-                print(computer.distinguishedname)
-                dn = computer.distinguishedname.decode('utf-8')
+                dn = computer.distinguishedname
                 for x in dn.split(','):
                     if x.startswith('OU='):
                         target_ous.append(dn[dn.find(x):])
@@ -330,12 +322,10 @@ class GPORequester(LDAPRequester):
                                           full_data=True)
 
             for ou in ous:
-                for gplink in ou.gplink.decode('utf-8').strip('[]').split(']['):
+                for gplink in ou.gplink.strip('[]').split(']['):
                     gplink = gplink.split(';')[0]
-                    print(gplink)
                     gpo_groups = self.get_netgpogroup(queried_domain=queried_domain,
                                                       ads_path=gplink)
-                    print(gpo_groups)
                     for gpo_group in gpo_groups:
                         for member in gpo_group.members:
                             obj = net_requester.get_adobject(queried_sid=member,
