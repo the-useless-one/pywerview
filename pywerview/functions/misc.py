@@ -21,6 +21,8 @@ from impacket.dcerpc.v5 import scmr, drsuapi
 from pywerview.requester import LDAPRPCRequester
 import pywerview.functions.net
 
+import struct
+
 class Misc(LDAPRPCRequester):
     @LDAPRPCRequester._rpc_connection_init(r'\drsuapi')
     def convert_sidtont4(self, sid):
@@ -55,7 +57,13 @@ class Misc(LDAPRPCRequester):
 
         if domain_controllers:
             primary_dc = domain_controllers[0]
-            domain_sid = '-'.join(primary_dc.objectsid.split('-')[:-1])
+            # primary_dc.objectsid is raw, we need to convert it
+            domain_sid = 'S-{0}-{1}'.format(primary_dc.objectsid[0], primary_dc.objectsid[1])
+            for i in range(8, len(primary_dc.objectsid), 4):
+                        domain_sid += '-{}'.format(str(struct.unpack('<I', primary_dc.objectsid[i:i+4])[0]))
+            # domain_sid is now the sid of the domain controller
+            # we need to retrieve the domain sid from the controller sid
+            domain_sid = '-'.join(domain_sid.split('-')[:-1])
         else:
             domain_sid = None
 

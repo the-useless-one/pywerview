@@ -50,64 +50,17 @@ class ADObject:
 
     def add_attributes(self, attributes):
         for attr in attributes:
-            #print(attr)
-            #print(attributes[attr], attr)
             t = str(attr).lower()
-            if t in ('logonhours', 'msds-generationid'):
-                value = bytes(attributes[attr][0])
-                value = [x for x in value]
-            elif t in ('trustattributes', 'trustdirection', 'trusttype'):
-                value = int(attributes[attr][0])
-            elif t in ('objectsid', 'ms-ds-creatorsid'):
-                value = codecs.encode(bytes(attributes[attr][0]),'hex')
-                init_value = bytes(attributes[attr][0])
-                value = 'S-{0}-{1}'.format(init_value[0], init_value[1])
-                for i in range(8, len(init_value), 4):
-                    value += '-{}'.format(str(struct.unpack('<I', init_value[i:i+4])[0]))
-            elif t == 'objectguid':
-                init_value = bytes(attributes[attr][0])
-                value = str()
-                value += '{}-'.format(hex(struct.unpack('<I', init_value[0:4])[0])[2:].zfill(8))
-                value += '{}-'.format(hex(struct.unpack('<H', init_value[4:6])[0])[2:].zfill(4))
-                value += '{}-'.format(hex(struct.unpack('<H', init_value[6:8])[0])[2:].zfill(4))
-                value += '{}-'.format((codecs.encode(init_value,'hex')[16:20]).decode('utf-8'))
-                value += init_value.hex()[20:]
-            elif t in ('dscorepropagationdata', 'whenchanged', 'whencreated'):
-                value = list()
-                for val in attributes[attr]:
-                    value.append(str(datetime.strptime(str(val.decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
-            elif t in ('accountexpires', 'pwdlastset', 'badpasswordtime', 'lastlogontimestamp', 'lastlogon', 'lastlogoff'):
-                try:
-                    filetimestamp = int(attributes[attr][0].decode('utf-8'))
-                    if filetimestamp != 9223372036854775807:
-                        timestamp = (filetimestamp - 116444736000000000)/10000000
-                        value = datetime.fromtimestamp(0) + timedelta(seconds=timestamp)
-                    else:
-                        value = 'never'
-                except IndexError:
-                    value = 'empty'
-            elif t == 'isgroup':
-                value = attributes[attr]
-            elif t == 'objectclass':
-                value = [x.decode('utf-8') for x in attributes[attr]]
-                setattr(self, 'isgroup', ('group' in value))
-            elif len(attributes[attr]) > 1:
-                try:
-                    value = [x.decode('utf-8') for x in attributes[attr]]
-                except (UnicodeDecodeError):
-                    value = [x for x in attributes[attr]]
-                except (AttributeError):
-                    value = attributes[attr]
+            if len(attributes[attr]) > 1 :
+                setattr(self, t, attributes[attr])
             else:
                 try:
-                    value = attributes[attr][0].decode('utf-8')
-                except (IndexError):
-                    value = str()
-                except (UnicodeDecodeError):
-                    value = attributes[attr][0]
+                    setattr(self, t, attributes[attr][0])
+                # the server returns the attribute name but attribute value is empty
+                except IndexError:
+                    setattr(self, t, '')
 
-            setattr(self, t, value)
-
+    # In this method, we try to pretty print common AD attributes
     def __str__(self):
         s = str()
         members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
@@ -118,40 +71,95 @@ class ADObject:
                     max_length = len(member[0])
         for member in members:
             if not member[0].startswith('_'):
-                if member[0] == 'msmqdigests':
-                    member_value = (',\n' + ' ' * (max_length + 2)).join(x.hex() for x in member[1])
+                #print(len(member[1]))
+                #print(member)
+                # ??
+                if member[0] in ('logonhours', 'msds-generationid'):        
+                    value = member[1]
+                    member_value = [x for x in value]
+
+                # Attribute is a SID
+                elif member[0] in ('objectsid', 'ms-ds-creatorsid'):
+                    init_value = member[1]
+                    member_value = 'S-{0}-{1}'.format(init_value[0], init_value[1])
+                    for i in range(8, len(init_value), 4):
+                        member_value += '-{}'.format(str(struct.unpack('<I', init_value[i:i+4])[0]))
+                
+                # Attribute is a GUID
+                elif member[0] == 'objectguid':
+                    init_value = member[1]
+                    member_value = str()
+                    member_value += '{}-'.format(hex(struct.unpack('<I', init_value[0:4])[0])[2:].zfill(8))
+                    member_value += '{}-'.format(hex(struct.unpack('<H', init_value[4:6])[0])[2:].zfill(4))
+                    member_value += '{}-'.format(hex(struct.unpack('<H', init_value[6:8])[0])[2:].zfill(4))
+                    member_value += '{}-'.format((codecs.encode(init_value,'hex')[16:20]).decode('utf-8'))
+                    member_value += init_value.hex()[20:]
+
+                # Attribute is a datetime (or a list of datetime)
+                elif member[0] in ('dscorepropagationdata', 'whenchanged', 'whencreated','msexchwhenmailboxcreated'):
+                    member_value_temp = list()
+
+                    if isinstance(member[1], list):
+                        for val in member[1]:
+                            member_value_temp.append(str(datetime.strptime(str(val.decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
+                    else:
+                        member_value_temp.append(str(datetime.strptime(str(member[1].decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
+                    member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member_value_temp)
+                
+                # Attribute is a timestamp
+                elif member[0] in ('accountexpires', 'pwdlastset', 'badpasswordtime', 'lastlogontimestamp', 'lastlogon', 'lastlogoff'):
+                    if int(member[1].decode('utf-8')) != 9223372036854775807:
+                        timestamp = (int(member[1].decode('utf-8')) - 116444736000000000)/10000000
+                        member_value = datetime.fromtimestamp(0) + timedelta(seconds=timestamp)
+                    else:
+                        member_value = 'never'
+                
+                # The object is a group
+                elif member[0] == 'objectclass':
+                    member_value = [x.decode('utf-8') for x in member[1]]
+                    setattr(self, 'isgroup', ('group' in member_value))
+                elif member[0] == 'isgroup':
+                    member_value = member[1]
+
+                # We pretty print useraccountcontrol
                 elif member[0] == 'useraccountcontrol':
                     member_value = list()
                     for uac_flag, uac_label in ADObject.__uac_flags.items():
                         if int(member[1]) & uac_flag == uac_flag:
                             member_value.append(uac_label)
+
+                # Attribute is a list of value
                 elif isinstance(member[1], list):
-                    if member[0] in ('logonhours',):
-                        member_value = member[1]
-                    elif member[0] in ('usercertificate',
-                                       'protocom-sso-entries', 'protocom-sso-security-prefs',):
-                        member_value = (',\n' + ' ' * (max_length + 2)).join(
-                                '{}...'.format(x.hex()[:100]) for x in member[1])
-                    else:
-                        member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member[1])
-                elif member[0] in('msmqsigncertificates', 'userparameters',
-                                  'jpegphoto', 'thumbnailphoto', 'usercertificate',
-                                  'msexchmailboxguid', 'msexchmailboxsecuritydescriptor',
-                                  'msrtcsip-userroutinggroupid', 'msexchumpinchecksum',
-                                  'protocom-sso-auth-data', 'protocom-sso-entries-checksum',
-                                  'protocom-sso-security-prefs-checksum', ):
-                    # Attribut exists but it is empty
+                    # Value is a list of string
                     try:
-                        member_value = '{}...'.format(member[1].hex()[:100])
-                    except AttributeError:
-                        member_value = ''
+                        member_value_temp = [x.decode('utf-8') for x in member[1]]
+                        member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member_value_temp)
+                    # Value is a list of bytearray
+                    except (UnicodeDecodeError):
+                        member_value_temp = [x for x in member[1]]
+                        member_value = (',\n' + ' ' * (max_length + 2)).join(x.hex()[:100] + '...' for x in member_value_temp)
+                    # Value is a list, but idk
+                    except (AttributeError):
+                        member_value = member[1]
+
+                # Default case, attribute seems to be a simple string
                 else:
-                    member_value = member[1]
+                    # Value is a string
+                    try:
+                        member_value = member[1].decode('utf-8')
+                    # Value is a bytearray
+                    except (UnicodeError):
+                        member_value = '{}...'.format(member[1].hex()[:100])
+                    # Attribut exists but it is empty
+                    # add some info to help debugging
+                    except (AttributeError, IndexError):
+                        member_value = '*empty attribute or internal error*'
+
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
 
         s = s[:-1]
         return s
-
+             
     def __repr__(self):
         return str(self)
 
@@ -185,6 +193,10 @@ class DFS(ADObject):
 class OU(ADObject):
     def __init__(self, attributes):
         ADObject.__init__(self, attributes)
+        # TODO: Why ?
+        # Because it is used in gpo.py :
+        # find_gpocomputeradmin and find_gpocomputeradmin
+        # need to fix that
         self.distinguishedname = 'LDAP://{}'.format(self.distinguishedname)
 
 class Site(ADObject):
@@ -209,30 +221,60 @@ class Trust(ADObject):
     __trust_type = {1: 'windows_non_active_directory',
                     2: 'windows_active_directory', 3: 'mit'}
 
-    def __init__(self, attributes):
-        ad_obj = ADObject(attributes)
-        self.targetname = ad_obj.name
+    # Pretty printing Trust object, we don't want to print all the attributes
+    # so we only print useful ones (trustattributes, trustdirection, trustpartner
+    # trusttype, whenchanged, whencreated)
+    def __str__(self):
+        s = str()
 
-        self.trustdirection = Trust.__trust_direction.get(ad_obj.trustdirection, 'unknown')
-        self.trusttype = Trust.__trust_type.get(ad_obj.trusttype, 'unknown')
-        self.whencreated = ad_obj.whencreated
-        self.whenchanged = ad_obj.whenchanged
+        #Temporary attributes storage
+        trust_attributes = list()
+        trust_direction = str()
 
-        self.trustattributes = list()
-        for attrib_flag, attrib_label in Trust.__trust_attrib.items():
-            if ad_obj.trustattributes & attrib_flag:
-                self.trustattributes.append(attrib_label)
+        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
+        max_length = len('trustattributes')
 
-        # If the filter SIDs attribute is not manually set, we check if we're
-        # not in a use case where SIDs are implicitly filtered
-        # Based on https://github.com/vletoux/pingcastle/blob/master/Healthcheck/TrustAnalyzer.cs
-        if 'filter_sids' not in self.trustattributes:
-            if not (self.trustdirection == 'disabled' or \
-                    self.trustdirection == 'inbound' or \
-                    'within_forest' in self.trustattributes or \
-                    'pim_trust' in self.trustattributes):
-                if 'forest_transitive' in self.trustattributes and 'treat_as_external' not in self.trustattributes:
-                    self.trustattributes.append('filter_sids')
+        for member in members:
+            if member[0].startswith('_'):
+                continue
+
+            elif member[0] == 'trustpartner':
+                member_value = member[1].decode('utf-8')
+
+            elif member[0] == 'trustdirection':
+                member_value = Trust.__trust_direction.get(int(member[1].decode('utf-8')), 'unknown')
+                trust_direction = member_value
+
+            elif member[0] == 'trusttype':
+                member_value = Trust.__trust_type.get(int(member[1].decode('utf-8')), 'unknown')
+            
+            elif member[0] in ('whencreated','whenchanged'):
+                member_value = str(datetime.strptime(str(member[1].decode('utf-8')), '%Y%m%d%H%M%S.0Z'))
+
+            elif member[0] == 'trustattributes':
+                member_value_temp = list()
+                for attrib_flag, attrib_label in Trust.__trust_attrib.items():
+                    if int(member[1].decode('utf-8')) & attrib_flag:
+                        member_value_temp.append(attrib_label)
+                trust_attributes = member_value_temp
+
+                # If the filter SIDs attribute is not manually set, we check if we're
+                # not in a use case where SIDs are implicitly filtered
+                # Based on https://github.com/vletoux/pingcastle/blob/master/Healthcheck/TrustAnalyzer.cs
+                if 'filter_sids' not in trust_attributes:
+                    if not (trust_direction == 'disabled' or \
+                            trust_direction == 'inbound' or \
+                            'within_forest' in trust_attributes or \
+                            'pim_trust' in trust_attributes):
+                        if 'forest_transitive' in trust_attributes and 'treat_as_external' not in trust_attributes:
+                            member_value_temp.append('filter_sids')
+                member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member_value_temp)
+
+            else:
+                continue
+            s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
+        s = s[:-1]
+        return s
 
 class GPO(ADObject):
     pass

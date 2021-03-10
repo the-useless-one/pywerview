@@ -58,24 +58,20 @@ class GPORequester(LDAPRequester):
         smb_connection.connectTree(share)
         smb_connection.getFile(share, file_name, content_io.write)
         try:
-            content = codecs.decode(content_io.getvalue(), 'utf-16le')[1:].replace('\r', '')
+            content = codecs.decode(content_io.getvalue(), 'utf-16le')[1:].encode('utf-8').replace(b'\r', b'')
         except UnicodeDecodeError:
-            content = str(content_io.getvalue()).replace('\r', '')
+            content = content_io.getvalue().replace(b'\r', b'')
 
         gpttmpl_final = GptTmpl(list())
-        for l in content.split('\n'):
-            if l.startswith('['):
-                section_name = l.strip('[]').replace(' ', '').lower()
+        for l in content.split(b'\n'):
+            if l.startswith(b'['):
+                section_name = l.strip(b'[]').replace(b' ', b'').decode('utf-8').lower()
                 setattr(gpttmpl_final, section_name, Policy(list()))
-            elif '=' in l:
-                property_name, property_values = [x.strip() for x in l.split('=')]
-                if ',' in property_values:
-                    property_values = property_values.split(',')
-                try:
-                    setattr(getattr(gpttmpl_final, section_name), property_name, property_values)
-                except UnicodeEncodeError:
-                    property_name = property_name.encode('utf-8')
-                    setattr(getattr(gpttmpl_final, section_name), property_name, property_values)
+            elif b'=' in l:
+                property_name, property_values = [x.strip() for x in l.split(b'=')]
+                if b',' in property_values:
+                    property_values = property_values.split(b',')
+                setattr(getattr(gpttmpl_final, section_name), property_name.decode('utf-8'), property_values)
 
         return gpttmpl_final
 
@@ -87,7 +83,7 @@ class GPORequester(LDAPRequester):
             queried_gponame = '{6AC1786C-016F-11D2-945F-00C04FB984F9}'
         gpo = self.get_netgpo(queried_domain=queried_domain, queried_gponame=queried_gponame)[0]
 
-        gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath)
+        gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath.decode('utf-8'))
         gpttmpl = self.get_gpttmpl(gpttmpl_path)
 
         if source == 'domain':
@@ -116,14 +112,15 @@ class GPORequester(LDAPRequester):
                         for sid in sids:
                             if not sid:
                                 continue
+                            sid = sid.decode('utf-8').replace('*', '')
                             try:
                                 resolved_sid = net_requester.get_adobject(queried_sid=sid, queried_domain=queried_domain)[0]
                             except IndexError:
                                 resolved_sid = sid
                             else:
-                                resolved_sid = resolved_sid.distinguishedname.split(',')[:2]
-                                resolved_sid = '{}\\{}'.format(resolved_sid[1], resolved_sid[0])
-                                resolved_sid = resolved_sid.replace('CN=', '')
+                                resolved_sid = resolved_sid.distinguishedname.split(b',')[:2]
+                                resolved_sid = resolved_sid[1] + b'\\' + resolved_sid[0]
+                                resolved_sid = resolved_sid.replace(b'CN=', b'')
                                 resolved_sids.append(resolved_sid)
                         if len(resolved_sids) == 1:
                             resolved_sids = resolved_sids[0]
@@ -136,7 +133,7 @@ class GPORequester(LDAPRequester):
     def _get_groupsxml(self, groupsxml_path, gpo_display_name):
         gpo_groups = list()
 
-        content_io = StringIO()
+        content_io = BytesIO()
 
         groupsxml_path_split = groupsxml_path.split('\\')
         gpo_name = groupsxml_path_split[6]
@@ -155,10 +152,11 @@ class GPORequester(LDAPRequester):
         except SessionError:
             return list()
 
-        content = content_io.getvalue().replace('\r', '')
-        groupsxml_soup = BeautifulSoup(content, 'xml')
+        content = content_io.getvalue().replace(b'\r', b'')
+        groupsxml_soup = BeautifulSoup(content.decode('utf-8'), 'xml')
 
         for group in groupsxml_soup.find_all('Group'):
+            #TODO: reach this block
             members = list()
             memberof = list()
             local_sid = group.Properties.get('groupSid', str())
@@ -219,20 +217,20 @@ class GPORequester(LDAPRequester):
                     memberof_list = [m[1]]
                 else:
                     memberof_list = m[1]
-                memberof += [x.lstrip('*') for x in memberof_list]
+                memberof += [x.decode('utf-8').lstrip('*') for x in memberof_list]
             elif m[0].lower().endswith('__members'):
                 memberof.append(m[0].upper().lstrip('*').replace('__MEMBERS', ''))
                 if not isinstance(m[1], list):
                     members_list = [m[1]]
                 else:
                     members_list = m[1]
-                members += [x.lstrip('*') for x in members_list]
+                members += [x.decode('utf-8').lstrip('*') for x in members_list]
 
             if members and memberof:
                 gpo_group = GPOGroup(list())
                 setattr(gpo_group, 'gpodisplayname', gpo_display_name)
-                setattr(gpo_group, 'gponame', gpo_name)
-                setattr(gpo_group, 'gpopath', gpttmpl_path)
+                setattr(gpo_group, 'gponame', gpo_name.encode('utf-8'))
+                setattr(gpo_group, 'gpopath', gpttmpl_path.encode('utf-8'))
                 setattr(gpo_group, 'members', members)
                 setattr(gpo_group, 'memberof', memberof)
 
@@ -251,8 +249,8 @@ class GPORequester(LDAPRequester):
         for gpo in gpos:
             gpo_display_name = gpo.displayname
 
-            groupsxml_path = '{}\\MACHINE\\Preferences\\Groups\\Groups.xml'.format(gpo.gpcfilesyspath)
-            gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath)
+            groupsxml_path = '{}\\MACHINE\\Preferences\\Groups\\Groups.xml'.format(gpo.gpcfilesyspath.decode('utf-8'))
+            gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath.decode('utf-8'))
 
             results += self._get_groupsxml(groupsxml_path, gpo_display_name)
             try:
@@ -272,27 +270,29 @@ class GPORequester(LDAPRequester):
                                   self._password, self._lmhash, self._nthash) as net_requester:
                     for member in members:
                         try:
+                            #TODO: clean
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=queried_domain)[0]
-                            resolved_member = resolved_member.distinguishedname.split(',')
+                            resolved_member = resolved_member.distinguishedname.decode('utf-8').split(',')
                             resolved_member_domain = '.'.join(resolved_member[1:])
                             resolved_member = '{}\\{}'.format(resolved_member_domain, resolved_member[0])
                             resolved_member = resolved_member.replace('CN=', '').replace('DC=', '')
                         except IndexError:
                             resolved_member = member
                         finally:
-                            resolved_members.append(resolved_member)
+                            resolved_members.append(resolved_member.encode('utf-8'))
                     gpo_group.members = resolved_members
 
                     for member in memberof:
                         try:
+                            # Clean
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=queried_domain)[0]
-                            resolved_member = resolved_member.distinguishedname.split(',')[:2]
+                            resolved_member = resolved_member.distinguishedname.decode('utf-8').split(',')[:2]
                             resolved_member = '{}\\{}'.format(resolved_member[1], resolved_member[0])
                             resolved_member = resolved_member.replace('CN=', '').replace('DC=', '')
                         except IndexError:
                             resolved_member = member
                         finally:
-                            resolved_memberof.append(resolved_member)
+                            resolved_memberof.append(resolved_member.encode('utf-8'))
                     gpo_group.memberof = memberof = resolved_memberof
 
         return results

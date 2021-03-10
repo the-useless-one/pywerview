@@ -36,6 +36,8 @@ class NetRequester(LDAPRPCRequester):
                      queried_name=str(), queried_sam_account_name=str(),
                      ads_path=str(), custom_filter=str()):
 
+        # TODO: make at least one of the arguments mandatory
+        # Currently : UnboundLocalError: local variable 'object_filter' referenced before assignment
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', queried_name),
                                       ('samAccountName', queried_sam_account_name)):
             if attr_value:
@@ -184,9 +186,9 @@ class NetRequester(LDAPRPCRequester):
     def get_netfileserver(self, queried_domain=str(), target_users=list()):
 
         def split_path(path):
-            split_path = path.split('\\')
+            split_path = path.decode('utf-8').split('\\')
             if len(split_path) >= 3:
-                return split_path[2]
+                return split_path[2].encode('utf-8')
 
         file_server_attributes = ['homedirectory', 'scriptpath', 'profilepath']
         results = set()
@@ -209,8 +211,8 @@ class NetRequester(LDAPRPCRequester):
 
         final_results = list()
         for file_server_name in results:
-            attributes = list()
-            attributes.append({'type': 'dnshostname', 'vals': [file_server_name]})
+            attributes = dict()
+            attributes['dnshostname'] = [file_server_name]
             final_results.append(adobj.FileServer(attributes))
 
         return final_results
@@ -389,24 +391,24 @@ class NetRequester(LDAPRPCRequester):
                     else:
                         final_member = adobj.ADObject(list())
 
-                    member_dn = member.distinguishedname
+                    member_dn = member.distinguishedname.decode('utf-8')
                     try:
                         member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
                     except IndexError:
                         member_domain = str()
-                    is_group = (member.samaccounttype != '805306368')
+                    is_group = (member.samaccounttype.decode('utf-8') != '805306368')
 
                     attributes = dict()
                     if queried_domain:
-                        attributes['groupdomain'] = queried_domain
+                        attributes['groupdomain'] = [queried_domain.encode('utf-8')]
                     else:
-                        attributes['groupdomain'] = self._domain
-                    attributes['groupname'] = group.name
-                    attributes['membername'] = member.samaccountname
-                    attributes['memberdomain'] = member_domain
-                    attributes['isgroup'] = is_group
-                    attributes['memberdn'] = member_dn
-                    attributes['membersid'] = member.objectsid
+                        attributes['groupdomain'] = [self._domain.encode('utf-8')]
+                    attributes['groupname'] = [group.name]
+                    attributes['membername'] = [member.samaccountname]
+                    attributes['memberdomain'] = [member_domain.encode('utf-8')]
+                    attributes['isgroup'] = [is_group]
+                    attributes['memberdn'] = [member_dn.encode('utf-8')]
+                    attributes['objectsid'] = [member.objectsid]
 
                     final_member.add_attributes(attributes)
 
