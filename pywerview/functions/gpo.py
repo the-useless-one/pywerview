@@ -309,7 +309,7 @@ class GPORequester(LDAPRequester):
 
             target_ous = list()
             for computer in computers:
-                dn = computer.distinguishedname
+                dn = computer.distinguishedname.decode('utf-8')
                 for x in dn.split(','):
                     if x.startswith('OU='):
                         target_ous.append(dn[dn.find(x):])
@@ -320,13 +320,13 @@ class GPORequester(LDAPRequester):
         for target_ou in target_ous:
             ous = net_requester.get_netou(ads_path=target_ou, queried_domain=queried_domain,
                                           full_data=True)
-
             for ou in ous:
-                for gplink in ou.gplink.strip('[]').split(']['):
+                for gplink in ou.gplink.decode('utf-8').strip('[]').split(']['):
                     gplink = gplink.split(';')[0]
                     gpo_groups = self.get_netgpogroup(queried_domain=queried_domain,
                                                       ads_path=gplink)
                     for gpo_group in gpo_groups:
+                        print(gpo_group)
                         for member in gpo_group.members:
                             obj = net_requester.get_adobject(queried_sid=member,
                                                              queried_domain=queried_domain)[0]
@@ -337,6 +337,7 @@ class GPORequester(LDAPRequester):
                             setattr(gpo_computer_admin, 'gpopath', gpo_group.gpopath)
                             setattr(gpo_computer_admin, 'objectname', obj.name)
                             setattr(gpo_computer_admin, 'objectdn', obj.distinguishedname)
+                            # TODO: fix me, member un a human readable SID, not a raw SID
                             setattr(gpo_computer_admin, 'objectsid', member)
                             setattr(gpo_computer_admin, 'isgroup', (obj.samaccounttype != '805306368'))
 

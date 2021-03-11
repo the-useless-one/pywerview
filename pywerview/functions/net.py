@@ -36,8 +36,9 @@ class NetRequester(LDAPRPCRequester):
                      queried_name=str(), queried_sam_account_name=str(),
                      ads_path=str(), custom_filter=str()):
 
-        # TODO: make at least one of the arguments mandatory
-        # Currently : UnboundLocalError: local variable 'object_filter' referenced before assignment
+        if (not queried_sid) and (not queried_name) and (not queried_sam_account_name):
+            raise ValueError('You must specify either an object SID, a name or a samaccountname')
+        
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', queried_name),
                                       ('samAccountName', queried_sam_account_name)):
             if attr_value:
