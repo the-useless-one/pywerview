@@ -326,20 +326,18 @@ class GPORequester(LDAPRequester):
                     gpo_groups = self.get_netgpogroup(queried_domain=queried_domain,
                                                       ads_path=gplink)
                     for gpo_group in gpo_groups:
-                        print(gpo_group)
                         for member in gpo_group.members:
                             obj = net_requester.get_adobject(queried_sid=member,
                                                              queried_domain=queried_domain)[0]
                             gpo_computer_admin = GPOComputerAdmin(list())
-                            setattr(gpo_computer_admin, 'computername', queried_computername)
-                            setattr(gpo_computer_admin, 'ou', target_ou)
+                            setattr(gpo_computer_admin, 'computername', queried_computername.encode('utf-8'))
+                            setattr(gpo_computer_admin, 'ou', target_ou.encode('utf-8'))
                             setattr(gpo_computer_admin, 'gpodisplayname', gpo_group.gpodisplayname)
                             setattr(gpo_computer_admin, 'gpopath', gpo_group.gpopath)
                             setattr(gpo_computer_admin, 'objectname', obj.name)
                             setattr(gpo_computer_admin, 'objectdn', obj.distinguishedname)
-                            # TODO: fix me, member un a human readable SID, not a raw SID
-                            setattr(gpo_computer_admin, 'objectsid', member)
-                            setattr(gpo_computer_admin, 'isgroup', (obj.samaccounttype != '805306368'))
+                            setattr(gpo_computer_admin, 'objectsid', obj.objectsid)
+                            setattr(gpo_computer_admin, 'isgroup', (obj.samaccounttype.decode('utf-8') != '805306368'))
 
                             results.append(gpo_computer_admin)
 
@@ -347,19 +345,25 @@ class GPORequester(LDAPRequester):
                                 groups_to_resolve = [gpo_computer_admin.objectsid]
                                 while groups_to_resolve:
                                     group_to_resolve = groups_to_resolve.pop(0)
-                                    group_members = net_requester.get_netgroupmember(queried_sid=group_to_resolve,
+                                    
+                                    # We need to convert the raw sid to a str sid
+                                    group_sid = 'S-{0}-{1}'.format(group_to_resolve[0], group_to_resolve[1])
+                                    for i in range(8, len(group_to_resolve), 4):
+                                        group_sid += '-{}'.format(str(struct.unpack('<I', group_to_resolve[i:i+4])[0]))
+                                    
+                                    group_members = net_requester.get_netgroupmember(queried_sid=group_sid,
                                                                                      queried_domain=queried_domain,
                                                                                      full_data=True)
                                     for group_member in group_members:
                                         gpo_computer_admin = GPOComputerAdmin(list())
-                                        setattr(gpo_computer_admin, 'computername', queried_computername)
-                                        setattr(gpo_computer_admin, 'ou', target_ou)
+                                        setattr(gpo_computer_admin, 'computername', queried_computername.encode('utf-8'))
+                                        setattr(gpo_computer_admin, 'ou', target_ou.encode('utf-8'))
                                         setattr(gpo_computer_admin, 'gpodisplayname', gpo_group.gpodisplayname)
                                         setattr(gpo_computer_admin, 'gpopath', gpo_group.gpopath)
                                         setattr(gpo_computer_admin, 'objectname', group_member.samaccountname)
                                         setattr(gpo_computer_admin, 'objectdn', group_member.distinguishedname)
-                                        setattr(gpo_computer_admin, 'objectsid', member)
-                                        setattr(gpo_computer_admin, 'isgroup', (group_member.samaccounttype != '805306368'))
+                                        setattr(gpo_computer_admin, 'objectsid', group_member.objectsid)
+                                        setattr(gpo_computer_admin, 'isgroup', (group_member.samaccounttype.decode('utf-8') != '805306368'))
 
                                         results.append(gpo_computer_admin)
 
