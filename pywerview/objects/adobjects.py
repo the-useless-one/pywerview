@@ -72,7 +72,7 @@ class ADObject:
         for member in members:
             if not member[0].startswith('_'):
                 #print(len(member[1]))
-                #print(member)
+               # print(member)
                 # ??
                 if member[0] in ('logonhours', 'msds-generationid'):        
                     value = member[1]
@@ -197,7 +197,7 @@ class OU(ADObject):
         # Because it is used in gpo.py :
         # find_gpocomputeradmin and find_gpocomputeradmin
         # need to fix that
-        self.distinguishedname = 'LDAP://{}'.format(self.distinguishedname)
+        #self.distinguishedname = 'LDAP://{}'.format(self.distinguishedname)
 
 class Site(ADObject):
     pass

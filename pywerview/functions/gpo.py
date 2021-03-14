@@ -384,9 +384,14 @@ class GPORequester(LDAPRequester):
                 except IndexError:
                     raise ValueError('Username \'{}\' was not found'.format(queried_username))
                 else:
-                    target_sid = [user.objectsid]
-                    object_sam_account_name = user.samaccountname
-                    object_distinguished_name = user.distinguishedname
+                    # We need to convert the raw sid to a str sid
+                    target_sid = 'S-{0}-{1}'.format(user.objectsid[0], user.objectsid[1])
+                    for i in range(8, len(user.objectsid), 4):
+                        target_sid += '-{}'.format(str(struct.unpack('<I', user.objectsid[i:i+4])[0]))
+                    # TODO: Why ?
+                    target_sid = [target_sid] 
+                    object_sam_account_name = user.samaccountname.decode('utf-8')
+                    object_distinguished_name = user.distinguishedname.decode('utf-8')
         elif queried_groupname:
                 try:
                     group = net_requester.get_netgroup(queried_groupname=queried_groupname,
