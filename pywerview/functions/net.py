@@ -92,7 +92,7 @@ class NetRequester(LDAPRPCRequester):
             sam_account_name_to_resolve = [queried_username]
             first_run = True
             while sam_account_name_to_resolve:
-                sam_account_name = sam_account_name_to_resolve.pop(0)
+                sam_account_name = escape_filter_chars(sam_account_name_to_resolve.pop(0))
                 if first_run:
                     first_run = False
                     if admin_count:
@@ -116,14 +116,14 @@ class NetRequester(LDAPRPCRequester):
                     except AttributeError:
                         continue
                     for group_dn in obj.memberof:
-                        group_sam_account_name = group_dn.split(',')[0].split('=')[1]
+                        group_sam_account_name = group_dn.decode('utf-8').split(',')[0].split('=')[1]
                         if not group_sam_account_name in results:
                             results.append(group_sam_account_name)
                             sam_account_name_to_resolve.append(group_sam_account_name)
             final_results = list()
             for group_sam_account_name in results:
                 obj_member_of = adobj.Group(list())
-                setattr(obj_member_of, 'samaccountname', group_sam_account_name)
+                setattr(obj_member_of, 'samaccountname', group_sam_account_name.encode('utf-8'))
                 final_results.append(obj_member_of)
             return final_results
         else:
