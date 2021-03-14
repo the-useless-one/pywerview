@@ -89,7 +89,7 @@ class NetRequester(LDAPRPCRequester):
             sam_account_name_to_resolve = [queried_username]
             first_run = True
             while sam_account_name_to_resolve:
-                sam_account_name = sam_account_name_to_resolve.pop(0)
+                sam_account_name = escape_filter_chars(sam_account_name_to_resolve.pop(0))
                 if first_run:
                     first_run = False
                     if admin_count:
