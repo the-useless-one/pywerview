@@ -1,5 +1,3 @@
-# -*- coding: utf8 -*-
-
 # This file is part of PywerView.
 
 # PywerView is free software: you can redistribute it and/or modify
@@ -15,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
 from __future__ import unicode_literals
 
@@ -38,12 +36,7 @@ class RPCObject:
                        'wkui1_oth_domains', 'wkui1_username',
                        'sesi10_cname', 'sesi10_username'):
                 value = value.rstrip('\x00')
-            if isinstance(value, str):
-                try:
-                    value = value.decode('utf-8')
-                except UnicodeDecodeError:
-                    pass
-
+            
             setattr(self, key.lower(), value)
 
     def __str__(self):
@@ -58,7 +51,7 @@ class RPCObject:
             if not member[0].startswith('_'):
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member[1])
 
-        s = s[:-1].encode('utf-8')
+        s = s[:-1]
         return s
 
     def __repr__(self):

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf8 -*-
 #
 # This file is part of PywerView.
 
@@ -16,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
 from pywerview.functions.net import NetRequester
 from pywerview.functions.gpo import GPORequester
@@ -27,9 +26,9 @@ def get_adobject(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), queried_domain=str(), queried_sid=str(),
                 queried_name=str(), queried_sam_account_name=str(), ads_path=str(),
                 custom_filter=str()):
-	requester = NetRequester(domain_controller, domain, user, password,
+    requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_adobject(queried_domain=queried_domain,
+    return requester.get_adobject(queried_domain=queried_domain,
                     queried_sid=queried_sid, queried_name=queried_name,
                     queried_sam_account_name=queried_sam_account_name,
                     ads_path=ads_path, custom_filter=custom_filter)
@@ -37,21 +36,23 @@ def get_adobject(domain_controller, domain, user, password=str(),
 def get_netuser(domain_controller, domain, user, password=str(), lmhash=str(),
                 nthash=str(), queried_username=str(), queried_domain=str(), ads_path=str(),
                 admin_count=False, spn=False, unconstrained=False, allow_delegation=False,
-                custom_filter=str()):
-	requester = NetRequester(domain_controller, domain, user, password,
-                                 lmhash, nthash)
-	return requester.get_netuser(queried_username=queried_username,
+                preauth_notreq=False, custom_filter=str(),
+                attributes=[]):
+    requester = NetRequester(domain_controller, domain, user, password,
+                             lmhash, nthash)
+    return requester.get_netuser(queried_username=queried_username,
                                     queried_domain=queried_domain, ads_path=ads_path, admin_count=admin_count,
                                     spn=spn, unconstrained=unconstrained, allow_delegation=allow_delegation,
-                                    custom_filter=custom_filter)
+                                    preauth_notreq=preauth_notreq, custom_filter=custom_filter,
+                                    attributes=attributes)
 
 def get_netgroup(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), queried_groupname='*', queried_sid=str(),
                 queried_username=str(), queried_domain=str(), ads_path=str(),
                 admin_count=False, full_data=False, custom_filter=str()):
-	requester = NetRequester(domain_controller, domain, user, password,
+    requester = NetRequester(domain_controller, domain, user, password,
                                 lmhash, nthash)
-	return requester.get_netgroup(queried_groupname=queried_groupname,
+    return requester.get_netgroup(queried_groupname=queried_groupname,
                                     queried_sid=queried_sid, queried_username=queried_username,
                                     queried_domain=queried_domain, ads_path=ads_path, admin_count=admin_count,
                                     full_data=full_data, custom_filter=custom_filter)
@@ -60,74 +61,76 @@ def get_netcomputer(domain_controller, domain, user, password=str(),
                     lmhash=str(), nthash=str(), queried_computername='*', queried_spn=str(),
                     queried_os=str(), queried_sp=str(), queried_domain=str(), ads_path=str(),
                     printers=False, unconstrained=False, ping=False, full_data=False,
-                    custom_filter=str()):
-	requester = NetRequester(domain_controller, domain, user, password,
+                    custom_filter=str(), attributes=[]):
+    requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netcomputer(queried_computername=queried_computername,
+    return requester.get_netcomputer(queried_computername=queried_computername,
                                         queried_spn=queried_spn, queried_os=queried_os, queried_sp=queried_sp,
                                         queried_domain=queried_domain, ads_path=ads_path, printers=printers,
                                         unconstrained=unconstrained, ping=ping, full_data=full_data,
-                                        custom_filter=custom_filter)
+                                        custom_filter=custom_filter, attributes=attributes)
 
 def get_netdomaincontroller(domain_controller, domain, user, password=str(),
                                  lmhash=str(), nthash=str(), queried_domain=str()):
-	requester = NetRequester(domain_controller, domain, user, password,
+    requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netdomaincontroller(queried_domain=queried_domain)
+    return requester.get_netdomaincontroller(queried_domain=queried_domain)
 
 def get_netfileserver(domain_controller, domain, user, password=str(),
                                  lmhash=str(), nthash=str(), queried_domain=str(), target_users=list()):
-	requester = NetRequester(domain_controller, domain, user, password,
+    requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netfileserver(queried_domain=queried_domain,
+    return requester.get_netfileserver(queried_domain=queried_domain,
                                             target_users=target_users)
 
 def get_dfsshare(domain_controller, domain, user, password=str(),
                  lmhash=str(), nthash=str(), version=['v1', 'v2'], queried_domain=str(),
                  ads_path=str()):
-	requester = NetRequester(domain_controller, domain, user, password,
+    requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_dfsshare(version=version, queried_domain=queried_domain, ads_path=ads_path)
+    return requester.get_dfsshare(version=version, queried_domain=queried_domain, ads_path=ads_path)
 
 def get_netou(domain_controller, domain, user, password=str(), lmhash=str(),
               nthash=str(), queried_domain=str(), queried_ouname='*', queried_guid=str(),
               ads_path=str(), full_data=False):
-	requester = NetRequester(domain_controller, domain, user, password,
+    requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netou(queried_domain=queried_domain,
+    return requester.get_netou(queried_domain=queried_domain,
                                    queried_ouname=queried_ouname, queried_guid=queried_guid, ads_path=ads_path,
                                    full_data=full_data)
 
 def get_netsite(domain_controller, domain, user, password=str(), lmhash=str(),
                 nthash=str(), queried_domain=str(), queried_sitename=str(),
-                queried_guid=str(), ads_path=str(), full_data=False):
-	requester = NetRequester(domain_controller, domain, user, password,
+                queried_guid=str(), ads_path=str(), ads_prefix='CN=Sites,CN=Configuration',
+                full_data=False):
+    requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netsite(queried_domain=queried_domain,
+    return requester.get_netsite(queried_domain=queried_domain,
                                     queried_sitename=queried_sitename, queried_guid=queried_guid,
-                                    ads_path=ads_path, full_data=full_data)
+                                    ads_path=ads_path, ads_prefix=ads_prefix, full_data=full_data)
 
 def get_netsubnet(domain_controller, domain, user, password=str(),
                   lmhash=str(), nthash=str(), queried_domain=str(), queried_sitename=str(),
-                  ads_path=str(), full_data=False):
-	requester = NetRequester(domain_controller, domain, user, password,
+                  ads_path=str(), ads_prefix='CN=Sites,CN=Configuration', full_data=False):
+    requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netsubnet(queried_domain=queried_domain,
-                                       queried_sitename=queried_sitename, ads_path=ads_path, full_data=full_data)
+    return requester.get_netsubnet(queried_domain=queried_domain,
+                                       queried_sitename=queried_sitename, ads_path=ads_path, ads_prefix=ads_prefix,
+                                       full_data=full_data)
 
 def get_netdomaintrust(domain_controller, domain, user, password=str(),
                   lmhash=str(), nthash=str(), queried_domain=str()):
-	requester = NetRequester(domain_controller, domain, user, password,
+    requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netdomaintrust(queried_domain=queried_domain)
+    return requester.get_netdomaintrust(queried_domain=queried_domain)
 
 def get_netgroupmember(domain_controller, domain, user, password=str(),
                        lmhash=str(), nthash=str(), queried_groupname=str(), queried_sid=str(),
                        queried_domain=str(), ads_path=str(), recurse=False, use_matching_rule=False,
                        full_data=False, custom_filter=str()):
-	requester = NetRequester(domain_controller, domain, user, password,
+    requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netgroupmember(queried_groupname=queried_groupname,
+    return requester.get_netgroupmember(queried_groupname=queried_groupname,
                                             queried_sid=queried_sid, queried_domain=queried_domain,
                                             ads_path=ads_path, recurse=recurse,
                                             use_matching_rule=use_matching_rule,
@@ -135,88 +138,88 @@ def get_netgroupmember(domain_controller, domain, user, password=str(),
 
 def get_netsession(target_computername, domain, user, password=str(),
                    lmhash=str(), nthash=str()):
-	requester = NetRequester(target_computername, domain, user, password,
+    requester = NetRequester(target_computername, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netsession()
+    return requester.get_netsession()
 
 def get_netshare(target_computername, domain, user, password=str(),
                                  lmhash=str(), nthash=str()):
-	requester = NetRequester(target_computername, domain, user, password,
+    requester = NetRequester(target_computername, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netshare()
+    return requester.get_netshare()
 
 def get_localdisks(target_computername, domain, user, password=str(),
                                  lmhash=str(), nthash=str()):
-	requester = NetRequester(target_computername, domain, user, password,
+    requester = NetRequester(target_computername, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_localdisks()
+    return requester.get_localdisks()
 
 def get_netdomain(domain_controller, domain, user, password=str(),
                                  lmhash=str(), nthash=str()):
-	requester = NetRequester(domain_controller, domain, user, password,
+    requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netdomain()
+    return requester.get_netdomain()
 
 def get_netloggedon(target_computername, domain, user, password=str(),
                                  lmhash=str(), nthash=str()):
-	requester = NetRequester(target_computername, domain, user, password,
+    requester = NetRequester(target_computername, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netloggedon()
+    return requester.get_netloggedon()
 
 def get_netlocalgroup(target_computername, domain_controller, domain, user,
                       password=str(), lmhash=str(), nthash=str(), queried_groupname=str(),
                       list_groups=False, recurse=False):
-	requester = NetRequester(target_computername, domain, user, password,
+    requester = NetRequester(target_computername, domain, user, password,
                                  lmhash, nthash, domain_controller)
-	return requester.get_netlocalgroup(queried_groupname=queried_groupname,
+    return requester.get_netlocalgroup(queried_groupname=queried_groupname,
                                            list_groups=list_groups, recurse=recurse)
 
 def get_netprocess(target_computername, domain, user, password=str(),
                    lmhash=str(), nthash=str()):
-	requester = NetRequester(target_computername, domain, user, password,
+    requester = NetRequester(target_computername, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_netprocess()
+    return requester.get_netprocess()
 
 def get_userevent(target_computername, domain, user, password=str(),
                    lmhash=str(), nthash=str(), event_type=['logon', 'tgt'],
                    date_start=5):
-	requester = NetRequester(target_computername, domain, user, password,
+    requester = NetRequester(target_computername, domain, user, password,
                                  lmhash, nthash)
-	return requester.get_userevent(event_type=event_type,
+    return requester.get_userevent(event_type=event_type,
                                        date_start=date_start)
 
 def get_netgpo(domain_controller, domain, user, password=str(),
                lmhash=str(), nthash=str(), queried_gponame='*',
                queried_displayname=str(), queried_domain=str(), ads_path=str()):
-	requester = GPORequester(domain_controller, domain, user, password,
+    requester = GPORequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-        return requester.get_netgpo(queried_gponame=queried_gponame,
+    return requester.get_netgpo(queried_gponame=queried_gponame,
                                     queried_displayname=queried_displayname,
                                     queried_domain=queried_domain, ads_path=ads_path)
 
 def get_domainpolicy(domain_controller, domain, user, password=str(),
                      lmhash=str(), nthash=str(), source='domain', queried_domain=str(),
                      resolve_sids=False):
-	requester = GPORequester(domain_controller, domain, user, password,
+    requester = GPORequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
 
-        return requester.get_domainpolicy(source=source, queried_domain=queried_domain,
+    return requester.get_domainpolicy(source=source, queried_domain=queried_domain,
                                           resolve_sids=resolve_sids)
 
 def get_gpttmpl(gpttmpl_path, domain_controller, domain, user, password=str(), lmhash=str(),
                 nthash=str()):
-	requester = GPORequester(domain_controller, domain, user, password,
+    requester = GPORequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
 
-        return requester.get_gpttmpl(gpttmpl_path)
+    return requester.get_gpttmpl(gpttmpl_path)
 
 def get_netgpogroup(domain_controller, domain, user, password=str(), lmhash=str(),
                     nthash=str(), queried_gponame='*', queried_displayname=str(),
                     queried_domain=str(), ads_path=str(), resolve_sids=False):
-	requester = GPORequester(domain_controller, domain, user, password,
+    requester = GPORequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
 
-        return requester.get_netgpogroup(queried_gponame=queried_gponame,
+    return requester.get_netgpogroup(queried_gponame=queried_gponame,
                                          queried_displayname=queried_displayname,
                                          queried_domain=queried_domain,
                                          ads_path=ads_path,
@@ -226,10 +229,10 @@ def find_gpocomputeradmin(domain_controller, domain, user, password=str(), lmhas
                           nthash=str(), queried_computername=str(),
                           queried_ouname=str(), queried_domain=str(),
                           recurse=False):
-	requester = GPORequester(domain_controller, domain, user, password,
+    requester = GPORequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
 
-        return requester.find_gpocomputeradmin(queried_computername=queried_computername,
+    return requester.find_gpocomputeradmin(queried_computername=queried_computername,
                                                queried_ouname=queried_ouname,
                                                queried_domain=queried_domain,
                                                recurse=recurse)
@@ -237,10 +240,9 @@ def find_gpocomputeradmin(domain_controller, domain, user, password=str(), lmhas
 def find_gpolocation(domain_controller, domain, user, password=str(), lmhash=str(),
                      nthash=str(), queried_username=str(), queried_groupname=str(),
                      queried_localgroup=str(), queried_domain=str()):
-	requester = GPORequester(domain_controller, domain, user, password,
+    requester = GPORequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
-
-        return requester.find_gpolocation(queried_username=queried_username,
+    return requester.find_gpolocation(queried_username=queried_username,
                                           queried_groupname=queried_groupname,
                                           queried_localgroup=queried_localgroup,
                                           queried_domain=queried_domain)

@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+#!/usr/bin/env python3
 
 from setuptools import setup, find_packages
 
@@ -9,14 +9,14 @@ except(IOError, ImportError):
     long_description = open('README.md').read()
 
 setup(name='pywerview',
-    version='0.2.0',
+    version='0.3.1',
     description='A Python port of PowerSploit\'s PowerView',
     long_description=long_description,
-    dependency_links = ['https://github.com/CoreSecurity/impacket/tarball/master#egg=impacket-0.9.16dev'],
+    dependency_links = ['https://github.com/SecureAuthCorp/impacket/tarball/master#egg=impacket-0.9.22'],
     classifiers=[
         'Environment :: Console',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Security',
     ],
     keywords='python powersploit pentesting recon active directory windows',
@@ -28,11 +28,12 @@ setup(name='pywerview',
         "pywerview", "pywerview.*"
     ]),
     install_requires=[
-        'impacket>=0.9.16dev',
+        'impacket>=0.9.22',
         'pyasn1',
         'pycrypto',
         'pyopenssl',
-        'bs4'
+        'bs4',
+        'ldap3>=2.8.1'
     ],
     entry_points = {
         'console_scripts': ['pywerview=pywerview.cli.main:main'],

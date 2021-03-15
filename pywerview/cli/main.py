@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf8 -*-
+#!/usr/bin/env python3
 #
 # This file is part of PywerView.
 
@@ -16,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
 import argparse
 from pywerview.cli.helpers import *
@@ -25,7 +24,10 @@ from pywerview.functions.hunting import *
 def main():
     # Main parser
     parser = argparse.ArgumentParser(description='Rewriting of some PowerView\'s functionalities in Python')
-    subparsers = parser.add_subparsers(title='Subcommands', description='Available subcommands')
+    subparsers = parser.add_subparsers(title='Subcommands', description='Available subcommands', dest='submodule')
+    
+    # hack for python < 3.9 : https://stackoverflow.com/questions/23349349/argparse-with-required-subparser
+    subparsers.required = True
 
     # TODO: support keberos authentication
     # Credentials parser
@@ -106,10 +108,14 @@ def main():
             help='Query only users with adminCount=1')
     get_netuser_parser.add_argument('--allow-delegation', action='store_true',
             help='Return user accounts that are not marked as \'sensitive and not allowed for delegation\'')
+    get_netuser_parser.add_argument('--preauth-notreq', action='store_true',
+            help='Search for users with the PREAUTH_NOT_REQUIRED account control')
     get_netuser_parser.add_argument('--spn', action='store_true',
             help='Query only users with not-null Service Principal Names')
     get_netuser_parser.add_argument('--custom-filter', dest='custom_filter',
             default=str(), help='Custom filter')
+    get_netuser_parser.add_argument('--attributes', nargs='+', dest='attributes',
+            default=[], help='Object attributes to return')
     get_netuser_parser.set_defaults(func=get_netuser)
 
     # Parser for the get-netgroup command
@@ -154,6 +160,8 @@ def main():
             help='Ping computers (will only return up computers)')
     get_netcomputer_parser.add_argument('--full-data', action='store_true',
             help='If set, returns full information on the groups, otherwise, just the dnsHostName')
+    get_netcomputer_parser.add_argument('--attributes', nargs='+', dest='attributes',
+            default=[], help='Object attributes to return')
     get_netcomputer_parser.set_defaults(func=get_netcomputer)
 
     # Parser for the get-netdomaincontroller command
@@ -448,8 +456,8 @@ def main():
         args.password = getpass('Password:')
 
     parsed_args = dict()
-    for k, v in vars(args).iteritems():
-        if k not in ('func', 'hashes'):
+    for k, v in vars(args).items():
+        if k not in ('func', 'hashes', 'submodule'):
             parsed_args[k] = v
 
     #try:
@@ -461,10 +469,8 @@ def main():
     if results is not None:
         try:
             for x in results:
-                x = str(x)
-                print x
-                if '\n' in x:
-                    print ''
+                    print(x)
+        # for example, invoke_checklocaladminaccess returns a bool 
         except TypeError:
-            print results
+            print(results)
 

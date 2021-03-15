@@ -1,5 +1,3 @@
-# -*- coding: utf8 -*-
-
 # This file is part of PywerView.
 
 # PywerView is free software: you can redistribute it and/or modify
@@ -15,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
 import socket
 import datetime
@@ -25,6 +23,7 @@ from impacket.dcerpc.v5.samr import DCERPCSessionError
 from impacket.dcerpc.v5.rpcrt import DCERPCException
 from impacket.dcerpc.v5.dcom.wmi import WBEM_FLAG_FORWARD_ONLY
 from bs4 import BeautifulSoup
+from ldap3.utils.conv import escape_filter_chars
 
 from pywerview.requester import LDAPRPCRequester
 import pywerview.objects.adobjects as adobj
@@ -37,6 +36,9 @@ class NetRequester(LDAPRPCRequester):
                      queried_name=str(), queried_sam_account_name=str(),
                      ads_path=str(), custom_filter=str()):
 
+        if (not queried_sid) and (not queried_name) and (not queried_sam_account_name):
+            raise ValueError('You must specify either an object SID, a name or a samaccountname')
+        
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', queried_name),
                                       ('samAccountName', queried_sam_account_name)):
             if attr_value:
@@ -49,7 +51,8 @@ class NetRequester(LDAPRPCRequester):
     def get_netuser(self, queried_username=str(), queried_domain=str(),
                     ads_path=str(), admin_count=False, spn=False,
                     unconstrained=False, allow_delegation=False,
-                    custom_filter=str()):
+                    preauth_notreq=False,
+                    custom_filter=str(), attributes=[]):
 
         if unconstrained:
             custom_filter += '(userAccountControl:1.2.840.113556.1.4.803:=524288)'
@@ -59,7 +62,9 @@ class NetRequester(LDAPRPCRequester):
 
         if admin_count:
             custom_filter += '(admincount=1)'
-
+        # LDAP filter from https://www.harmj0y.net/blog/activedirectory/roasting-as-reps/
+        if preauth_notreq:
+            custom_filter += '(userAccountControl:1.2.840.113556.1.4.803:=4194304)'
         user_search_filter = '(samAccountType=805306368){}'.format(custom_filter)
         if queried_username:
             user_search_filter += '(samAccountName={})'.format(queried_username)
@@ -68,7 +73,7 @@ class NetRequester(LDAPRPCRequester):
 
         user_search_filter = '(&{})'.format(user_search_filter)
 
-        return self._ldap_search(user_search_filter, adobj.User)
+        return self._ldap_search(user_search_filter, adobj.User, attributes=attributes)
 
     @LDAPRPCRequester._ldap_connection_init
     def get_netgroup(self, queried_groupname='*', queried_sid=str(),
@@ -76,12 +81,18 @@ class NetRequester(LDAPRPCRequester):
                      ads_path=str(), admin_count=False, full_data=False,
                      custom_filter=str()):
 
+        # RFC 4515, section 3
+        # However if we escape *, we can no longer use wildcard within `--groupname`
+        # Maybe we can raise a warning here ? 
+        if not '*' in queried_groupname:
+            queried_groupname = escape_filter_chars(queried_groupname)
+
         if queried_username:
             results = list()
             sam_account_name_to_resolve = [queried_username]
             first_run = True
             while sam_account_name_to_resolve:
-                sam_account_name = sam_account_name_to_resolve.pop(0)
+                sam_account_name = escape_filter_chars(sam_account_name_to_resolve.pop(0))
                 if first_run:
                     first_run = False
                     if admin_count:
@@ -105,14 +116,14 @@ class NetRequester(LDAPRPCRequester):
                     except AttributeError:
                         continue
                     for group_dn in obj.memberof:
-                        group_sam_account_name = group_dn.split(',')[0].split('=')[1]
+                        group_sam_account_name = group_dn.decode('utf-8').split(',')[0].split('=')[1]
                         if not group_sam_account_name in results:
                             results.append(group_sam_account_name)
                             sam_account_name_to_resolve.append(group_sam_account_name)
             final_results = list()
             for group_sam_account_name in results:
                 obj_member_of = adobj.Group(list())
-                setattr(obj_member_of, 'samaccountname', group_sam_account_name)
+                setattr(obj_member_of, 'samaccountname', group_sam_account_name.encode('utf-8'))
                 final_results.append(obj_member_of)
             return final_results
         else:
@@ -133,14 +144,13 @@ class NetRequester(LDAPRPCRequester):
                 attributes=['samaccountname']
 
             group_search_filter = '(&{})'.format(group_search_filter)
-
             return self._ldap_search(group_search_filter, adobj.Group, attributes=attributes)
 
     @LDAPRPCRequester._ldap_connection_init
     def get_netcomputer(self, queried_computername='*', queried_spn=str(),
                         queried_os=str(), queried_sp=str(), queried_domain=str(),
                         ads_path=str(), printers=False, unconstrained=False,
-                        ping=False, full_data=False, custom_filter=str()):
+                        ping=False, full_data=False, custom_filter=str(), attributes=[]):
 
         if unconstrained:
             custom_filter += '(userAccountControl:1.2.840.113556.1.4.803:=524288)'
@@ -158,7 +168,8 @@ class NetRequester(LDAPRPCRequester):
         if full_data:
             attributes=list()
         else:
-            attributes=['dnsHostName']
+            if not attributes:
+                attributes=['dnsHostName']
 
         computer_search_filter = '(&{})'.format(computer_search_filter)
 
@@ -176,17 +187,20 @@ class NetRequester(LDAPRPCRequester):
     def get_netfileserver(self, queried_domain=str(), target_users=list()):
 
         def split_path(path):
-            split_path = path.split('\\')
+            split_path = path.decode('utf-8').split('\\')
             if len(split_path) >= 3:
-                return split_path[2]
+                return split_path[2].encode('utf-8')
 
+        file_server_attributes = ['homedirectory', 'scriptpath', 'profilepath']
         results = set()
         if target_users:
             users = list()
             for target_user in target_users:
-                users += self.get_netuser(target_user, queried_domain)
+                users += self.get_netuser(target_user, queried_domain,
+                        attributes=file_server_attributes)
         else:
-            users = self.get_netuser(queried_domain=queried_domain)
+            users = self.get_netuser(queried_domain=queried_domain,
+                    attributes=file_server_attributes)
 
         for user in users:
             for full_path in (user.homedirectory, user.scriptpath, user.profilepath):
@@ -198,8 +212,8 @@ class NetRequester(LDAPRPCRequester):
 
         final_results = list()
         for file_server_name in results:
-            attributes = list()
-            attributes.append({'type': 'dnshostname', 'vals': [file_server_name]})
+            attributes = dict()
+            attributes['dnshostname'] = [file_server_name]
             final_results.append(adobj.FileServer(attributes))
 
         return final_results
@@ -280,7 +294,8 @@ class NetRequester(LDAPRPCRequester):
 
     @LDAPRPCRequester._ldap_connection_init
     def get_netsite(self, queried_domain=str(), queried_sitename=str(),
-                    queried_guid=str(), ads_path=str(), full_data=False):
+                    queried_guid=str(), ads_path=str(), ads_prefix=str(),
+                    full_data=False):
 
         site_search_filter = '(objectCategory=site)'
 
@@ -301,7 +316,7 @@ class NetRequester(LDAPRPCRequester):
 
     @LDAPRPCRequester._ldap_connection_init
     def get_netsubnet(self, queried_domain=str(), queried_sitename=str(),
-                      ads_path=str(), full_data=False):
+                      ads_path=str(), ads_prefix=str(), full_data=False):
 
         subnet_search_filter = '(objectCategory=subnet)'
 
@@ -327,10 +342,13 @@ class NetRequester(LDAPRPCRequester):
 
         def _get_members(_groupname=str(), _sid=str()):
             try:
+                # `--groupname` option is supplied
                 if _groupname:
                     groups = self.get_netgroup(queried_groupname=_groupname,
                                                queried_domain=queried_domain,
                                                full_data=True)
+
+                # `--groupname` option is missing, falling back to the "Domain Admins"
                 else:
                     if _sid:
                         queried_sid = _sid
@@ -359,6 +377,8 @@ class NetRequester(LDAPRPCRequester):
                     # TODO: range cycling
                     try:
                         for member in group.member:
+                            # RFC 4515, section 3
+                            member = escape_filter_chars(member, encoding='utf-8')
                             dn_filter = '(distinguishedname={}){}'.format(member, custom_filter)
                             members += self.get_netuser(custom_filter=dn_filter, queried_domain=queried_domain)
                             members += self.get_netgroup(custom_filter=dn_filter, queried_domain=queried_domain, full_data=True)
@@ -372,24 +392,24 @@ class NetRequester(LDAPRPCRequester):
                     else:
                         final_member = adobj.ADObject(list())
 
-                    member_dn = member.distinguishedname
+                    member_dn = member.distinguishedname.decode('utf-8')
                     try:
                         member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
                     except IndexError:
                         member_domain = str()
-                    is_group = (member.samaccounttype != '805306368')
+                    is_group = (member.samaccounttype.decode('utf-8') != '805306368')
 
-                    attributes = list()
+                    attributes = dict()
                     if queried_domain:
-                        attributes.append({'type': 'groupdomain', 'vals': [queried_domain]})
+                        attributes['groupdomain'] = [queried_domain.encode('utf-8')]
                     else:
-                        attributes.append({'type': 'groupdomain', 'vals': [self._domain]})
-                    attributes.append({'type': 'groupname', 'vals': [group.name]})
-                    attributes.append({'type': 'membername', 'vals': [member.samaccountname]})
-                    attributes.append({'type': 'memberdomain', 'vals': [member_domain]})
-                    attributes.append({'type': 'isgroup', 'vals': [is_group]})
-                    attributes.append({'type': 'memberdn', 'vals': [member_dn]})
-                    attributes.append({'type': 'membersid', 'vals': [member.objectsid]})
+                        attributes['groupdomain'] = [self._domain.encode('utf-8')]
+                    attributes['groupname'] = [group.name]
+                    attributes['membername'] = [member.samaccountname]
+                    attributes['memberdomain'] = [member_domain.encode('utf-8')]
+                    attributes['isgroup'] = [is_group]
+                    attributes['memberdn'] = [member_dn.encode('utf-8')]
+                    attributes['objectsid'] = [member.objectsid]
 
                     final_member.add_attributes(attributes)
 
@@ -669,7 +689,7 @@ class NetRequester(LDAPRPCRequester):
 
                 result_process = rpcobj.Process(attributes)
                 yield result_process
-            except Exception, e:
+            except Exception as e:
                 if str(e).find('S_FALSE') < 0:
                     raise e
                 else:
@@ -718,7 +738,7 @@ class NetRequester(LDAPRPCRequester):
                               'id': wmi_event_type}
                 result_event = rpcobj.Event(attributes)
                 yield result_event
-            except Exception, e:
+            except Exception as e:
                 if str(e).find('S_FALSE') < 0:
                     raise e
                 else:

@@ -1,5 +1,3 @@
-# -*- coding: utf8 -*-
-
 # This file is part of PywerView.
 
 # PywerView is free software: you can redistribute it and/or modify
@@ -15,11 +13,12 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
 import socket
 import ntpath
-from impacket.ldap import ldap, ldapasn1
+import ldap3
+
 from impacket.smbconnection import SMBConnection
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
@@ -41,13 +40,16 @@ class LDAPRequester():
         self._ads_path = None
         self._ads_prefix = None
         self._ldap_connection = None
+        self._base_dn = None
 
     def _get_netfqdn(self):
         try:
             smb = SMBConnection(self._domain_controller, self._domain_controller)
         except socket.error:
             return str()
-        smb.login('', '')
+
+        smb.login(self._user, self._password, domain=self._domain,
+                lmhash=self._lmhash, nthash=self._nthash)
         fqdn = smb.getServerDNSDomainName()
         smb.logoff()
 
@@ -77,48 +79,72 @@ class LDAPRequester():
         else:
             base_dn += ','.join('dc={}'.format(x) for x in self._queried_domain.split('.'))
 
-        try:
-            ldap_connection = ldap.LDAPConnection('ldap://{}'.format(self._domain_controller),
-                                                  base_dn, self._domain_controller)
-            ldap_connection.login(self._user, self._password, self._domain,
-                                  self._lmhash, self._nthash)
-        except ldap.LDAPSessionError, e:
-            if str(e).find('strongerAuthRequired') >= 0:
-                # We need to try SSL
-                ldap_connection = ldap.LDAPConnection('ldaps://{}'.format(self._domain_controller),
-                                                      base_dn, self._domain_controller)
-                ldap_connection.login(self._user, self._password, self._domain,
-                                      self._lmhash, self._nthash)
-            else:
-                raise e
-        except socket.error, e:
+        # base_dn is no longer used within `_create_ldap_connection()`, but I don't want to break
+        # the function call. So we store it in an attriute and use it in `_ldap_search()`
+        self._base_dn = base_dn
+        
+        # Format the username and the domain
+        # ldap3 seems not compatible with USER@DOMAIN format
+        user = '{}\\{}'.format(self._domain, self._user)
+        
+        # Choose between password or pth  
+        # TODO: Test the SSL fallbck, is cert verification disabled ?  
+        if self._lmhash and self._nthash:
+            lm_nt_hash  = '{}:{}'.format(self._lmhash, self._nthash)
+            
+            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
+            
+            try:
+                ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
+                                                   authentication = ldap3.NTLM)
+            except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult as e:
+                # We need to try SSL (pth version)
+                if str(e).find('strongerAuthRequired') >= 0:
+                    ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
+                    ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
+                                                       authentication = ldap3.NTLM)
+                
+        else:
+            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
+            try:
+                ldap_connection = ldap3.Connection(ldap_server, user, self._password,
+                                                   authentication = ldap3.NTLM)
+            except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult as e:
+                # We nedd to try SSL (password version)
+                if str(e).find('strongerAuthRequired') >= 0:
+                    ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
+                    ldap_connection = ldap3.Connection(ldap_server, user, self._password,
+                                                       authentication = ldap3.NTLM)        
+
+        # TODO: exit on error ?
+        if not ldap_connection.bind():
+            print('error in bind', ldap_connection.result())
             return
 
         self._ldap_connection = ldap_connection
 
     def _ldap_search(self, search_filter, class_result, attributes=list()):
         results = list()
-        paged_search_control = ldapasn1.SimplePagedResultsControl(criticality=True,
-                                                                   size=1000)
-        try:
-            search_results = self._ldap_connection.search(searchFilter=search_filter,
-                                                          searchControls=[paged_search_control],
-                                                          attributes=attributes)
-        except ldap.LDAPSearchError as e:
-            # If we got a "size exceeded" error, we get the partial results
-            if e.error == 4:
-                search_results = e.answers
-            else:
-                raise e
-        # TODO: Filter parenthesis in LDAP filter
-        except ldap.LDAPFilterSyntaxError as e:
-            return list()
+       
+        # if no attribute name specified, we return all attributes 
+        if not attributes:
+            attributes =  ldap3.ALL_ATTRIBUTES 
 
+        try: 
+            # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
+            search_results=self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
+                    search_filter=search_filter, attributes=attributes,
+                    paged_size=1000, generator=True)
+        # TODO: for debug only
+        except Exception as e:
+            import sys
+            print('Except: ', sys.exc_info()[0])
+
+        # Skip searchResRef
         for result in search_results:
-            if not isinstance(result, ldapasn1.SearchResultEntry):
+            if result['type'] is not 'searchResEntry':
                 continue
-
-            results.append(class_result(result['attributes']))
+            results.append(class_result(result['raw_attributes']))
 
         return results
 
@@ -134,7 +160,7 @@ class LDAPRequester():
                (ads_path != instance._ads_path) or \
                (ads_prefix != instance._ads_prefix):
                 if instance._ldap_connection:
-                    instance._ldap_connection.close()
+                    instance._ldap_connection.unbind()
                 instance._create_ldap_connection(queried_domain=queried_domain,
                                                  ads_path=ads_path, ads_prefix=ads_prefix)
             return f(*args, **kwargs)
@@ -146,7 +172,7 @@ class LDAPRequester():
 
     def __exit__(self, type, value, traceback):
         try:
-            self._ldap_connection.close()
+            self._ldap_connection.unbind()
         except AttributeError:
             pass
         self._ldap_connection = None
@@ -271,7 +297,7 @@ class LDAPRPCRequester(LDAPRequester, RPCRequester):
     def __enter__(self):
         try:
             LDAPRequester.__enter__(self)
-        except socket.error, IndexError:
+        except (socket.error, IndexError):
             pass
         # This should work every time
         RPCRequester.__enter__(self)

@@ -1,5 +1,3 @@
-# -*- coding: utf8 -*-
-
 # This file is part of PywerView.
 
 # PywerView is free software: you can redistribute it and/or modify
@@ -15,13 +13,15 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
 from impacket.dcerpc.v5.rpcrt import DCERPCException
 from impacket.dcerpc.v5 import scmr, drsuapi
 
 from pywerview.requester import LDAPRPCRequester
 import pywerview.functions.net
+
+import struct
 
 class Misc(LDAPRPCRequester):
     @LDAPRPCRequester._rpc_connection_init(r'\drsuapi')
@@ -57,7 +57,13 @@ class Misc(LDAPRPCRequester):
 
         if domain_controllers:
             primary_dc = domain_controllers[0]
-            domain_sid = '-'.join(primary_dc.objectsid.split('-')[:-1])
+            # primary_dc.objectsid is raw, we need to convert it
+            domain_sid = 'S-{0}-{1}'.format(primary_dc.objectsid[0], primary_dc.objectsid[1])
+            for i in range(8, len(primary_dc.objectsid), 4):
+                        domain_sid += '-{}'.format(str(struct.unpack('<I', primary_dc.objectsid[i:i+4])[0]))
+            # domain_sid is now the sid of the domain controller
+            # we need to retrieve the domain sid from the controller sid
+            domain_sid = '-'.join(domain_sid.split('-')[:-1])
         else:
             domain_sid = None
 

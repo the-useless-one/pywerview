@@ -1,5 +1,3 @@
-# -*- coding: utf8 -*-
-
 # This file is part of PywerView.
 
 # PywerView is free software: you can redistribute it and/or modify
@@ -15,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2016
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
 import random
 import multiprocessing
@@ -136,7 +134,7 @@ class Hunter(NetRequester):
             raise ValueError('No users to search for')
 
     def _build_workers(self, threads, worker_class, worker_args):
-        for i in xrange(threads):
+        for i in range(threads):
             parent_pipe, worker_pipe = multiprocessing.Pipe()
             self._parent_pipes.append(parent_pipe)
             worker = worker_class(worker_pipe, self._domain, self._user,
