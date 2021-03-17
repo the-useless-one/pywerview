@@ -39,8 +39,8 @@ class NetRequester(LDAPRPCRequester):
         if (not queried_sid) and (not queried_name) and (not queried_sam_account_name):
             raise ValueError('You must specify either an object SID, a name or a samaccountname')
         
-        for attr_desc, attr_value in (('objectSid', queried_sid), ('name', queried_name),
-                                      ('samAccountName', queried_sam_account_name)):
+        for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
+                                      ('samAccountName', escape_filter_chars(queried_sam_account_name))):
             if attr_value:
                 object_filter = '(&({}={}){})'.format(attr_desc, attr_value, custom_filter)
                 break
