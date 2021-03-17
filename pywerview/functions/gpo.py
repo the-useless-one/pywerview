@@ -416,13 +416,15 @@ class GPORequester(LDAPRequester):
                                                    queried_domain=queried_domain)
         for object_group in object_groups:
             try:
-                object_group_sid = net_requester.get_adobject(queried_sam_account_name=object_group.samaccountname,
+                object_group_sid = net_requester.get_adobject(queried_sam_account_name=object_group.samaccountname.decode('utf-8'),
                                                               queried_domain=queried_domain)[0].objectsid
+                object_group_sid = Utils.convert_sidtostr(object_group_sid)
             except IndexError:
                 # We may have the name of the group, but not its sam account name
                 try:
-                    object_group_sid = net_requester.get_adobject(queried_name=object_group.samaccountname,
+                    object_group_sid = net_requester.get_adobject(queried_name=object_group.samaccountname.decode('utf-8'),
                                                                   queried_domain=queried_domain)[0].objectsid
+                    object_group_sid = Utils.convert_sidtostr(object_group_sid)
                 except IndexError:
                     # Freak accident when someone is a member of a group, but
                     # we can't find the group in the AD
@@ -436,8 +438,9 @@ class GPORequester(LDAPRequester):
                 for member in gpo_group.members:
                     if not member.upper().startswith('S-1-5'):
                         try:
-                            member = net_requester.get_adobject(queried_sam_account_name=member,
+                            member = net_requester.get_adobject(queried_sam_account_name=member.decode('utf-8'),
                                                                 queried_domain=queried_domain)[0].objectsid
+                            member = Utils.convert_sidtostr(member)
                         except (IndexError, AttributeError):
                             continue
                     if (member.upper() in target_sid) or (member.lower() in target_sid):
@@ -449,9 +452,11 @@ class GPORequester(LDAPRequester):
                 continue
 
         for gpo_group in gpo_groups:
+            # TODO: Why ?? 
+            # OU GUID with a GPO GUID ??
             gpo_guid = gpo_group.gponame
             ous = net_requester.get_netou(queried_domain=queried_domain,
-                                          queried_guid=gpo_guid, full_data=True)
+                                          queried_guid=gpo_guid.decode('utf-8'), full_data=True)
             for ou in ous:
                 # TODO: support filters for GPO
                 ou_computers = [x.dnshostname for x in \
