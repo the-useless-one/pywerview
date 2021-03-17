@@ -155,9 +155,8 @@ class GPORequester(LDAPRequester):
 
         content = content_io.getvalue().replace(b'\r', b'')
         groupsxml_soup = BeautifulSoup(content.decode('utf-8'), 'xml')
-
+        
         for group in groupsxml_soup.find_all('Group'):
-            #TODO: reach this block
             members = list()
             memberof = list()
             local_sid = group.Properties.get('groupSid', str())
@@ -185,8 +184,8 @@ class GPORequester(LDAPRequester):
 
                 gpo_group = GPOGroup(list())
                 setattr(gpo_group, 'gpodisplayname', gpo_display_name)
-                setattr(gpo_group, 'gponame', gpo_name)
-                setattr(gpo_group, 'gpopath', groupsxml_path)
+                setattr(gpo_group, 'gponame', gpo_name.encode('utf-8'))
+                setattr(gpo_group, 'gpopath', groupsxml_path.encode('utf-8'))
                 setattr(gpo_group, 'members', members)
                 setattr(gpo_group, 'memberof', memberof)
 
