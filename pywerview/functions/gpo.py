@@ -24,6 +24,7 @@ from impacket.smbconnection import SMBConnection, SessionError
 from pywerview.objects.adobjects import *
 from pywerview.requester import LDAPRequester
 from pywerview.functions.net import NetRequester
+from pywerview.functions.misc import Utils
 
 class GPORequester(LDAPRequester):
 
@@ -347,9 +348,7 @@ class GPORequester(LDAPRequester):
                                     group_to_resolve = groups_to_resolve.pop(0)
                                     
                                     # We need to convert the raw sid to a str sid
-                                    group_sid = 'S-{0}-{1}'.format(group_to_resolve[0], group_to_resolve[1])
-                                    for i in range(8, len(group_to_resolve), 4):
-                                        group_sid += '-{}'.format(str(struct.unpack('<I', group_to_resolve[i:i+4])[0]))
+                                    group_sid = Utils.convert_sidtostr(group_to_resolve)
                                     
                                     group_members = net_requester.get_netgroupmember(queried_sid=group_sid,
                                                                                      queried_domain=queried_domain,
@@ -385,9 +384,7 @@ class GPORequester(LDAPRequester):
                     raise ValueError('Username \'{}\' was not found'.format(queried_username))
                 else:
                     # We need to convert the raw sid to a str sid
-                    target_sid = 'S-{0}-{1}'.format(user.objectsid[0], user.objectsid[1])
-                    for i in range(8, len(user.objectsid), 4):
-                        target_sid += '-{}'.format(str(struct.unpack('<I', user.objectsid[i:i+4])[0]))
+                    target_sid = Utils.convert_sidtostr(user.objectsid)
                     # TODO: Why ?
                     target_sid = [target_sid] 
                     object_sam_account_name = user.samaccountname.decode('utf-8')
