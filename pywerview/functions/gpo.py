@@ -416,6 +416,7 @@ class GPORequester(LDAPRequester):
                                                    queried_domain=queried_domain)
         for object_group in object_groups:
             try:
+                print(object_group.samaccountname)
                 object_group_sid = net_requester.get_adobject(queried_sam_account_name=object_group.samaccountname.decode('utf-8'),
                                                               queried_domain=queried_domain)[0].objectsid
                 object_group_sid = Utils.convert_sidtostr(object_group_sid)
@@ -452,8 +453,8 @@ class GPORequester(LDAPRequester):
                 continue
 
         for gpo_group in gpo_groups:
-            # TODO: Why ?? 
-            # OU GUID with a GPO GUID ??
+            print(gpo_group)
+            # TODO: reach this code block 
             gpo_guid = gpo_group.gponame
             ous = net_requester.get_netou(queried_domain=queried_domain,
                                           queried_guid=gpo_guid.decode('utf-8'), full_data=True)
