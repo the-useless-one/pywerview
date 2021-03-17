@@ -21,6 +21,8 @@ import struct
 import pyasn1
 import codecs
 
+from pywerview.functions.misc import Utils
+
 class ADObject:
     __uac_flags = {0x0000001: 'SCRIPT',
                    0x0000002: 'ACCOUNTDISABLE',
@@ -81,10 +83,8 @@ class ADObject:
                 # Attribute is a SID
                 elif member[0] in ('objectsid', 'ms-ds-creatorsid'):
                     init_value = member[1]
-                    member_value = 'S-{0}-{1}'.format(init_value[0], init_value[1])
-                    for i in range(8, len(init_value), 4):
-                        member_value += '-{}'.format(str(struct.unpack('<I', init_value[i:i+4])[0]))
-                
+                    member_value = Utils.convert_sidtostr(init_value)               
+ 
                 # Attribute is a GUID
                 elif member[0] == 'objectguid':
                     init_value = member[1]

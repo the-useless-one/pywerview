@@ -58,10 +58,8 @@ class Misc(LDAPRPCRequester):
         if domain_controllers:
             primary_dc = domain_controllers[0]
             # primary_dc.objectsid is raw, we need to convert it
-            domain_sid = 'S-{0}-{1}'.format(primary_dc.objectsid[0], primary_dc.objectsid[1])
-            for i in range(8, len(primary_dc.objectsid), 4):
-                        domain_sid += '-{}'.format(str(struct.unpack('<I', primary_dc.objectsid[i:i+4])[0]))
-            # domain_sid is now the sid of the domain controller
+            domain_sid = Utils.convert_sidtostr(primary_dc.objectsid)
+            
             # we need to retrieve the domain sid from the controller sid
             domain_sid = '-'.join(domain_sid.split('-')[:-1])
         else:
@@ -83,3 +81,10 @@ class Misc(LDAPRPCRequester):
 
         return True
 
+class Utils():
+    @staticmethod
+    def convert_sidtostr(raw_sid):
+        str_sid = 'S-{0}-{1}'.format(raw_sid[0], raw_sid[1])
+        for i in range(8, len(raw_sid), 4):
+            str_sid += '-{}'.format(str(struct.unpack('<I', raw_sid[i:i+4])[0]))
+        return str_sid
