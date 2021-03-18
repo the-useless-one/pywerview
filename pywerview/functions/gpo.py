@@ -136,7 +136,7 @@ class GPORequester(LDAPRequester):
     def _get_groupsxml(self, groupsxml_path, gpo_display_name):
         gpo_groups = list()
 
-        content_io = StringIO()
+        content_io = BytesIO()
 
         groupsxml_path_split = groupsxml_path.split('\\')
         gpo_name = groupsxml_path_split[6]
@@ -155,7 +155,7 @@ class GPORequester(LDAPRequester):
         except SessionError:
             return list()
 
-        content = content_io.getvalue().replace('\r', '')
+        content = content_io.getvalue().replace(b'\r', b'')
         groupsxml_soup = BeautifulSoup(content, 'xml')
 
         for group in groupsxml_soup.find_all('Group'):
