@@ -167,13 +167,13 @@ class GPORequester(LDAPRequester):
                     local_sid = 'S-1-5-32-555'
                 else:
                     local_sid = group.Properties['groupName']
-            memberof.append(local_sid)
+            memberof.append(local_sid.encode('utf-8'))
 
             for member in group.Properties.find_all('Member'):
                 if not member['action'].lower() == 'add':
                     continue
                 if member['sid']:
-                    members.append(member['sid'])
+                    members.append(member['sid'].encode('utf-8'))
                 else:
                     members.append(member['name'])
 
@@ -212,19 +212,19 @@ class GPORequester(LDAPRequester):
             members = list()
             memberof = list()
             if m[0].lower().endswith('__memberof'):
-                members.append(m[0].upper().lstrip('*').replace('__MEMBEROF', ''))
+                members.append(m[0].upper().lstrip('*').replace('__MEMBEROF', '').encode('utf-8'))
                 if not isinstance(m[1], list):
                     memberof_list = [m[1]]
                 else:
                     memberof_list = m[1]
-                memberof += [x.decode('utf-8').lstrip('*') for x in memberof_list]
+                memberof += [x.decode('utf-8').lstrip('*').encode('utf-8') for x in memberof_list]
             elif m[0].lower().endswith('__members'):
-                memberof.append(m[0].upper().lstrip('*').replace('__MEMBERS', ''))
+                memberof.append(m[0].upper().lstrip('*').replace('__MEMBERS', '').encode('utf-8'))
                 if not isinstance(m[1], list):
                     members_list = [m[1]]
                 else:
                     members_list = m[1]
-                members += [x.decode('utf-8').lstrip('*') for x in members_list]
+                members += [x.decode('utf-8').lstrip('*').encode('utf-8') for x in members_list]
 
             if members and memberof:
                 gpo_group = GPOGroup(list())
@@ -269,6 +269,7 @@ class GPORequester(LDAPRequester):
                 with NetRequester(self._domain_controller, self._domain, self._user,
                                   self._password, self._lmhash, self._nthash) as net_requester:
                     for member in members:
+                        member = member.decode('utf-8')
                         try:
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=queried_domain)[0]
                             resolved_member = resolved_member.distinguishedname
@@ -279,6 +280,7 @@ class GPORequester(LDAPRequester):
                     gpo_group.members = resolved_members
 
                     for member in memberof:
+                        member = member.decode('utf-8')
                         try:
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=queried_domain)[0]
                             resolved_member = resolved_member.distinguishedname
@@ -416,7 +418,6 @@ class GPORequester(LDAPRequester):
                                                    queried_domain=queried_domain)
         for object_group in object_groups:
             try:
-                print(object_group.samaccountname)
                 object_group_sid = net_requester.get_adobject(queried_sam_account_name=object_group.samaccountname.decode('utf-8'),
                                                               queried_domain=queried_domain)[0].objectsid
                 object_group_sid = Utils.convert_sidtostr(object_group_sid)
@@ -437,6 +438,7 @@ class GPORequester(LDAPRequester):
         for gpo_group in self.get_netgpogroup(queried_domain=queried_domain):
             try:
                 for member in gpo_group.members:
+                    member = member.decode('utf-8')
                     if not member.upper().startswith('S-1-5'):
                         try:
                             member = net_requester.get_adobject(queried_sam_account_name=member.decode('utf-8'),
@@ -445,8 +447,8 @@ class GPORequester(LDAPRequester):
                         except (IndexError, AttributeError):
                             continue
                     if (member.upper() in target_sid) or (member.lower() in target_sid):
-                        if (local_sid.upper() in gpo_group.memberof) or \
-                                (local_sid.lower() in gpo_group.memberof):
+                        if (local_sid.upper().encode('utf-8') in gpo_group.memberof) or \
+                                (local_sid.lower().encode('utf-8') in gpo_group.memberof):
                             gpo_groups.append(gpo_group)
                             break
             except AttributeError:
