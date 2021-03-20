@@ -329,7 +329,7 @@ class GPORequester(LDAPRequester):
                                                       ads_path=gplink)
                     for gpo_group in gpo_groups:
                         for member in gpo_group.members:
-                            obj = net_requester.get_adobject(queried_sid=member,
+                            obj = net_requester.get_adobject(queried_sid=member.decode('utf-8'),
                                                              queried_domain=queried_domain)[0]
                             gpo_computer_admin = GPOComputerAdmin(list())
                             setattr(gpo_computer_admin, 'computername', queried_computername.encode('utf-8'))
