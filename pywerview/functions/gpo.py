@@ -453,18 +453,17 @@ class GPORequester(LDAPRequester):
                 continue
 
         for gpo_group in gpo_groups:
-            print(gpo_group)
-            # TODO: reach this code block 
             gpo_guid = gpo_group.gponame
             ous = net_requester.get_netou(queried_domain=queried_domain,
                                           queried_guid=gpo_guid.decode('utf-8'), full_data=True)
             for ou in ous:
+                ou_distinguishedname = 'LDAP://{}'.format(ou.distinguishedname.decode('utf-8'))
                 # TODO: support filters for GPO
                 ou_computers = [x.dnshostname for x in \
                         net_requester.get_netcomputer(queried_domain=queried_domain,
-                                                      ads_path=ou.distinguishedname)]
+                                                      ads_path=ou_distinguishedname)]
                 gpo_location = GPOLocation(list())
-                setattr(gpo_location, 'objectname', object_distinguished_name)
+                setattr(gpo_location, 'objectname', object_distinguished_name.encode('utf-8'))
                 setattr(gpo_location, 'gponame', gpo_group.gpodisplayname)
                 setattr(gpo_location, 'gpoguid', gpo_guid)
                 setattr(gpo_location, 'containername', ou.distinguishedname)
