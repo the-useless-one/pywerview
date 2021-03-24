@@ -142,7 +142,6 @@ class ADObject:
                         member_value = (',\n' + ' ' * (max_length + 2)).join(x.hex()[:100] + '...' for x in member_value_temp)
                     # Value is a list, but idk
                     except (AttributeError):
-                        print(member)
                         member_value = member[1]
 
                 # Default case, attribute seems to be a simple string
