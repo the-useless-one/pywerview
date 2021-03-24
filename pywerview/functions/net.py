@@ -617,7 +617,7 @@ class NetRequester(LDAPRPCRequester):
                             attributes['isgroup'] = True
                             resp = samr.hSamrQueryInformationAlias(self._rpc_connection, member_handle)
                             attributes['name'] = '{}/{}'.format(member_domain, resp['Buffer']['General']['Name'])
-                        attributes['lastlogin'] = str()
+                        attributes['lastlogon'] = str()
                         break
                 # It's a domain member
                 else:
@@ -625,29 +625,29 @@ class NetRequester(LDAPRPCRequester):
                     if self._ldap_connection is not None:
                         try:
                             ad_object = self.get_adobject(queried_sid=member_sid)[0]
-                            member_dn = ad_object.distinguishedname
+                            member_dn = ad_object.distinguishedname.decode('utf-8')
                             member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
                             try:
-                                attributes['name'] = '{}/{}'.format(member_domain, ad_object.samaccountname)
+                                attributes['name'] = '{}/{}'.format(member_domain, ad_object.samaccountname.decode('utf-8'))
                             except AttributeError:
                                 # Here, the member is a foreign security principal
                                 # TODO: resolve it properly
-                                attributes['name'] = '{}/{}'.format(member_domain, ad_object.objectsid)
-                            attributes['isgroup'] = ad_object.isgroup
+                                attributes['name'] = '{}/{}'.format(member_domain, Utils.convert_sidtostr(ad_object.objectsid))
+                            attributes['isgroup'] = b'group' in ad_object.objectclass
                             try:
-                                attributes['lastlogin'] = ad_object.lastlogon
+                                attributes['lastlogon'] = ad_object.lastlogon
                             except AttributeError:
-                                attributes['lastlogin'] = str()
+                                attributes['lastlogon'] = str()
                         except IndexError:
                             # We did not manage to resolve this SID against the DC
                             attributes['isdomain'] = False
                             attributes['isgroup'] = False
                             attributes['name'] = attributes['sid']
-                            attributes['lastlogin'] = str()
+                            attributes['lastlogon'] = str()
                     else:
                         attributes['isgroup'] = False
                         attributes['name'] = str()
-                        attributes['lastlogin'] = str()
+                        attributes['lastlogon'] = str()
 
                 results.append(rpcobj.RPCObject(attributes))
 

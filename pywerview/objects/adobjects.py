@@ -117,7 +117,9 @@ class ADObject:
                 # The object is a group
                 elif member[0] == 'objectclass':
                     member_value = [x.decode('utf-8') for x in member[1]]
-                    setattr(self, 'isgroup', ('group' in member_value))
+                    # TODO: We must not setettr in a __str__ method
+                    # I comment this until it breaks something
+                    # setattr(self, 'isgroup', ('group' in member_value))
                 elif member[0] == 'isgroup':
                     member_value = member[1]
 
@@ -140,6 +142,7 @@ class ADObject:
                         member_value = (',\n' + ' ' * (max_length + 2)).join(x.hex()[:100] + '...' for x in member_value_temp)
                     # Value is a list, but idk
                     except (AttributeError):
+                        print(member)
                         member_value = member[1]
 
                 # Default case, attribute seems to be a simple string
