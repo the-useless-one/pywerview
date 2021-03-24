@@ -658,14 +658,17 @@ class NetRequester(LDAPRPCRequester):
                     for domain_member in self.get_netgroupmember(full_data=True, recurse=True, queried_sid=attributes['sid']):
                         domain_member_attributes = dict()
                         domain_member_attributes['isdomain'] = True
-                        member_dn = domain_member.distinguishedname
+                        member_dn = domain_member.distinguishedname.decode('utf-8')
                         member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
-                        domain_member_attributes['name'] = '{}/{}'.format(member_domain, domain_member.samaccountname)
+                        domain_member_attributes['name'] = '{}/{}'.format(member_domain, domain_member.samaccountname.decode('utf-8'))
                         domain_member_attributes['isgroup'] = domain_member.isgroup
                         domain_member_attributes['isdomain'] = True
+                        # TODO: Nope, maybe here we can call get-netdomaincontroller ?
+                        # Need to check in powerview
                         domain_member_attributes['server'] = attributes['name']
-                        domain_member_attributes['sid'] = domain_member.objectsid
+                        domain_member_attributes['sid'] = pywerview.functions.misc.Utils.convert_sidtostr(domain_member.objectsid)
                         try:
+                            # TODO : Same here, must convert the timestamp
                             domain_member_attributes['lastlogin'] = ad_object.lastlogon
                         except AttributeError:
                             domain_member_attributes['lastlogin'] = str()
