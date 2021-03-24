@@ -83,7 +83,7 @@ class NetRequester(LDAPRPCRequester):
 
         # RFC 4515, section 3
         # However if we escape *, we can no longer use wildcard within `--groupname`
-        # Maybe we can raise a warning here ? 
+        # Maybe we can raise a warning here ?
         if not '*' in queried_groupname:
             queried_groupname = escape_filter_chars(queried_groupname)
 
@@ -427,7 +427,7 @@ class NetRequester(LDAPRPCRequester):
             for member in members:
                 results.append(member)
                 if (recurse and (not use_matching_rule) and member.isgroup and member.membername):
-                    groups_to_process.append((member.membername, str()))
+                    groups_to_process.append((member.membername.decode('utf-8'), str()))
 
         return results
 
@@ -635,6 +635,7 @@ class NetRequester(LDAPRPCRequester):
                                 attributes['name'] = '{}/{}'.format(member_domain, Utils.convert_sidtostr(ad_object.objectsid))
                             attributes['isgroup'] = b'group' in ad_object.objectclass
                             try:
+                                # TODO: Now, lastlogon is raw, convert here or within rpc __str__ ?
                                 attributes['lastlogon'] = ad_object.lastlogon
                             except AttributeError:
                                 attributes['lastlogon'] = str()
