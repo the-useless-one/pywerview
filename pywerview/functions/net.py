@@ -610,13 +610,13 @@ class NetRequester(LDAPRPCRequester):
                             member_handle = resp['UserHandle']
                             attributes['isgroup'] = False
                             resp = samr.hSamrQueryInformationUser(self._rpc_connection, member_handle)
-                            attributes['name'] = '{}/{}'.format(member_domain, resp['Buffer']['General']['UserName'])
+                            attributes['name'] = '{}\\{}'.format(member_domain, resp['Buffer']['General']['UserName'])
                         except DCERPCSessionError:
                             resp = samr.hSamrOpenAlias(self._rpc_connection, domain_handle, aliasId=member_rid)
                             member_handle = resp['AliasHandle']
                             attributes['isgroup'] = True
                             resp = samr.hSamrQueryInformationAlias(self._rpc_connection, member_handle)
-                            attributes['name'] = '{}/{}'.format(member_domain, resp['Buffer']['General']['Name'])
+                            attributes['name'] = '{}\\{}'.format(member_domain, resp['Buffer']['General']['Name'])
                         attributes['lastlogon'] = str()
                         break
                 # It's a domain member
@@ -628,11 +628,11 @@ class NetRequester(LDAPRPCRequester):
                             member_dn = ad_object.distinguishedname.decode('utf-8')
                             member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
                             try:
-                                attributes['name'] = '{}/{}'.format(member_domain, ad_object.samaccountname.decode('utf-8'))
+                                attributes['name'] = '{}\\{}'.format(member_domain, ad_object.samaccountname.decode('utf-8'))
                             except AttributeError:
                                 # Here, the member is a foreign security principal
                                 # TODO: resolve it properly
-                                attributes['name'] = '{}/{}'.format(member_domain, Utils.convert_sidtostr(ad_object.objectsid))
+                                attributes['name'] = '{}\\{}'.format(member_domain, Utils.convert_sidtostr(ad_object.objectsid))
                             attributes['isgroup'] = b'group' in ad_object.objectclass
                             try:
                                 # TODO: Now, lastlogon is raw, convert here or within rpc __str__ ?
@@ -660,7 +660,7 @@ class NetRequester(LDAPRPCRequester):
                         domain_member_attributes['isdomain'] = True
                         member_dn = domain_member.distinguishedname.decode('utf-8')
                         member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
-                        domain_member_attributes['name'] = '{}/{}'.format(member_domain, domain_member.samaccountname.decode('utf-8'))
+                        domain_member_attributes['name'] = '{}\\{}'.format(member_domain, domain_member.samaccountname.decode('utf-8'))
                         domain_member_attributes['isgroup'] = domain_member.isgroup
                         domain_member_attributes['isdomain'] = True
                         # TODO: Nope, maybe here we can call get-netdomaincontroller ?
