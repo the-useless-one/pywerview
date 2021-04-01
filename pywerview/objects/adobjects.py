@@ -117,7 +117,9 @@ class ADObject:
                 # The object is a group
                 elif member[0] == 'objectclass':
                     member_value = [x.decode('utf-8') for x in member[1]]
-                    setattr(self, 'isgroup', ('group' in member_value))
+                    # TODO: We must not setettr in a __str__ method
+                    # I comment this until it breaks something
+                    # setattr(self, 'isgroup', ('group' in member_value))
                 elif member[0] == 'isgroup':
                     member_value = member[1]
 
