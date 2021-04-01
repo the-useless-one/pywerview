@@ -469,7 +469,7 @@ def main():
     if results is not None:
         try:
             for x in results:
-                    print(x)
+                    print(x, '\n')
         # for example, invoke_checklocaladminaccess returns a bool 
         except TypeError:
             print(results)
