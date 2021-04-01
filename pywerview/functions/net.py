@@ -427,7 +427,7 @@ class NetRequester(LDAPRPCRequester):
             for member in members:
                 results.append(member)
                 if (recurse and (not use_matching_rule) and member.isgroup and member.membername):
-                    groups_to_process.append((member.membername, str()))
+                    groups_to_process.append((member.membername.decode('utf8'), str()))
 
         return results
 
@@ -625,7 +625,7 @@ class NetRequester(LDAPRPCRequester):
                     if self._ldap_connection is not None:
                         try:
                             ad_object = self.get_adobject(queried_sid=member_sid)[0]
-                            member_dn = ad_object.distinguishedname
+                            member_dn = ad_object.distinguishedname.decode('utf8')
                             member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
                             try:
                                 attributes['name'] = '{}/{}'.format(member_domain, ad_object.samaccountname)

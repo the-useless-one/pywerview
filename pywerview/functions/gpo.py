@@ -175,7 +175,7 @@ class GPORequester(LDAPRequester):
                 if member['sid']:
                     members.append(member['sid'].encode('utf-8'))
                 else:
-                    members.append(member['name'])
+                    members.append(member['name'].encode('utf-8'))
 
             if members or memberof:
                 # TODO: implement filter support (seems like a pain in the ass,
@@ -274,7 +274,7 @@ class GPORequester(LDAPRequester):
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=queried_domain)[0]
                             resolved_member = resolved_member.distinguishedname
                         except IndexError:
-                            resolved_member = member
+                            resolved_member = member.encode('utf-8')
                         finally:
                             resolved_members.append(resolved_member)
                     gpo_group.members = resolved_members
@@ -285,7 +285,7 @@ class GPORequester(LDAPRequester):
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=queried_domain)[0]
                             resolved_member = resolved_member.distinguishedname
                         except IndexError:
-                            resolved_member = member
+                            resolved_member = member.encode('utf-8')
                         finally:
                             resolved_memberof.append(resolved_member)
                     gpo_group.memberof = memberof = resolved_memberof
@@ -323,7 +323,11 @@ class GPORequester(LDAPRequester):
             ous = net_requester.get_netou(ads_path=target_ou, queried_domain=queried_domain,
                                           full_data=True)
             for ou in ous:
-                for gplink in ou.gplink.decode('utf-8').strip('[]').split(']['):
+                try:
+                    gplinks = ou.gplink.decode('utf-8').strip('[]').split('][')
+                except AttributeError:
+                    continue
+                for gplink in gplinks:
                     gplink = gplink.split(';')[0]
                     gpo_groups = self.get_netgpogroup(queried_domain=queried_domain,
                                                       ads_path=gplink)
