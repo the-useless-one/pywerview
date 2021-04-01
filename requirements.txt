@@ -1,2 +1,3 @@
 impacket>=0.9.22
 bs4
+lxml
