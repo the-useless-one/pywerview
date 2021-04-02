@@ -159,7 +159,13 @@ class GPORequester(LDAPRequester):
         for group in groupsxml_soup.find_all('Group'):
             members = list()
             memberof = list()
+            
+            raw_xml_member = group.Properties.find_all('Member')
+            if not raw_xml_member:
+                continue
+
             local_sid = group.Properties.get('groupSid', str())
+
             if not local_sid:
                 if 'administrators' in group.Properties['groupName'].lower():
                     local_sid = 'S-1-5-32-544'
@@ -169,7 +175,7 @@ class GPORequester(LDAPRequester):
                     local_sid = group.Properties['groupName']
             memberof.append(local_sid.encode('utf-8'))
 
-            for member in group.Properties.find_all('Member'):
+            for member in raw_xml_member:
                 if not member['action'].lower() == 'add':
                     continue
                 if member['sid']:
