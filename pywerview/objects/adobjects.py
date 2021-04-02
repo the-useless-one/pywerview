@@ -275,6 +275,9 @@ class Trust(ADObject):
 class GPO(ADObject):
     pass
 
+class PSO(ADObject):
+    pass
+
 class GptTmpl(ADObject):
     def __str__(self):
         s = str()

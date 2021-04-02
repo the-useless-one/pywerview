@@ -254,6 +254,19 @@ def main():
             help='Additional ADS path')
     get_netgpo_parser.set_defaults(func=get_netgpo)
 
+    # Parser for the get-netpso command
+    get_netpso_parser = subparsers.add_parser('get-netpso', help='Get a list of all current '\
+        'PSOs in the domain', parents=[ad_parser])
+    get_netpso_parser.add_argument('--psoname', dest='queried_psoname',
+            default='*', help='pso name to query for (wildcards accepted)')
+    get_netpso_parser.add_argument('--displayname', dest='queried_displayname',
+            help='Display name to query for (wildcards accepted)')
+    get_netpso_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_netpso_parser.add_argument('-a', '--ads-path',
+            help='Additional ADS path')
+    get_netpso_parser.set_defaults(func=get_netpso)
+
     # Parser for the get-domainpolicy command
     get_domainpolicy_parser = subparsers.add_parser('get-domainpolicy', help='Returns the default domain or DC '\
         'policy for the queried domain or DC', parents=[ad_parser])
