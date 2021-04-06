@@ -21,7 +21,7 @@ import struct
 import pyasn1
 import codecs
 
-from pywerview.functions.misc import Utils
+import pywerview.functions.misc as misc
 
 class ADObject:
     __uac_flags = {0x0000001: 'SCRIPT',
@@ -83,7 +83,7 @@ class ADObject:
                 # Attribute is a SID
                 elif member[0] in ('objectsid', 'ms-ds-creatorsid'):
                     init_value = member[1]
-                    member_value = Utils.convert_sidtostr(init_value)               
+                    member_value = misc.Utils.convert_sidtostr(init_value)
  
                 # Attribute is a GUID
                 elif member[0] == 'objectguid':
