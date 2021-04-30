@@ -93,7 +93,7 @@ class LDAPRequester():
             
             ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
             ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
-                                               authentication = ldap3.NTLM, raise_exceptions = True)
+                                               authentication=ldap3.NTLM, raise_exceptions=True)
             
             try:
                 ldap_connection.bind()
@@ -101,20 +101,23 @@ class LDAPRequester():
                 # We need to try SSL (pth version)
                 ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
                 ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
-                                                   authentication = ldap3.NTLM, raise_exceptions = True)
+                                                   authentication=ldap3.NTLM, raise_exceptions=True)
+
                 ldap_connection.bind()
-                
+
         else:
             ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
             ldap_connection = ldap3.Connection(ldap_server, user, self._password,
-                                               authentication = ldap3.NTLM, raise_exceptions = True)
+                    authentication=ldap3.NTLM, raise_exceptions=True)
+
             try:
                 ldap_connection.bind()
             except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
                 # We nedd to try SSL (password version)
                 ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
                 ldap_connection = ldap3.Connection(ldap_server, user, self._password,
-                                                   authentication = ldap3.NTLM, raise_exceptions = True)        
+                        authentication=ldap3.NTLM, raise_exceptions=True)        
+                
                 ldap_connection.bind()
 
         self._ldap_connection = ldap_connection
