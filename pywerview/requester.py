@@ -108,7 +108,7 @@ class LDAPRequester():
         else:
             ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
             ldap_connection = ldap3.Connection(ldap_server, user, self._password,
-                    authentication=ldap3.NTLM, raise_exceptions=True)
+                                               authentication=ldap3.NTLM, raise_exceptions=True)
 
             try:
                 ldap_connection.bind()
@@ -116,7 +116,7 @@ class LDAPRequester():
                 # We nedd to try SSL (password version)
                 ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
                 ldap_connection = ldap3.Connection(ldap_server, user, self._password,
-                        authentication=ldap3.NTLM, raise_exceptions=True)        
+                                                   authentication=ldap3.NTLM, raise_exceptions=True)        
                 
                 ldap_connection.bind()
 
