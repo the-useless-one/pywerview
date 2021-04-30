@@ -88,38 +88,37 @@ class LDAPRequester():
         user = '{}\\{}'.format(self._domain, self._user)
         
         # Choose between password or pth  
-        # TODO: Test the SSL fallbck, is cert verification disabled ?  
         if self._lmhash and self._nthash:
             lm_nt_hash  = '{}:{}'.format(self._lmhash, self._nthash)
             
             ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
+            ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
+                                               authentication=ldap3.NTLM, raise_exceptions=True)
             
             try:
-                ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
-                                                   authentication = ldap3.NTLM)
-            except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult as e:
+                ldap_connection.bind()
+            except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
                 # We need to try SSL (pth version)
-                if str(e).find('strongerAuthRequired') >= 0:
-                    ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
-                    ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
-                                                       authentication = ldap3.NTLM)
-                
+                ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
+                ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
+                                                   authentication=ldap3.NTLM, raise_exceptions=True)
+
+                ldap_connection.bind()
+
         else:
             ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
-            try:
-                ldap_connection = ldap3.Connection(ldap_server, user, self._password,
-                                                   authentication = ldap3.NTLM)
-            except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult as e:
-                # We nedd to try SSL (password version)
-                if str(e).find('strongerAuthRequired') >= 0:
-                    ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
-                    ldap_connection = ldap3.Connection(ldap_server, user, self._password,
-                                                       authentication = ldap3.NTLM)        
+            ldap_connection = ldap3.Connection(ldap_server, user, self._password,
+                                               authentication=ldap3.NTLM, raise_exceptions=True)
 
-        # TODO: exit on error ?
-        if not ldap_connection.bind():
-            print('error in bind', ldap_connection.result())
-            return
+            try:
+                ldap_connection.bind()
+            except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
+                # We nedd to try SSL (password version)
+                ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
+                ldap_connection = ldap3.Connection(ldap_server, user, self._password,
+                                                   authentication=ldap3.NTLM, raise_exceptions=True)        
+                
+                ldap_connection.bind()
 
         self._ldap_connection = ldap_connection
 
