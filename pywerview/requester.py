@@ -123,7 +123,7 @@ class LDAPRequester():
 
         self._ldap_connection = ldap_connection
 
-    def _ldap_search(self, search_filter, class_result, attributes=list()):
+    def _ldap_search(self, search_filter, class_result, attributes=list(), controls=list()):
         results = list()
        
         # if no attribute name specified, we return all attributes 
@@ -132,9 +132,12 @@ class LDAPRequester():
 
         try: 
             # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
+            # The control is used to get access to ntSecurityDescriptor with an
+            # unprivileged user, see https://stackoverflow.com/questions/40771503/selecting-the-ad-ntsecuritydescriptor-attribute-as-a-non-admin/40773088
+            # /!\ May break pagination from what I've read (see Stack Overflow anser)
             search_results=self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
                     search_filter=search_filter, attributes=attributes,
-                    paged_size=1000, generator=True)
+                    controls=controls, paged_size=1000, generator=True)
         # TODO: for debug only
         except Exception as e:
             import sys

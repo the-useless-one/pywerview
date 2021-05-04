@@ -24,6 +24,8 @@ from impacket.dcerpc.v5.rpcrt import DCERPCException
 from impacket.dcerpc.v5.dcom.wmi import WBEM_FLAG_FORWARD_ONLY
 from bs4 import BeautifulSoup
 from ldap3.utils.conv import escape_filter_chars
+from ldap3.protocol.microsoft import security_descriptor_control
+from impacket.ldap.ldaptypes import ACE, ACCESS_ALLOWED_OBJECT_ACE, ACCESS_MASK, LDAP_SID, SR_SECURITY_DESCRIPTOR
 
 from pywerview.requester import LDAPRPCRequester
 import pywerview.objects.adobjects as adobj
@@ -38,7 +40,7 @@ class NetRequester(LDAPRPCRequester):
 
         if (not queried_sid) and (not queried_name) and (not queried_sam_account_name):
             raise ValueError('You must specify either an object SID, a name or a samaccountname')
-        
+
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
                                       ('samAccountName', escape_filter_chars(queried_sam_account_name))):
             if attr_value:
@@ -46,6 +48,64 @@ class NetRequester(LDAPRPCRequester):
                 break
 
         return self._ldap_search(object_filter, adobj.ADObject)
+
+    @LDAPRPCRequester._ldap_connection_init
+    def get_objectacl(self, queried_domain=str(), queried_sid=str(),
+                     queried_name=str(), queried_sam_account_name=str(),
+                     ads_path=str(), sacl=False, custom_filter=str()):
+        if (not queried_sid) and (not queried_name) and (not queried_sam_account_name):
+            raise ValueError('You must specify either an object SID, a name or a samaccountname')
+
+        for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
+                                      ('samAccountName', escape_filter_chars(queried_sam_account_name))):
+            if attr_value:
+                object_filter = '(&({}={}){})'.format(attr_desc, attr_value, custom_filter)
+                break
+
+        attributes = ['distinguishedname', 'objectsid', 'ntsecuritydescriptor']
+        if sacl:
+            controls = list()
+            acl_type = 'Sacl'
+        else:
+            controls = security_descriptor_control(criticality=True, sdflags=0x07)
+            acl_type = 'Dacl'
+        security_descriptors = self._ldap_search(object_filter, adobj.ADObject,
+                attributes=attributes, controls=controls)
+
+        acl = list()
+
+        for security_descriptor in security_descriptors:
+            sd = SR_SECURITY_DESCRIPTOR()
+            try:
+                sd.fromString(security_descriptor.ntsecuritydescriptor)
+            except TypeError:
+                continue
+            for ace in sd[acl_type]['Data']:
+                attributes = dict()
+                attributes['objectdn'] = security_descriptor.distinguishedname
+                attributes['objectsid'] = security_descriptor.objectsid
+                attributes['securityidentifier'] = ace['Ace']['Sid'].getData()
+                attributes['acetype'] = ace['TypeName'].encode('utf8')
+                attributes['binarysize'] = [ace['AceSize']]
+                attributes['accessmask'] = [ace['Ace']['Mask']['Mask']]
+                attributes['aceflags'] = [ace['AceFlags']]
+                attributes['isinherited'] = [bool(ace['AceFlags'] & 0x10)]
+                try:
+                    attributes['objectaceflags'] = [ace['Ace']['Flags']]
+                except KeyError:
+                    pass
+                try:
+                    attributes['objectacetype'] = ace['Ace']['ObjectType'] if ace['Ace']['ObjectType'] else 16*b'\x00'
+                except KeyError:
+                    pass
+                try:
+                    attributes['inheritedobjectacetype'] = ace['Ace']['InheritedObjectType'] if ace['Ace']['InheritedObjectType'] else 16*b'\x00'
+                except KeyError:
+                    pass
+                #print(ace['Ace']['Sid'].getData())
+                acl.append(adobj.ACE(attributes))
+
+        return acl
 
     @LDAPRPCRequester._ldap_connection_init
     def get_netuser(self, queried_username=str(), queried_domain=str(),

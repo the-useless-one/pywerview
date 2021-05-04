@@ -20,6 +20,7 @@ import inspect
 import struct
 import pyasn1
 import codecs
+from impacket.ldap.ldaptypes import ACE, ACCESS_ALLOWED_OBJECT_ACE, ACCESS_MASK, LDAP_SID, SR_SECURITY_DESCRIPTOR
 
 import pywerview.functions.misc as misc
 
@@ -81,7 +82,7 @@ class ADObject:
                     member_value = [x for x in value]
 
                 # Attribute is a SID
-                elif member[0] in ('objectsid', 'ms-ds-creatorsid'):
+                elif member[0] in ('objectsid', 'ms-ds-creatorsid', 'securityidentifier'):
                     init_value = member[1]
                     member_value = misc.Utils.convert_sidtostr(init_value)
  
@@ -164,6 +165,106 @@ class ADObject:
              
     def __repr__(self):
         return str(self)
+
+class ACE(ADObject):
+    __ace_flags = {0x1: 'object_inherit', 0x2: 'container_inherit',
+                   0x4: 'non_propagate_inherit', 0x8: 'inherit_only',
+                   0x10: 'inherited_ace', 0x20: 'audit_successful_accesses',
+                   0x40: 'audit_failed_access'}
+
+    __object_ace_flags = {0x1: 'object_ace_type_present', 0x2: 'inherited_object_ace_type_present'}
+
+    # Resources: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/990fb975-ab31-4bc1-8b75-5da132cd4584
+    __access_mask = {0x1: 'create_child', 0x2: 'delete_child',
+                     0x4: 'list_children', 0x08: 'self',
+                     0x10: 'read_property', 0x20: 'write_property',
+                     0x40: 'delete_tree', 0x80: 'list_object',
+                     0x100: 'extended_right', 0x10000: 'delete',
+                     0x20000: 'read_control', 0x40000: 'write_dacl',
+                     0x80000: 'write_owner'}
+
+    __access_mask_generic = {0xf01ff: 'generic_all', 0x20094: 'generic_read',
+                             0x20028: 'generic_write', 0x20004: 'generic_execute'}
+
+    def __init__(self, attributes):
+        ADObject.__init__(self, attributes)
+
+        # We set the activedirectoryrights attribute, which is just pretty
+        # printing of the access mask
+        activedirectoryrights = list()
+        access_mask_temp = self.accessmask
+        # We first check if any generic mask matches, and remove the flags if so
+        for mask, mask_label in ACE.__access_mask_generic.items():
+            if (access_mask_temp & mask) == mask:
+                activedirectoryrights.append(mask_label)
+                access_mask_temp ^= mask
+        # We check the remaining flags
+        for mask, mask_label in ACE.__access_mask.items():
+            if (access_mask_temp & mask) == mask:
+                activedirectoryrights.append(mask_label)
+
+        self.activedirectoryrights = activedirectoryrights
+
+        # We set iscallback, depending on the type of ACE
+        setattr(self, 'iscallback', (b'CALLBACK' in self.acetype))
+
+    def __str__(self):
+        s = str()
+
+        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
+        max_length = len('inheritedobjectacetype')
+
+        for member in members:
+            if member[0].startswith('_'):
+                continue
+            elif member[0] in ('objectsid', 'securityidentifier'):
+                init_value = member[1]
+                member_value = misc.Utils.convert_sidtostr(init_value)
+            elif member[0] in ('objectacetype', 'inheritedobjectacetype'):
+                init_value = member[1]
+                member_value = str()
+                member_value += '{}-'.format(hex(struct.unpack('<I', init_value[0:4])[0])[2:].zfill(8))
+                member_value += '{}-'.format(hex(struct.unpack('<H', init_value[4:6])[0])[2:].zfill(4))
+                member_value += '{}-'.format(hex(struct.unpack('<H', init_value[6:8])[0])[2:].zfill(4))
+                member_value += '{}-'.format(hex(struct.unpack('>H', init_value[8:10])[0])[2:].zfill(4))
+                member_value += '{}'.format(hex(struct.unpack('>H', init_value[10:12])[0])[2:].zfill(4))
+                member_value += '{}'.format(hex(struct.unpack('>I', init_value[12:16])[0])[2:].zfill(8))
+                pass
+            elif member[0] == 'accessmask':
+                member_value = member[1]
+            elif member[0].endswith('flags'):
+                if member[0] == 'aceflags':
+                    flags = ACE.__ace_flags
+                elif member[0] == 'objectaceflags':
+                    flags = ACE.__object_ace_flags
+                else:
+                    continue
+                member_value_temp = list()
+                for flag, flag_label in flags.items():
+                    if member[1] & flag:
+                        member_value_temp.append(flag_label)
+                if member_value_temp:
+                    member_value = ', '.join(member_value_temp)
+                else:
+                    member_value = 'None'
+            elif type(member[1]) in (int, bool):
+                member_value = member[1]
+            elif isinstance(member[1], list):
+                member_value = ', '.join(member[1])
+            else:
+                # Value is a string
+                try:
+                    member_value = member[1].decode('utf-8')
+                # Value is a bytearray
+                except (UnicodeError):
+                    member_value = '{}...'.format(member[1].hex()[:100])
+                # Attribut exists but it is empty
+                # add some info to help debugging
+                except (AttributeError, IndexError):
+                    member_value = '*empty attribute or internal error*'
+            s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
+
+        return s
 
 class User(ADObject):
     def __init__(self, attributes):
