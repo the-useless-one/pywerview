@@ -19,7 +19,6 @@ from datetime import datetime, timedelta
 import inspect
 import struct
 import pyasn1
-import codecs
 from impacket.ldap.ldaptypes import ACE, ACCESS_ALLOWED_OBJECT_ACE, ACCESS_MASK, LDAP_SID, SR_SECURITY_DESCRIPTOR
 
 import pywerview.functions.misc as misc
@@ -89,12 +88,7 @@ class ADObject:
                 # Attribute is a GUID
                 elif member[0] == 'objectguid':
                     init_value = member[1]
-                    member_value = str()
-                    member_value += '{}-'.format(hex(struct.unpack('<I', init_value[0:4])[0])[2:].zfill(8))
-                    member_value += '{}-'.format(hex(struct.unpack('<H', init_value[4:6])[0])[2:].zfill(4))
-                    member_value += '{}-'.format(hex(struct.unpack('<H', init_value[6:8])[0])[2:].zfill(4))
-                    member_value += '{}-'.format((codecs.encode(init_value,'hex')[16:20]).decode('utf-8'))
-                    member_value += init_value.hex()[20:]
+                    member_value = misc.Utils.convert_guidtostr(init_value)
 
                 # Attribute is a datetime (or a list of datetime)
                 elif member[0] in ('dscorepropagationdata', 'whenchanged', 'whencreated','msexchwhenmailboxcreated'):
@@ -219,17 +213,16 @@ class ACE(ADObject):
                 continue
             elif member[0] in ('objectsid', 'securityidentifier'):
                 init_value = member[1]
-                member_value = misc.Utils.convert_sidtostr(init_value)
+                try:
+                    member_value = misc.Utils.convert_sidtostr(init_value)
+                except IndexError:
+                    member_value = init_value
             elif member[0] in ('objectacetype', 'inheritedobjectacetype'):
                 init_value = member[1]
-                member_value = str()
-                member_value += '{}-'.format(hex(struct.unpack('<I', init_value[0:4])[0])[2:].zfill(8))
-                member_value += '{}-'.format(hex(struct.unpack('<H', init_value[4:6])[0])[2:].zfill(4))
-                member_value += '{}-'.format(hex(struct.unpack('<H', init_value[6:8])[0])[2:].zfill(4))
-                member_value += '{}-'.format(hex(struct.unpack('>H', init_value[8:10])[0])[2:].zfill(4))
-                member_value += '{}'.format(hex(struct.unpack('>H', init_value[10:12])[0])[2:].zfill(4))
-                member_value += '{}'.format(hex(struct.unpack('>I', init_value[12:16])[0])[2:].zfill(8))
-                pass
+                try:
+                    member_value = misc.Utils.convert_guidtostr(init_value)
+                except (TypeError, struct.error):
+                    member_value = init_value
             elif member[0] == 'accessmask':
                 member_value = member[1]
             elif member[0].endswith('flags'):

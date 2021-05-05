@@ -91,6 +91,8 @@ def main():
             help='Domain to query')
     get_adobject_parser.add_argument('-a', '--ads-path',
             help='Additional ADS path')
+    get_adobject_parser.add_argument('--attributes', nargs='+', dest='attributes',
+            default=[], help='Object attributes to return')
     get_adobject_parser.set_defaults(func=get_adobject)
 
     # Parser for the get-objectacl command
@@ -109,6 +111,8 @@ def main():
     get_objectacl_parser.add_argument('--sacl', action='store_true',
             help='Return the SACL instead of the DACL for the object (requires '\
             'a privileged account)')
+    get_objectacl_parser.add_argument('--resolve-guids', action='store_true',
+            help='Resolve GUIDs to their display names')
     get_objectacl_parser.set_defaults(func=get_objectacl)
 
     # Parser for the get-netuser command
