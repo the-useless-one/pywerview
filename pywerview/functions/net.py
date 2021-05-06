@@ -51,7 +51,7 @@ class NetRequester(LDAPRPCRequester):
     def get_objectacl(self, queried_domain=str(), queried_sid=str(),
                      queried_name=str(), queried_sam_account_name=str(),
                      ads_path=str(), sacl=False, rights_filter=str(),
-                     resolve_guids=False, custom_filter=str()):
+                     resolve_sids=False, resolve_guids=False, custom_filter=str()):
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
                                       ('samAccountName', escape_filter_chars(queried_sam_account_name))):
             if attr_value:
@@ -95,8 +95,14 @@ class NetRequester(LDAPRPCRequester):
         rights_to_guid = {'reset-password': b'\x70\x95\x29\x00\x6d\x24\xd0\x11\xa7\x68\x00\xaa\x00\x6e\x05\x29',
                 'write-members': b'\xc0\x79\x96\xbf\xe6\x0d\xd0\x11\xa2\x85\x00\xaa\x00\x30\x49\xe2',
                 'all': b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'}
-
         guid_filter = rights_to_guid.get(rights_filter, None)
+
+        if resolve_sids:
+            sid_resolver = NetRequester(self._domain_controller, self._domain,
+                    self._user, self._password, self._lmhash, self._nthash)
+            sid_mapping = dict()
+        else:
+            sid_resolver = None
 
         for security_descriptor in security_descriptors:
             sd = SR_SECURITY_DESCRIPTOR()
@@ -115,12 +121,26 @@ class NetRequester(LDAPRPCRequester):
                 attributes = dict()
                 attributes['objectdn'] = security_descriptor.distinguishedname
                 attributes['objectsid'] = security_descriptor.objectsid
-                attributes['securityidentifier'] = ace['Ace']['Sid'].getData()
                 attributes['acetype'] = ace['TypeName'].encode('utf8')
                 attributes['binarysize'] = [ace['AceSize']]
                 attributes['accessmask'] = [ace['Ace']['Mask']['Mask']]
                 attributes['aceflags'] = [ace['AceFlags']]
                 attributes['isinherited'] = [bool(ace['AceFlags'] & 0x10)]
+                attributes['securityidentifier'] = ace['Ace']['Sid'].getData()
+                if sid_resolver:
+                    converted_sid = pywerview.functions.misc.Utils.convert_sidtostr(attributes['securityidentifier'])
+                    try:
+                        resolved_sid = sid_mapping[converted_sid]
+                    except KeyError:
+                        try:
+                            resolved_sid = sid_resolver.get_adobject(queried_sid=converted_sid,
+                                    queried_domain=queried_domain, attributes=['distinguishedname'])[0]
+                            resolved_sid = resolved_sid.distinguishedname
+                        except IndexError:
+                            resolved_sid = attributes['securityidentifier']
+                    finally:
+                        sid_mapping[converted_sid] = resolved_sid
+                        attributes['securityidentifier'] = resolved_sid
                 try:
                     attributes['objectaceflags'] = [ace['Ace']['Flags']]
                 except KeyError:

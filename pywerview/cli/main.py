@@ -114,6 +114,8 @@ def main():
     get_objectacl_parser.add_argument('--rights-filter', dest='rights_filter',
             choices=['reset-password', 'write-members', 'all'], help='A specific set of rights to return '\
                     '(reset-password, write-members, all)')
+    get_objectacl_parser.add_argument('--resolve-sids', dest='resolve_sids',
+            action='store_true', help='Resolve SIDs when querying an ACL')
     get_objectacl_parser.add_argument('--resolve-guids', action='store_true',
             help='Resolve GUIDs to their display names')
     get_objectacl_parser.set_defaults(func=get_objectacl)

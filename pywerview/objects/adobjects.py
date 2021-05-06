@@ -213,10 +213,10 @@ class ACE(ADObject):
                 continue
             elif member[0] in ('objectsid', 'securityidentifier'):
                 init_value = member[1]
-                try:
+                if init_value.startswith(b'\x01'):
                     member_value = misc.Utils.convert_sidtostr(init_value)
-                except IndexError:
-                    member_value = init_value
+                else:
+                    member_value = init_value.decode('utf8')
             elif member[0] in ('objectacetype', 'inheritedobjectacetype'):
                 init_value = member[1]
                 try:
