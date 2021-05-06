@@ -134,7 +134,7 @@ class NetRequester(LDAPRPCRequester):
                     except KeyError:
                         try:
                             resolved_sid = sid_resolver.get_adobject(queried_sid=converted_sid,
-                                    queried_domain=queried_domain, attributes=['distinguishedname'])[0]
+                                    queried_domain=self._queried_domain, attributes=['distinguishedname'])[0]
                             resolved_sid = resolved_sid.distinguishedname
                         except IndexError:
                             resolved_sid = attributes['securityidentifier']
