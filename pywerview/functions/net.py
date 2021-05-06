@@ -50,8 +50,8 @@ class NetRequester(LDAPRPCRequester):
     @LDAPRPCRequester._ldap_connection_init
     def get_objectacl(self, queried_domain=str(), queried_sid=str(),
                      queried_name=str(), queried_sam_account_name=str(),
-                     ads_path=str(), sacl=False, resolve_guids=False,
-                     custom_filter=str()):
+                     ads_path=str(), sacl=False, rights_filter=str(),
+                     resolve_guids=False, custom_filter=str()):
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
                                       ('samAccountName', escape_filter_chars(queried_sam_account_name))):
             if attr_value:
@@ -60,9 +60,10 @@ class NetRequester(LDAPRPCRequester):
         else:
             object_filter = '(&(name=*){})'.format(custom_filter)
 
-        guid_map = {'00000000-0000-0000-0000-000000000000': 'All'}
+        guid_map = dict()
         # This works on a mono-domain forest, must be tested on a more complex one
         if resolve_guids:
+            guid_map = {'00000000-0000-0000-0000-000000000000': 'All'}
             with NetRequester(self._domain_controller, self._domain, self._user, self._password,
                   self._lmhash, self._nthash) as net_requester:
                 for o in net_requester.get_adobject(ads_path='CN=Schema,CN=Configuration,{}'.format(self._base_dn),
@@ -91,6 +92,12 @@ class NetRequester(LDAPRPCRequester):
 
         acl = list()
 
+        rights_to_guid = {'reset-password': b'\x70\x95\x29\x00\x6d\x24\xd0\x11\xa7\x68\x00\xaa\x00\x6e\x05\x29',
+                'write-members': b'\xc0\x79\x96\xbf\xe6\x0d\xd0\x11\xa2\x85\x00\xaa\x00\x30\x49\xe2',
+                'all': b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'}
+
+        guid_filter = rights_to_guid.get(rights_filter, None)
+
         for security_descriptor in security_descriptors:
             sd = SR_SECURITY_DESCRIPTOR()
             try:
@@ -98,6 +105,13 @@ class NetRequester(LDAPRPCRequester):
             except TypeError:
                 continue
             for ace in sd[acl_type]['Data']:
+                if guid_filter:
+                    try:
+                        object_type = ace['Ace']['ObjectType'] if ace['Ace']['ObjectType'] else 16*b'\x00'
+                    except KeyError:
+                        continue
+                    if object_type != guid_filter:
+                        continue
                 attributes = dict()
                 attributes['objectdn'] = security_descriptor.distinguishedname
                 attributes['objectsid'] = security_descriptor.objectsid
@@ -121,6 +135,7 @@ class NetRequester(LDAPRPCRequester):
                     attributes['inheritedobjectacetype'] = guid_map[pywerview.functions.misc.Utils.convert_guidtostr(attributes['inheritedobjectacetype'])]
                 except KeyError:
                     pass
+
                 acl.append(adobj.ACE(attributes))
 
         return acl

@@ -111,6 +111,9 @@ def main():
     get_objectacl_parser.add_argument('--sacl', action='store_true',
             help='Return the SACL instead of the DACL for the object (requires '\
             'a privileged account)')
+    get_objectacl_parser.add_argument('--rights-filter', dest='rights_filter',
+            choices=['reset-password', 'write-members', 'all'], help='A specific set of rights to return '\
+                    '(reset-password, write-members, all)')
     get_objectacl_parser.add_argument('--resolve-guids', action='store_true',
             help='Resolve GUIDs to their display names')
     get_objectacl_parser.set_defaults(func=get_objectacl)
