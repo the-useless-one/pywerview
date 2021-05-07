@@ -24,6 +24,8 @@ from impacket.dcerpc.v5.rpcrt import DCERPCException
 from impacket.dcerpc.v5.dcom.wmi import WBEM_FLAG_FORWARD_ONLY
 from bs4 import BeautifulSoup
 from ldap3.utils.conv import escape_filter_chars
+from ldap3.protocol.microsoft import security_descriptor_control
+from impacket.ldap.ldaptypes import ACE, ACCESS_ALLOWED_OBJECT_ACE, ACCESS_MASK, LDAP_SID, SR_SECURITY_DESCRIPTOR
 
 from pywerview.requester import LDAPRPCRequester
 import pywerview.objects.adobjects as adobj
@@ -34,18 +36,129 @@ class NetRequester(LDAPRPCRequester):
     @LDAPRPCRequester._ldap_connection_init
     def get_adobject(self, queried_domain=str(), queried_sid=str(),
                      queried_name=str(), queried_sam_account_name=str(),
-                     ads_path=str(), custom_filter=str()):
-
-        if (not queried_sid) and (not queried_name) and (not queried_sam_account_name):
-            raise ValueError('You must specify either an object SID, a name or a samaccountname')
-        
+                     ads_path=str(), attributes=list(), custom_filter=str()):
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
                                       ('samAccountName', escape_filter_chars(queried_sam_account_name))):
             if attr_value:
                 object_filter = '(&({}={}){})'.format(attr_desc, attr_value, custom_filter)
                 break
+        else:
+            object_filter = '(&(name=*){})'.format(custom_filter)
 
-        return self._ldap_search(object_filter, adobj.ADObject)
+        return self._ldap_search(object_filter, adobj.ADObject, attributes=attributes)
+
+    @LDAPRPCRequester._ldap_connection_init
+    def get_objectacl(self, queried_domain=str(), queried_sid=str(),
+                     queried_name=str(), queried_sam_account_name=str(),
+                     ads_path=str(), sacl=False, rights_filter=str(),
+                     resolve_sids=False, resolve_guids=False, custom_filter=str()):
+        for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
+                                      ('samAccountName', escape_filter_chars(queried_sam_account_name))):
+            if attr_value:
+                object_filter = '(&({}={}){})'.format(attr_desc, attr_value, custom_filter)
+                break
+        else:
+            object_filter = '(&(name=*){})'.format(custom_filter)
+
+        guid_map = dict()
+        # This works on a mono-domain forest, must be tested on a more complex one
+        if resolve_guids:
+            guid_map = {'00000000-0000-0000-0000-000000000000': 'All'}
+            with NetRequester(self._domain_controller, self._domain, self._user, self._password,
+                  self._lmhash, self._nthash) as net_requester:
+                for o in net_requester.get_adobject(ads_path='CN=Schema,CN=Configuration,{}'.format(self._base_dn),
+                        attributes=['name', 'schemaIDGUID'], custom_filter='(schemaIDGUID=*)'):
+                    guid_map[pywerview.functions.misc.Utils.convert_guidtostr(o.schemaidguid)] = o.name.decode('utf8')
+
+            with NetRequester(self._domain_controller, self._domain, self._user, self._password,
+                  self._lmhash, self._nthash) as net_requester:
+                for o in net_requester.get_adobject(ads_path='CN=Extended-Rights,CN=Configuration,{}'.format(self._base_dn),
+                        attributes=['name', 'rightsGuid'], custom_filter='(objectClass=controlAccessRight)'):
+                    guid_map[o.rightsguid.decode('utf8').lower()] = o.name.decode('utf8')
+
+        attributes = ['distinguishedname', 'objectsid', 'ntsecuritydescriptor']
+        if sacl:
+            controls = list()
+            acl_type = 'Sacl'
+        else:
+            # The control is used to get access to ntSecurityDescriptor with an
+            # unprivileged user, see https://stackoverflow.com/questions/40771503/selecting-the-ad-ntsecuritydescriptor-attribute-as-a-non-admin/40773088
+            # /!\ May break pagination from what I've read (see Stack Overflow answer)
+            controls = security_descriptor_control(criticality=True, sdflags=0x07)
+            acl_type = 'Dacl'
+
+        security_descriptors = self._ldap_search(object_filter, adobj.ADObject,
+                attributes=attributes, controls=controls)
+
+        acl = list()
+
+        rights_to_guid = {'reset-password': b'\x70\x95\x29\x00\x6d\x24\xd0\x11\xa7\x68\x00\xaa\x00\x6e\x05\x29',
+                'write-members': b'\xc0\x79\x96\xbf\xe6\x0d\xd0\x11\xa2\x85\x00\xaa\x00\x30\x49\xe2',
+                'all': b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'}
+        guid_filter = rights_to_guid.get(rights_filter, None)
+
+        if resolve_sids:
+            sid_resolver = NetRequester(self._domain_controller, self._domain,
+                    self._user, self._password, self._lmhash, self._nthash)
+            sid_mapping = adobj.ADObject._well_known_sids.copy()
+        else:
+            sid_resolver = None
+
+        for security_descriptor in security_descriptors:
+            sd = SR_SECURITY_DESCRIPTOR()
+            try:
+                sd.fromString(security_descriptor.ntsecuritydescriptor)
+            except TypeError:
+                continue
+            for ace in sd[acl_type]['Data']:
+                if guid_filter:
+                    try:
+                        object_type = ace['Ace']['ObjectType'] if ace['Ace']['ObjectType'] else 16*b'\x00'
+                    except KeyError:
+                        continue
+                    if object_type != guid_filter:
+                        continue
+                attributes = dict()
+                attributes['objectdn'] = security_descriptor.distinguishedname
+                attributes['objectsid'] = security_descriptor.objectsid
+                attributes['acetype'] = ace['TypeName'].encode('utf8')
+                attributes['binarysize'] = [ace['AceSize']]
+                attributes['accessmask'] = [ace['Ace']['Mask']['Mask']]
+                attributes['aceflags'] = [ace['AceFlags']]
+                attributes['isinherited'] = [bool(ace['AceFlags'] & 0x10)]
+                attributes['securityidentifier'] = ace['Ace']['Sid'].getData()
+                if sid_resolver:
+                    converted_sid = pywerview.functions.misc.Utils.convert_sidtostr(attributes['securityidentifier'])
+                    try:
+                        resolved_sid = sid_mapping[converted_sid]
+                    except KeyError:
+                        try:
+                            resolved_sid = sid_resolver.get_adobject(queried_sid=converted_sid,
+                                    queried_domain=self._queried_domain, attributes=['distinguishedname'])[0]
+                            resolved_sid = resolved_sid.distinguishedname
+                        except IndexError:
+                            resolved_sid = attributes['securityidentifier']
+                    finally:
+                        sid_mapping[converted_sid] = resolved_sid
+                        attributes['securityidentifier'] = resolved_sid
+                try:
+                    attributes['objectaceflags'] = [ace['Ace']['Flags']]
+                except KeyError:
+                    pass
+                try:
+                    attributes['objectacetype'] = ace['Ace']['ObjectType'] if ace['Ace']['ObjectType'] else 16*b'\x00'
+                    attributes['objectacetype'] = guid_map[pywerview.functions.misc.Utils.convert_guidtostr(attributes['objectacetype'])]
+                except KeyError:
+                    pass
+                try:
+                    attributes['inheritedobjectacetype'] = ace['Ace']['InheritedObjectType'] if ace['Ace']['InheritedObjectType'] else 16*b'\x00'
+                    attributes['inheritedobjectacetype'] = guid_map[pywerview.functions.misc.Utils.convert_guidtostr(attributes['inheritedobjectacetype'])]
+                except KeyError:
+                    pass
+
+                acl.append(adobj.ACE(attributes))
+
+        return acl
 
     @LDAPRPCRequester._ldap_connection_init
     def get_netuser(self, queried_username=str(), queried_domain=str(),
