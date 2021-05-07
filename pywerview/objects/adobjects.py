@@ -47,6 +47,41 @@ class ADObject:
                    0x1000000: 'TRUSTED_TO_AUTH_FOR_DELEGATION',
                    0x4000000: 'PARTIAL_SECRETS_ACCOUNT'}
 
+    _well_known_sids = {'S-1-0-0': b'Nobody', 'S-1-0': b'Null Authority', 'S-1-1-0': b'Everyone',
+                        'S-1-1': b'World Authority', 'S-1-2-0': b'Local', 'S-1-2-1': b'Console Logon',
+                        'S-1-2': b'Local Authority', 'S-1-3-0': b'Creator Owner', 'S-1-3-1': b'Creator Group',
+                        'S-1-3-2': b'Creator Owner Server', 'S-1-3-3': b'Creator Group Server', 'S-1-3-4': b'Owner Rights',
+                        'S-1-3': b'Creator Authority', 'S-1-4': b'Non-unique Authority', 'S-1-5-10': b'Principal Self',
+                        'S-1-5-11': b'Authenticated Users', 'S-1-5-12': b'Restricted Code', 'S-1-5-13': b'Terminal Server Users',
+                        'S-1-5-14': b'Remote Interactive Logon', 'S-1-5-17': b'This Organization', 'S-1-5-18': b'Local System',
+                        'S-1-5-19': b'NT Authority', 'S-1-5-1': b'Dialup', 'S-1-5-20': b'NT Authority',
+                        'S-1-5-2': b'Network', 'S-1-5-32-546': b'Guests', 'S-1-5-32-547': b'Power Users',
+                        'S-1-5-32-551': b'Backup Operators', 'S-1-5-32-555': b'Builtin\\Remote Desktop Users',
+                        'S-1-5-32-556': b'Builtin\\Network Configuration Operators',
+                        'S-1-5-32-557': b'Builtin\\Incoming Forest Trust Builders',
+                        'S-1-5-32-558': b'Builtin\\Performance Monitor Users',
+                        'S-1-5-32-559': b'Builtin\\Performance Log Users',
+                        'S-1-5-32-560': b'Builtin\\Windows Authorization Access Group',
+                        'S-1-5-32-561': b'Builtin\\Terminal Server License Servers',
+                        'S-1-5-32-562': b'Builtin\\Distributed COM Users',
+                        'S-1-5-32-569': b'Builtin\\Cryptographic Operators',
+                        'S-1-5-32-573': b'Builtin\\Event Log Readers',
+                        'S-1-5-32-574': b'Builtin\\Certificate Service DCOM Access',
+                        'S-1-5-32-575': b'Builtin\\RDS Remote Access Servers',
+                        'S-1-5-32-576': b'Builtin\\RDS Endpoint Servers',
+                        'S-1-5-32-577': b'Builtin\\RDS Management Servers',
+                        'S-1-5-32-578': b'Builtin\\Hyper-V Administrators',
+                        'S-1-5-32-579': b'Builtin\\Access Control Assistance Operators',
+                        'S-1-5-32-580': b'Builtin\\Remote Management Users',
+                        'S-1-5-32-582': b'Storage Replica Administrators',
+                        'S-1-5-3': b'Batch', 'S-1-5-4': b'Interactive', 'S-1-5-64-10': b'NTLM Authentication',
+                        'S-1-5-64-14': b'SChannel Authentication', 'S-1-5-64-21': b'Digest Authentication',
+                        'S-1-5-6': b'Service', 'S-1-5-7': b'Anonymous', 'S-1-5-80-0': b'NT Services\\All Services',
+                        'S-1-5-80': b'NT Service', 'S-1-5-8': b'Proxy', 'S-1-5-9': b'Enterprise Domain Controllers',
+                        'S-1-5': b'NT Authority'}
+
+
+
     def __init__(self, attributes):
         self.add_attributes(attributes)
 

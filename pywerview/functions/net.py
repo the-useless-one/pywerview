@@ -100,7 +100,7 @@ class NetRequester(LDAPRPCRequester):
         if resolve_sids:
             sid_resolver = NetRequester(self._domain_controller, self._domain,
                     self._user, self._password, self._lmhash, self._nthash)
-            sid_mapping = dict()
+            sid_mapping = adobj.ADObject._well_known_sids.copy()
         else:
             sid_resolver = None
 
