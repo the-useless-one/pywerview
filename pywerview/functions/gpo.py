@@ -73,21 +73,22 @@ class GPORequester(LDAPRequester):
 
         smb_connection.connectTree(share)
         smb_connection.getFile(share, file_name, content_io.write)
-        try:
-            content = codecs.decode(content_io.getvalue(), 'utf-16le')[1:].encode('utf-8').replace(b'\r', b'')
-        except UnicodeDecodeError:
-            content = content_io.getvalue().replace(b'\r', b'')
+        content = content_io.getvalue().decode('utf-16le')[1:].replace('\r', '')
+        #try:
+            #content = codecs.decode(content_io.getvalue(), 'utf-16le')[1:].encode('utf-8').replace(b'\r', b'')
+        #except UnicodeDecodeError:
+            #content = content_io.getvalue().replace(b'\r', b'')
 
         gpttmpl_final = GptTmpl(list())
-        for l in content.split(b'\n'):
-            if l.startswith(b'['):
-                section_name = l.strip(b'[]').replace(b' ', b'').decode('utf-8').lower()
-                setattr(gpttmpl_final, section_name, Policy(list()))
-            elif b'=' in l:
-                property_name, property_values = [x.strip() for x in l.split(b'=')]
-                if b',' in property_values:
-                    property_values = property_values.split(b',')
-                setattr(getattr(gpttmpl_final, section_name), property_name.decode('utf-8'), property_values)
+        for l in content.split('\n'):
+            if l.startswith('['):
+                section_name = l.strip('[]').replace(' ', '').lower()
+                gpttmpl_final._attributes_dict[section_name] = Policy(list())
+            elif '=' in l:
+                property_name, property_values = [x.strip() for x in l.split('=')]
+                if ',' in property_values:
+                    property_values = property_values.split(',')
+                gpttmpl_final._attributes_dict[section_name]._attributes_dict[property_name] = property_values
 
         return gpttmpl_final
 
@@ -99,7 +100,7 @@ class GPORequester(LDAPRequester):
             queried_gponame = '{6AC1786C-016F-11D2-945F-00C04FB984F9}'
         gpo = self.get_netgpo(queried_domain=queried_domain, queried_gponame=queried_gponame)[0]
 
-        gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath.decode('utf-8'))
+        gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath)
         gpttmpl = self.get_gpttmpl(gpttmpl_path)
 
         if source == 'domain':
@@ -117,30 +118,29 @@ class GPORequester(LDAPRequester):
                 members = inspect.getmembers(privilege_rights_policy, lambda x: not(inspect.isroutine(x)))
                 with NetRequester(self._domain_controller, self._domain, self._user,
                                   self._password, self._lmhash, self._nthash) as net_requester:
-                    for member in members:
-                        if member[0].startswith('_'):
-                            continue
-                        if not isinstance(member[1], list):
-                            sids = [member[1]]
+                    for attr in privilege_rights_policy._attributes_dict:
+                        attribute = privilege_rights_policy._attributes_dict[attr]
+                        if not isinstance(attribute, list):
+                            sids = [attribute]
                         else:
-                            sids = member[1]
+                            sids = attribute
                         resolved_sids = list()
                         for sid in sids:
                             if not sid:
                                 continue
-                            sid = sid.decode('utf-8').replace('*', '')
+                            sid = sid.replace('*', '')
                             try:
-                                resolved_sid = net_requester.get_adobject(queried_sid=sid, queried_domain=queried_domain)[0]
+                                resolved_sid = net_requester.get_adobject(queried_sid=sid, queried_domain=self._queried_domain)[0]
                             except IndexError:
                                 resolved_sid = sid
                             else:
-                                resolved_sid = resolved_sid.distinguishedname.split(b',')[:2]
-                                resolved_sid = resolved_sid[1] + b'\\' + resolved_sid[0]
-                                resolved_sid = resolved_sid.replace(b'CN=', b'')
+                                resolved_sid = resolved_sid.distinguishedname.split(',')[:2]
+                                resolved_sid = resolved_sid[1] + '\\' + resolved_sid[0]
+                                resolved_sid = resolved_sid.replace('CN=', '')
                                 resolved_sids.append(resolved_sid)
                         if len(resolved_sids) == 1:
                             resolved_sids = resolved_sids[0]
-                        setattr(privilege_rights_policy, member[0], resolved_sids)
+                        privilege_rights_policy._attributes_dict[attr] = resolved_sids
 
                 gpttmpl.privilegerights = privilege_rights_policy
 
@@ -270,8 +270,8 @@ class GPORequester(LDAPRequester):
         for gpo in gpos:
             gpo_display_name = gpo.displayname
 
-            groupsxml_path = '{}\\MACHINE\\Preferences\\Groups\\Groups.xml'.format(gpo.gpcfilesyspath.decode('utf-8'))
-            gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath.decode('utf-8'))
+            groupsxml_path = '{}\\MACHINE\\Preferences\\Groups\\Groups.xml'.format(gpo.gpcfilesyspath)
+            gpttmpl_path = '{}\\MACHINE\\Microsoft\\Windows NT\\SecEdit\\GptTmpl.inf'.format(gpo.gpcfilesyspath)
 
             results += self._get_groupsxml(groupsxml_path, gpo_display_name)
             try:
@@ -290,23 +290,21 @@ class GPORequester(LDAPRequester):
                 with NetRequester(self._domain_controller, self._domain, self._user,
                                   self._password, self._lmhash, self._nthash) as net_requester:
                     for member in members:
-                        member = member.decode('utf-8')
                         try:
-                            resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=queried_domain)[0]
+                            resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=self._queried_domain)[0]
                             resolved_member = resolved_member.distinguishedname
                         except IndexError:
-                            resolved_member = member.encode('utf-8')
+                            resolved_member = member
                         finally:
                             resolved_members.append(resolved_member)
                     gpo_group.members = resolved_members
 
                     for member in memberof:
-                        member = member.decode('utf-8')
                         try:
-                            resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=queried_domain)[0]
+                            resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=self._queried_domain)[0]
                             resolved_member = resolved_member.distinguishedname
                         except IndexError:
-                            resolved_member = member.encode('utf-8')
+                            resolved_member = member
                         finally:
                             resolved_memberof.append(resolved_member)
                     gpo_group.memberof = memberof = resolved_memberof
@@ -332,7 +330,7 @@ class GPORequester(LDAPRequester):
 
             target_ous = list()
             for computer in computers:
-                dn = computer.distinguishedname.decode('utf-8')
+                dn = computer.distinguishedname
                 for x in dn.split(','):
                     if x.startswith('OU='):
                         target_ous.append(dn[dn.find(x):])
@@ -345,7 +343,7 @@ class GPORequester(LDAPRequester):
                                           full_data=True)
             for ou in ous:
                 try:
-                    gplinks = ou.gplink.decode('utf-8').strip('[]').split('][')
+                    gplinks = ou.gplink.strip('[]').split('][')
                 except AttributeError:
                     continue
                 for gplink in gplinks:
@@ -354,17 +352,17 @@ class GPORequester(LDAPRequester):
                                                       ads_path=gplink)
                     for gpo_group in gpo_groups:
                         for member in gpo_group.members:
-                            obj = net_requester.get_adobject(queried_sid=member.decode('utf-8'),
-                                                             queried_domain=queried_domain)[0]
+                            obj = net_requester.get_adobject(queried_sid=member,
+                                                             queried_domain=self._queried_domain)[0]
                             gpo_computer_admin = GPOComputerAdmin(list())
-                            setattr(gpo_computer_admin, 'computername', queried_computername.encode('utf-8'))
-                            setattr(gpo_computer_admin, 'ou', target_ou.encode('utf-8'))
+                            setattr(gpo_computer_admin, 'computername', queried_computername)
+                            setattr(gpo_computer_admin, 'ou', target_ou)
                             setattr(gpo_computer_admin, 'gpodisplayname', gpo_group.gpodisplayname)
                             setattr(gpo_computer_admin, 'gpopath', gpo_group.gpopath)
                             setattr(gpo_computer_admin, 'objectname', obj.name)
                             setattr(gpo_computer_admin, 'objectdn', obj.distinguishedname)
                             setattr(gpo_computer_admin, 'objectsid', obj.objectsid)
-                            setattr(gpo_computer_admin, 'isgroup', (obj.samaccounttype.decode('utf-8') != '805306368'))
+                            setattr(gpo_computer_admin, 'isgroup', (obj.samaccounttype != '805306368'))
 
                             results.append(gpo_computer_admin)
 
@@ -377,18 +375,18 @@ class GPORequester(LDAPRequester):
                                     group_sid = Utils.convert_sidtostr(group_to_resolve)
                                     
                                     group_members = net_requester.get_netgroupmember(queried_sid=group_sid,
-                                                                                     queried_domain=queried_domain,
+                                                                                     queried_domain=self._queried_domain,
                                                                                      full_data=True)
                                     for group_member in group_members:
                                         gpo_computer_admin = GPOComputerAdmin(list())
-                                        setattr(gpo_computer_admin, 'computername', queried_computername.encode('utf-8'))
-                                        setattr(gpo_computer_admin, 'ou', target_ou.encode('utf-8'))
+                                        setattr(gpo_computer_admin, 'computername', queried_computername)
+                                        setattr(gpo_computer_admin, 'ou', target_ou)
                                         setattr(gpo_computer_admin, 'gpodisplayname', gpo_group.gpodisplayname)
                                         setattr(gpo_computer_admin, 'gpopath', gpo_group.gpopath)
                                         setattr(gpo_computer_admin, 'objectname', group_member.samaccountname)
                                         setattr(gpo_computer_admin, 'objectdn', group_member.distinguishedname)
                                         setattr(gpo_computer_admin, 'objectsid', group_member.objectsid)
-                                        setattr(gpo_computer_admin, 'isgroup', (group_member.samaccounttype.decode('utf-8') != '805306368'))
+                                        setattr(gpo_computer_admin, 'isgroup', (group_member != '805306368'))
 
                                         results.append(gpo_computer_admin)
 
@@ -405,7 +403,7 @@ class GPORequester(LDAPRequester):
         if queried_username:
                 try:
                     user = net_requester.get_netuser(queried_username=queried_username,
-                                                     queried_domain=queried_domain)[0]
+                                                     queried_domain=self._queried_domain)[0]
                 except IndexError:
                     raise ValueError('Username \'{}\' was not found'.format(queried_username))
                 else:
@@ -413,12 +411,12 @@ class GPORequester(LDAPRequester):
                     target_sid = Utils.convert_sidtostr(user.objectsid)
                     # TODO: Why ?
                     target_sid = [target_sid] 
-                    object_sam_account_name = user.samaccountname.decode('utf-8')
-                    object_distinguished_name = user.distinguishedname.decode('utf-8')
+                    object_sam_account_name = user.samaccountname
+                    object_distinguished_name = user.distinguishedname
         elif queried_groupname:
                 try:
                     group = net_requester.get_netgroup(queried_groupname=queried_groupname,
-                                                       queried_domain=queried_domain,
+                                                       queried_domain=self._queried_domain,
                                                        full_data=True)[0]
                 except IndexError:
                     raise ValueError('Group name \'{}\' was not found'.format(queried_groupname))
@@ -443,14 +441,14 @@ class GPORequester(LDAPRequester):
                                                    queried_domain=queried_domain)
         for object_group in object_groups:
             try:
-                object_group_sid = net_requester.get_adobject(queried_sam_account_name=object_group.samaccountname.decode('utf-8'),
-                                                              queried_domain=queried_domain)[0].objectsid
+                object_group_sid = net_requester.get_adobject(queried_sam_account_name=object_group.samaccountname,
+                                                              queried_domain=self._queried_domain)[0].objectsid
                 object_group_sid = Utils.convert_sidtostr(object_group_sid)
             except IndexError:
                 # We may have the name of the group, but not its sam account name
                 try:
-                    object_group_sid = net_requester.get_adobject(queried_name=object_group.samaccountname.decode('utf-8'),
-                                                                  queried_domain=queried_domain)[0].objectsid
+                    object_group_sid = net_requester.get_adobject(queried_name=object_group.samaccountname,
+                                                                  queried_domain=self._queried_domain)[0].objectsid
                     object_group_sid = Utils.convert_sidtostr(object_group_sid)
                 except IndexError:
                     # Freak accident when someone is a member of a group, but
@@ -463,17 +461,17 @@ class GPORequester(LDAPRequester):
         for gpo_group in self.get_netgpogroup(queried_domain=queried_domain):
             try:
                 for member in gpo_group.members:
-                    member = member.decode('utf-8')
+                    member = member
                     if not member.upper().startswith('S-1-5'):
                         try:
-                            member = net_requester.get_adobject(queried_sam_account_name=member.decode('utf-8'),
-                                                                queried_domain=queried_domain)[0].objectsid
+                            member = net_requester.get_adobject(queried_sam_account_name=member,
+                                                                queried_domain=self._queried_domain)[0].objectsid
                             member = Utils.convert_sidtostr(member)
                         except (IndexError, AttributeError):
                             continue
                     if (member.upper() in target_sid) or (member.lower() in target_sid):
-                        if (local_sid.upper().encode('utf-8') in gpo_group.memberof) or \
-                                (local_sid.lower().encode('utf-8') in gpo_group.memberof):
+                        if (local_sid.upper() in gpo_group.memberof) or \
+                                (local_sid.lower() in gpo_group.memberof):
                             gpo_groups.append(gpo_group)
                             break
             except AttributeError:
@@ -481,16 +479,16 @@ class GPORequester(LDAPRequester):
 
         for gpo_group in gpo_groups:
             gpo_guid = gpo_group.gponame
-            ous = net_requester.get_netou(queried_domain=queried_domain,
-                                          queried_guid=gpo_guid.decode('utf-8'), full_data=True)
+            ous = net_requester.get_netou(queried_domain=self._queried_domain,
+                                          queried_guid=gpo_guid, full_data=True)
             for ou in ous:
-                ou_distinguishedname = 'LDAP://{}'.format(ou.distinguishedname.decode('utf-8'))
+                ou_distinguishedname = 'LDAP://{}'.format(ou.distinguishedname)
                 # TODO: support filters for GPO
                 ou_computers = [x.dnshostname for x in \
-                        net_requester.get_netcomputer(queried_domain=queried_domain,
+                        net_requester.get_netcomputer(queried_domain=self._queried_domain,
                                                       ads_path=ou_distinguishedname)]
                 gpo_location = GPOLocation(list())
-                setattr(gpo_location, 'objectname', object_distinguished_name.encode('utf-8'))
+                setattr(gpo_location, 'objectname', object_distinguished_name)
                 setattr(gpo_location, 'gponame', gpo_group.gpodisplayname)
                 setattr(gpo_location, 'gpoguid', gpo_guid)
                 setattr(gpo_location, 'containername', ou.distinguishedname)
