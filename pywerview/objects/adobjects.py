@@ -143,6 +143,9 @@ class ADObject:
                         member_value = datetime.fromtimestamp(0) + timedelta(seconds=timestamp)
                     else:
                         member_value = 'never'
+
+                elif member[0] in ('msds-lockoutduration', 'msds-lockoutobservationwindow', 'msds-maximumpasswordage', 'msds-minimumpasswordage'):
+                    member_value = timedelta(microseconds=abs(int(member[1]))/10)
                 
                 # The object is a group
                 elif member[0] == 'objectclass':
@@ -402,6 +405,9 @@ class Trust(ADObject):
         return s
 
 class GPO(ADObject):
+    pass
+
+class PSO(ADObject):
     pass
 
 class GptTmpl(ADObject):

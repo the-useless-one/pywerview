@@ -43,6 +43,21 @@ class GPORequester(LDAPRequester):
 
         return self._ldap_search(gpo_search_filter, GPO)
 
+    @LDAPRequester._ldap_connection_init
+    def get_netpso(self, queried_psoname='*', queried_displayname=str(),
+                   queried_domain=str(), ads_path=str()):
+
+        pso_search_filter = '(objectClass=msDS-PasswordSettings)'
+
+        if queried_displayname:
+            pso_search_filter += '(displayname={})'.format(queried_displayname)
+        else:
+            pso_search_filter += '(name={})'.format(queried_psoname)
+
+        pso_search_filter = '(&{})'.format(pso_search_filter)
+
+        return self._ldap_search(pso_search_filter, PSO)
+
     def get_gpttmpl(self, gpttmpl_path):
         content_io = BytesIO()
 

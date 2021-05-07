@@ -211,6 +211,15 @@ def get_netgpo(domain_controller, domain, user, password=str(),
                                     queried_displayname=queried_displayname,
                                     queried_domain=queried_domain, ads_path=ads_path)
 
+def get_netpso(domain_controller, domain, user, password=str(),
+               lmhash=str(), nthash=str(), queried_psoname='*',
+               queried_displayname=str(), queried_domain=str(), ads_path=str()):
+    requester = GPORequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+    return requester.get_netpso(queried_psoname=queried_psoname,
+                                    queried_displayname=queried_displayname,
+                                    queried_domain=queried_domain, ads_path=ads_path)
+
 def get_domainpolicy(domain_controller, domain, user, password=str(),
                      lmhash=str(), nthash=str(), source='domain', queried_domain=str(),
                      resolve_sids=False):
