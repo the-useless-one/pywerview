@@ -74,10 +74,6 @@ class GPORequester(LDAPRequester):
         smb_connection.connectTree(share)
         smb_connection.getFile(share, file_name, content_io.write)
         content = content_io.getvalue().decode('utf-16le')[1:].replace('\r', '')
-        #try:
-            #content = codecs.decode(content_io.getvalue(), 'utf-16le')[1:].encode('utf-8').replace(b'\r', b'')
-        #except UnicodeDecodeError:
-            #content = content_io.getvalue().replace(b'\r', b'')
 
         gpttmpl_final = GptTmpl(list())
         for l in content.split('\n'):
@@ -188,15 +184,15 @@ class GPORequester(LDAPRequester):
                     local_sid = 'S-1-5-32-555'
                 else:
                     local_sid = group.Properties['groupName']
-            memberof.append(local_sid.encode('utf-8'))
+            memberof.append(local_sid)
 
             for member in raw_xml_member:
                 if not member['action'].lower() == 'add':
                     continue
                 if member['sid']:
-                    members.append(member['sid'].encode('utf-8'))
+                    members.append(member['sid'])
                 else:
-                    members.append(member['name'].encode('utf-8'))
+                    members.append(member['name'])
 
             if members or memberof:
                 # TODO: implement filter support (seems like a pain in the ass,
@@ -204,11 +200,11 @@ class GPORequester(LDAPRequester):
                 # have the barest support for filters, so ¯\_(ツ)_/¯
 
                 gpo_group = GPOGroup(list())
-                setattr(gpo_group, 'gpodisplayname', gpo_display_name)
-                setattr(gpo_group, 'gponame', gpo_name.encode('utf-8'))
-                setattr(gpo_group, 'gpopath', groupsxml_path.encode('utf-8'))
-                setattr(gpo_group, 'members', members)
-                setattr(gpo_group, 'memberof', memberof)
+                gpo_group._attributes_dict['gpodisplayname'] = gpo_display_name
+                gpo_group._attributes_dict['gponame'] = gpo_name
+                gpo_group._attributes_dict['gpopath'] = groupsxml_path
+                gpo_group._attributes_dict['members'] = members
+                gpo_group._attributes_dict['memberof'] = memberof
 
                 gpo_groups.append(gpo_group)
 
