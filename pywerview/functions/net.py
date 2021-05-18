@@ -777,7 +777,7 @@ class NetRequester(LDAPRPCRequester):
                         # TODO: Nope, maybe here we can call get-netdomaincontroller ?
                         # Need to check in powerview
                         domain_member_attributes['server'] = attributes['name']
-                        domain_member_attributes['sid'] = pywerview.functions.misc.Utils.convert_sidtostr(domain_member.objectsid)
+                        domain_member_attributes['sid'] = domain_member.objectsid
                         try:
                             # TODO : Same here, must convert the timestamp
                             domain_member_attributes['lastlogin'] = ad_object.lastlogon

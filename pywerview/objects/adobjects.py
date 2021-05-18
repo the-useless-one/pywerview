@@ -58,10 +58,10 @@ class ADObject:
                         'S-1-5': 'NT Authority'}
 
     def __init__(self, attributes):
+        self._attributes_dict = dict()
         self.add_attributes(attributes)
 
     def add_attributes(self, attributes):
-        self._attributes_dict = dict()
         for attr in attributes:
             self._attributes_dict[attr.lower()] = attributes[attr]
 
