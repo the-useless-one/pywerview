@@ -771,7 +771,7 @@ class NetRequester(LDAPRPCRequester):
                         domain_member_attributes['isdomain'] = True
                         member_dn = domain_member.distinguishedname
                         member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
-                        domain_member_attributes['name'] = '{}\\{}'.format(member_domain, domain_member)
+                        domain_member_attributes['name'] = '{}\\{}'.format(member_domain, domain_member.samaccountname)
                         domain_member_attributes['isgroup'] = domain_member.isgroup
                         domain_member_attributes['isdomain'] = True
                         # TODO: Nope, maybe here we can call get-netdomaincontroller ?
