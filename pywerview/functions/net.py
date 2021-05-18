@@ -744,7 +744,7 @@ class NetRequester(LDAPRPCRequester):
                                 # Here, the member is a foreign security principal
                                 # TODO: resolve it properly
                                 attributes['name'] = '{}\\{}'.format(member_domain, Utils.convert_sidtostr(ad_object.objectsid))
-                            attributes['isgroup'] = b'group' in ad_object.objectclass
+                            attributes['isgroup'] = 'group' in ad_object.objectclass
                             try:
                                 # TODO: Now, lastlogon is raw, convert here or within rpc __str__ ?
                                 attributes['lastlogon'] = ad_object.lastlogon
