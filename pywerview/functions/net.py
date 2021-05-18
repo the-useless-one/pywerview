@@ -237,7 +237,7 @@ class NetRequester(LDAPRPCRequester):
             final_results = list()
             for group_sam_account_name in results:
                 obj_member_of = adobj.Group(list())
-                setattr(obj_member_of, 'samaccountname', group_sam_account_name.encode('utf-8'))
+                obj_member_of._attributes_dict['samaccountname'] = group_sam_account_name
                 final_results.append(obj_member_of)
             return final_results
         else:
@@ -736,10 +736,10 @@ class NetRequester(LDAPRPCRequester):
                     if self._ldap_connection is not None:
                         try:
                             ad_object = self.get_adobject(queried_sid=member_sid)[0]
-                            member_dn = ad_object.distinguishedname.decode('utf-8')
+                            member_dn = ad_object.distinguishedname
                             member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
                             try:
-                                attributes['name'] = '{}\\{}'.format(member_domain, ad_object.samaccountname.decode('utf-8'))
+                                attributes['name'] = '{}\\{}'.format(member_domain, ad_object.samaccountname)
                             except AttributeError:
                                 # Here, the member is a foreign security principal
                                 # TODO: resolve it properly
@@ -769,9 +769,9 @@ class NetRequester(LDAPRPCRequester):
                     for domain_member in self.get_netgroupmember(full_data=True, recurse=True, queried_sid=attributes['sid']):
                         domain_member_attributes = dict()
                         domain_member_attributes['isdomain'] = True
-                        member_dn = domain_member.distinguishedname.decode('utf-8')
+                        member_dn = domain_member.distinguishedname
                         member_domain = member_dn[member_dn.index('DC='):].replace('DC=', '').replace(',', '.')
-                        domain_member_attributes['name'] = '{}\\{}'.format(member_domain, domain_member.samaccountname.decode('utf-8'))
+                        domain_member_attributes['name'] = '{}\\{}'.format(member_domain, domain_member)
                         domain_member_attributes['isgroup'] = domain_member.isgroup
                         domain_member_attributes['isdomain'] = True
                         # TODO: Nope, maybe here we can call get-netdomaincontroller ?
