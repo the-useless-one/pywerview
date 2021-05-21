@@ -15,7 +15,6 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
-from datetime import datetime, timedelta
 import inspect
 import struct
 import pyasn1
