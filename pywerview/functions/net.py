@@ -16,7 +16,7 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
 import socket
-import datetime
+from datetime import datetime, timedelta
 from impacket.dcerpc.v5.ndr import NULL
 from impacket.dcerpc.v5 import wkst, srvs, samr
 from impacket.dcerpc.v5.samr import DCERPCSessionError
@@ -812,7 +812,7 @@ class NetRequester(LDAPRPCRequester):
 
     @LDAPRPCRequester._wmi_connection_init()
     def get_userevent(self, event_type=['logon', 'tgt'], date_start=5):
-        limit_date = (datetime.datetime.today() - datetime.timedelta(days=date_start)).strftime('%Y%m%d%H%M%S.%f-000')
+        limit_date = (datetime.today() - timedelta(days=date_start)).strftime('%Y%m%d%H%M%S.%f-000')
         if event_type == ['logon']:
             where_clause = 'EventCode=4624'
         elif event_type == ['tgt']:
@@ -829,7 +829,7 @@ class NetRequester(LDAPRPCRequester):
                 wmi_event = wmi_enum_event.Next(0xffffffff, 1)[0]
                 wmi_event_type = wmi_event.EventIdentifier
                 wmi_event_info = wmi_event.InsertionStrings
-                time = datetime.datetime.strptime(wmi_event.TimeGenerated, '%Y%m%d%H%M%S.%f-000')
+                time = datetime.strptime(wmi_event.TimeGenerated, '%Y%m%d%H%M%S.%f-000')
                 if wmi_event_type == 4624:
                     logon_type = int(wmi_event_info[8])
                     user = wmi_event_info[5]
