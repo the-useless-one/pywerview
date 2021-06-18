@@ -93,6 +93,9 @@ class LDAPRequester():
 
         # Call custom formatters for several AD attributes
         formatter = {'userAccountControl': fmt.format_useraccountcontrol,
+                'trustType': fmt.format_trusttype,
+                'trustDirection': fmt.format_trustdirection,
+                'trustAttributes': fmt.format_trustattributes,
                 'msDS-MaximumPasswordAge': format_ad_timedelta,
                 'msDS-MinimumPasswordAge': format_ad_timedelta,
                 'msDS-LockoutDuration': format_ad_timedelta,

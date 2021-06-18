@@ -115,10 +115,10 @@ def format_object_ace_flags(raw_value):
     return __format_flag(raw_value, __object_ace_flags)
 
 def format_trustdirection(raw_value):
-    return __format_dict_lookup(__trust_direction)
+    return __format_dict_lookup(raw_value, __trust_direction)
 
 def format_trusttype(raw_value):
-    return __format_dict_lookup(__trust_type)
+    return __format_dict_lookup(raw_value, __trust_type)
 
 def format_trustattributes(raw_value):
     return __format_flag(raw_value, __trust_attrib)

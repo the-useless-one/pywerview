@@ -157,57 +157,40 @@ class Subnet(ADObject):
 
 class Trust(ADObject):
 
+    def __init__(self, attributes):
+        ADObject.__init__(self, attributes)
+        trust_attributes = self.trustattributes
+        trust_direction = self.trustdirection
+        # If the filter SIDs attribute is not manually set, we check if we're
+        # not in a use case where SIDs are implicitly filtered
+        # Based on https://github.com/vletoux/pingcastle/blob/master/Healthcheck/TrustAnalyzer.cs
+        if 'filter_sids' not in trust_attributes:
+            if not (trust_direction == 'disabled' or \
+                    trust_direction == 'inbound' or \
+                    'within_forest' in trust_attributes or \
+                    'pim_trust' in trust_attributes):
+                if 'forest_transitive' in trust_attributes and 'treat_as_external' not in trust_attributes:
+                    self._attributes_dict['trustattributes'].append('filter_sids')
+
     # Pretty printing Trust object, we don't want to print all the attributes
     # so we only print useful ones (trustattributes, trustdirection, trustpartner
     # trusttype, whenchanged, whencreated)
     def __str__(self):
         s = str()
-
-        #Temporary attributes storage
-        trust_attributes = list()
-        trust_direction = str()
-
-        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
         max_length = len('trustattributes')
 
-        for member in members:
-            if member[0].startswith('_'):
-                continue
-
-            elif member[0] == 'trustpartner':
-                member_value = member[1].decode('utf-8')
-
-            elif member[0] == 'trustdirection':
-                member_value = Trust.__trust_direction.get(int(member[1].decode('utf-8')), 'unknown')
-                trust_direction = member_value
-
-            elif member[0] == 'trusttype':
-                member_value = Trust.__trust_type.get(int(member[1].decode('utf-8')), 'unknown')
-            
-            elif member[0] == 'trustattributes':
-                member_value_temp = list()
-                for attrib_flag, attrib_label in Trust.__trust_attrib.items():
-                    if int(member[1].decode('utf-8')) & attrib_flag:
-                        member_value_temp.append(attrib_label)
-                trust_attributes = member_value_temp
-
-                # If the filter SIDs attribute is not manually set, we check if we're
-                # not in a use case where SIDs are implicitly filtered
-                # Based on https://github.com/vletoux/pingcastle/blob/master/Healthcheck/TrustAnalyzer.cs
-                if 'filter_sids' not in trust_attributes:
-                    if not (trust_direction == 'disabled' or \
-                            trust_direction == 'inbound' or \
-                            'within_forest' in trust_attributes or \
-                            'pim_trust' in trust_attributes):
-                        if 'forest_transitive' in trust_attributes and 'treat_as_external' not in trust_attributes:
-                            member_value_temp.append('filter_sids')
-                member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member_value_temp)
-
+        for attr in self._attributes_dict:
+            if attr in ('trustpartner', 'trustdirection', 'trusttype', 'whenchanged', 'whencreated'):
+                attribute = self._attributes_dict[attr]
+            elif attr == 'trustattributes':
+                attribute = ', '.join(self._attributes_dict[attr])
             else:
                 continue
-            s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
+            s += '{}: {}{}\n'.format(attr, ' ' * (max_length - len(attr)), attribute)
+
         s = s[:-1]
         return s
+    pass
 
 class GPO(ADObject):
     pass
