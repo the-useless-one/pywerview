@@ -349,14 +349,14 @@ class GPORequester(LDAPRequester):
                             obj = net_requester.get_adobject(queried_sid=member,
                                                              queried_domain=self._queried_domain)[0]
                             gpo_computer_admin = GPOComputerAdmin(list())
-                            setattr(gpo_computer_admin, 'computername', queried_computername)
-                            setattr(gpo_computer_admin, 'ou', target_ou)
-                            setattr(gpo_computer_admin, 'gpodisplayname', gpo_group.gpodisplayname)
-                            setattr(gpo_computer_admin, 'gpopath', gpo_group.gpopath)
-                            setattr(gpo_computer_admin, 'objectname', obj.name)
-                            setattr(gpo_computer_admin, 'objectdn', obj.distinguishedname)
-                            setattr(gpo_computer_admin, 'objectsid', obj.objectsid)
-                            setattr(gpo_computer_admin, 'isgroup', (obj.samaccounttype != '805306368'))
+                            gpo_computer_admin.add_attributes({'computername' : queried_computername})
+                            gpo_computer_admin.add_attributes({'ou' : target_ou})
+                            gpo_computer_admin.add_attributes({'gpodisplayname' : gpo_group.gpodisplayname})
+                            gpo_computer_admin.add_attributes({'gpopath' : gpo_group.gpopath})
+                            gpo_computer_admin.add_attributes({'objectname' : obj.name})
+                            gpo_computer_admin.add_attributes({'objectdn' : obj.distinguishedname})
+                            gpo_computer_admin.add_attributes({'objectsid' : obj.objectsid})
+                            gpo_computer_admin.add_attributes({'isgroup' : (obj.samaccounttype != '805306368')})
 
                             results.append(gpo_computer_admin)
 
@@ -365,22 +365,19 @@ class GPORequester(LDAPRequester):
                                 while groups_to_resolve:
                                     group_to_resolve = groups_to_resolve.pop(0)
                                     
-                                    # We need to convert the raw sid to a str sid
-                                    group_sid = Utils.convert_sidtostr(group_to_resolve)
-                                    
-                                    group_members = net_requester.get_netgroupmember(queried_sid=group_sid,
+                                    group_members = net_requester.get_netgroupmember(queried_sid=group_to_resolve,
                                                                                      queried_domain=self._queried_domain,
                                                                                      full_data=True)
                                     for group_member in group_members:
                                         gpo_computer_admin = GPOComputerAdmin(list())
-                                        setattr(gpo_computer_admin, 'computername', queried_computername)
-                                        setattr(gpo_computer_admin, 'ou', target_ou)
-                                        setattr(gpo_computer_admin, 'gpodisplayname', gpo_group.gpodisplayname)
-                                        setattr(gpo_computer_admin, 'gpopath', gpo_group.gpopath)
-                                        setattr(gpo_computer_admin, 'objectname', group_member.samaccountname)
-                                        setattr(gpo_computer_admin, 'objectdn', group_member.distinguishedname)
-                                        setattr(gpo_computer_admin, 'objectsid', group_member.objectsid)
-                                        setattr(gpo_computer_admin, 'isgroup', (group_member != '805306368'))
+                                        gpo_computer_admin.add_attributes({'computername' : queried_computername})
+                                        gpo_computer_admin.add_attributes({'ou' : target_ou})
+                                        gpo_computer_admin.add_attributes({'gpodisplayname' : gpo_group.gpodisplayname})
+                                        gpo_computer_admin.add_attributes({'gpopath' : gpo_group.gpopath})
+                                        gpo_computer_admin.add_attributes({'objectname' : group_member.samaccountname})
+                                        gpo_computer_admin.add_attributes({'objectdn' : group_member.distinguishedname})
+                                        gpo_computer_admin.add_attributes({'objectsid' : group_member.objectsid})
+                                        gpo_computer_admin.add_attributes({'isgroup' : (group_member != '805306368')})
 
                                         results.append(gpo_computer_admin)
 
