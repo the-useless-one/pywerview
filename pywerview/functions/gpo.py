@@ -166,7 +166,6 @@ class GPORequester(LDAPRequester):
 
         content = content_io.getvalue().replace(b'\r', b'')
         groupsxml_soup = BeautifulSoup(content.decode('utf-8'), 'xml')
-        
         for group in groupsxml_soup.find_all('Group'):
             members = list()
             memberof = list()
@@ -211,7 +210,6 @@ class GPORequester(LDAPRequester):
         return gpo_groups
 
     def _get_groupsgpttmpl(self, gpttmpl_path, gpo_display_name):
-        import inspect
         gpo_groups = list()
 
         gpt_tmpl = self.get_gpttmpl(gpttmpl_path)
@@ -222,34 +220,35 @@ class GPORequester(LDAPRequester):
         except AttributeError:
             return list()
 
-        membership = inspect.getmembers(group_membership, lambda x: not(inspect.isroutine(x)))
-        for m in membership:
-            if not m[1]:
+        membership = group_membership._attributes_dict
+        
+        for ma,mv in membership.items():
+            if not mv:
                 continue
             members = list()
             memberof = list()
-            if m[0].lower().endswith('__memberof'):
-                members.append(m[0].upper().lstrip('*').replace('__MEMBEROF', '').encode('utf-8'))
-                if not isinstance(m[1], list):
-                    memberof_list = [m[1]]
+            if ma.lower().endswith('__memberof'):
+                members.append(ma.upper().lstrip('*').replace('__MEMBEROF', ''))
+                if not isinstance(mv, list):
+                    memberof_list = [mv]
                 else:
-                    memberof_list = m[1]
-                memberof += [x.decode('utf-8').lstrip('*').encode('utf-8') for x in memberof_list]
-            elif m[0].lower().endswith('__members'):
-                memberof.append(m[0].upper().lstrip('*').replace('__MEMBERS', '').encode('utf-8'))
-                if not isinstance(m[1], list):
-                    members_list = [m[1]]
+                    memberof_list = mv
+                memberof += [x.lstrip('*') for x in memberof_list]
+            elif ma.lower().endswith('__members'):
+                memberof.append(ma.upper().lstrip('*').replace('__MEMBERS', ''))
+                if not isinstance(mv, list):
+                    members_list = [mv]
                 else:
-                    members_list = m[1]
-                members += [x.decode('utf-8').lstrip('*').encode('utf-8') for x in members_list]
+                    members_list = mv
+                members += [x.lstrip('*') for x in members_list]
 
             if members and memberof:
                 gpo_group = GPOGroup(list())
-                setattr(gpo_group, 'gpodisplayname', gpo_display_name)
-                setattr(gpo_group, 'gponame', gpo_name.encode('utf-8'))
-                setattr(gpo_group, 'gpopath', gpttmpl_path.encode('utf-8'))
-                setattr(gpo_group, 'members', members)
-                setattr(gpo_group, 'memberof', memberof)
+                gpo_group.add_attributes({'gpodisplayname' : gpo_display_name})
+                gpo_group.add_attributes({'gponame' : gpo_name})
+                gpo_group.add_attributes({'gpopath' : gpttmpl_path})
+                gpo_group.add_attributes({'members' : members})
+                gpo_group.add_attributes({'memberof' : memberof})
 
                 gpo_groups.append(gpo_group)
 
