@@ -292,7 +292,7 @@ class GPORequester(LDAPRequester):
                             resolved_member = member
                         finally:
                             resolved_members.append(resolved_member)
-                    gpo_group.members = resolved_members
+                    gpo_group._attributes_dict['members'] = resolved_members
 
                     for member in memberof:
                         try:
@@ -302,8 +302,7 @@ class GPORequester(LDAPRequester):
                             resolved_member = member
                         finally:
                             resolved_memberof.append(resolved_member)
-                    gpo_group.memberof = memberof = resolved_memberof
-
+                    gpo_group._attributes_dict['memberof'] = memberof = resolved_memberof
         return results
 
     def find_gpocomputeradmin(self, queried_computername=str(),
