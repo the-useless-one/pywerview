@@ -398,10 +398,7 @@ class GPORequester(LDAPRequester):
                 except IndexError:
                     raise ValueError('Username \'{}\' was not found'.format(queried_username))
                 else:
-                    # We need to convert the raw sid to a str sid
-                    target_sid = Utils.convert_sidtostr(user.objectsid)
-                    # TODO: Why ?
-                    target_sid = [target_sid] 
+                    target_sid = [user.objectsid] 
                     object_sam_account_name = user.samaccountname
                     object_distinguished_name = user.distinguishedname
         elif queried_groupname:
@@ -434,13 +431,11 @@ class GPORequester(LDAPRequester):
             try:
                 object_group_sid = net_requester.get_adobject(queried_sam_account_name=object_group.samaccountname,
                                                               queried_domain=self._queried_domain)[0].objectsid
-                object_group_sid = Utils.convert_sidtostr(object_group_sid)
             except IndexError:
                 # We may have the name of the group, but not its sam account name
                 try:
                     object_group_sid = net_requester.get_adobject(queried_name=object_group.samaccountname,
                                                                   queried_domain=self._queried_domain)[0].objectsid
-                    object_group_sid = Utils.convert_sidtostr(object_group_sid)
                 except IndexError:
                     # Freak accident when someone is a member of a group, but
                     # we can't find the group in the AD
@@ -457,7 +452,6 @@ class GPORequester(LDAPRequester):
                         try:
                             member = net_requester.get_adobject(queried_sam_account_name=member,
                                                                 queried_domain=self._queried_domain)[0].objectsid
-                            member = Utils.convert_sidtostr(member)
                         except (IndexError, AttributeError):
                             continue
                     if (member.upper() in target_sid) or (member.lower() in target_sid):
@@ -479,11 +473,11 @@ class GPORequester(LDAPRequester):
                         net_requester.get_netcomputer(queried_domain=self._queried_domain,
                                                       ads_path=ou_distinguishedname)]
                 gpo_location = GPOLocation(list())
-                setattr(gpo_location, 'objectname', object_distinguished_name)
-                setattr(gpo_location, 'gponame', gpo_group.gpodisplayname)
-                setattr(gpo_location, 'gpoguid', gpo_guid)
-                setattr(gpo_location, 'containername', ou.distinguishedname)
-                setattr(gpo_location, 'computers', ou_computers)
+                gpo_location.add_attributes({'objectname' : object_distinguished_name})
+                gpo_location.add_attributes({'gponame' : gpo_group.gpodisplayname})
+                gpo_location.add_attributes({'gpoguid' : gpo_guid})
+                gpo_location.add_attributes({'containername' : ou.distinguishedname})
+                gpo_location.add_attributes({'computers' : ou_computers})
 
                 results.append(gpo_location)
 
