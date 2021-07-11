@@ -24,7 +24,6 @@ from impacket.smbconnection import SMBConnection, SessionError
 from pywerview.objects.adobjects import *
 from pywerview.requester import LDAPRequester
 from pywerview.functions.net import NetRequester
-from pywerview.functions.misc import Utils
 
 class GPORequester(LDAPRequester):
 
