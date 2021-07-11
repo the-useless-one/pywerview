@@ -743,7 +743,7 @@ class NetRequester(LDAPRPCRequester):
                             except AttributeError:
                                 # Here, the member is a foreign security principal
                                 # TODO: resolve it properly
-                                attributes['name'] = '{}\\{}'.format(member_domain, Utils.convert_sidtostr(ad_object.objectsid))
+                                attributes['name'] = '{}\\{}'.format(member_domain, ad_object.objectsid)
                             attributes['isgroup'] = 'group' in ad_object.objectclass
                             try:
                                 # TODO: Now, lastlogon is raw, convert here or within rpc __str__ ?
