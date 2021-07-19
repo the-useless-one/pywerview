@@ -72,7 +72,10 @@ class GPORequester(LDAPRequester):
 
         smb_connection.connectTree(share)
         smb_connection.getFile(share, file_name, content_io.write)
-        content = content_io.getvalue().decode('utf-16le')[1:].replace('\r', '')
+        try:
+            content = content_io.getvalue().decode('utf-16le')[1:].replace('\r', '')
+        except UnicodeDecodeError:
+            content = content_io.getvalue().decode('utf-8').replace('\r', '')
 
         gpttmpl_final = GptTmpl(list())
         for l in content.split('\n'):
