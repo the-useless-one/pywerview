@@ -9,7 +9,7 @@ except(IOError, ImportError):
     long_description = open('README.md').read()
 
 setup(name='pywerview',
-    version='0.3.1',
+    version='0.3.2',
     description='A Python port of PowerSploit\'s PowerView',
     long_description=long_description,
     dependency_links = ['https://github.com/SecureAuthCorp/impacket/tarball/master#egg=impacket-0.9.22'],
