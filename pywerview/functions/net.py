@@ -65,14 +65,16 @@ class NetRequester(LDAPRPCRequester):
         guid_map = dict()
         # This works on a mono-domain forest, must be tested on a more complex one
         if resolve_guids:
+            # Dirty fix to get base DN even if custom ADS path was given
+            base_dn = ','.join(self._base_dn.split(',')[-2:])
             guid_map = {'{00000000-0000-0000-0000-000000000000}': 'All'}
             with NetRequester(self._domain_controller, self._domain, self._user, self._password,
                   self._lmhash, self._nthash) as net_requester:
-                for o in net_requester.get_adobject(ads_path='CN=Schema,CN=Configuration,{}'.format(self._base_dn),
+                for o in net_requester.get_adobject(ads_path='CN=Schema,CN=Configuration,{}'.format(base_dn),
                         attributes=['name', 'schemaIDGUID'], custom_filter='(schemaIDGUID=*)'):
                     guid_map['{{{}}}'.format(o.schemaidguid)] = o.name
 
-                for o in net_requester.get_adobject(ads_path='CN=Extended-Rights,CN=Configuration,{}'.format(self._base_dn),
+                for o in net_requester.get_adobject(ads_path='CN=Extended-Rights,CN=Configuration,{}'.format(base_dn),
                         attributes=['name', 'rightsGuid'], custom_filter='(objectClass=controlAccessRight)'):
                     guid_map['{{{}}}'.format(o.rightsguid.lower())] = o.name
 
