@@ -2,16 +2,13 @@
 
 from setuptools import setup, find_packages
 
-try:
-    import pypandoc
-    long_description = pypandoc.convert_file('README.md', 'rst')
-except(IOError, ImportError):
-    long_description = open('README.md').read()
+long_description = open('README.md').read()
 
 setup(name='pywerview',
-    version='0.3.2',
+    version='0.3.3',
     description='A Python port of PowerSploit\'s PowerView',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     dependency_links = ['https://github.com/SecureAuthCorp/impacket/tarball/master#egg=impacket-0.9.22'],
     classifiers=[
         'Environment :: Console',
