@@ -85,6 +85,8 @@ class ADObject:
         for attr in self._attributes_dict:
             attribute = self._attributes_dict[attr]
             if isinstance(attribute, list):
+                if any(isinstance(x, bytes) for x in attribute):
+                    attribute = ['{}...'.format(x.hex()[:97]) for x in attribute]
                 attribute_temp = ', '.join(str(x) for x in attribute)
                 if len(attribute_temp) > 100:
                     attribute_temp = str()
