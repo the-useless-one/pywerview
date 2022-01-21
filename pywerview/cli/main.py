@@ -91,7 +91,34 @@ def main():
             help='Domain to query')
     get_adobject_parser.add_argument('-a', '--ads-path',
             help='Additional ADS path')
+    get_adobject_parser.add_argument('--attributes', nargs='+', dest='attributes',
+            default=[], help='Object attributes to return')
     get_adobject_parser.set_defaults(func=get_adobject)
+
+    # Parser for the get-objectacl command
+    get_objectacl_parser = subparsers.add_parser('get-objectacl', help='Takes a domain SID, '\
+        'samAccountName or name, and return the ACL of the associated object', parents=[ad_parser])
+    get_objectacl_parser.add_argument('--sid', dest='queried_sid',
+            help='SID to query (wildcards accepted)')
+    get_objectacl_parser.add_argument('--sam-account-name', dest='queried_sam_account_name',
+            help='samAccountName to query (wildcards accepted)')
+    get_objectacl_parser.add_argument('--name', dest='queried_name',
+            help='Name to query (wildcards accepted)')
+    get_objectacl_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_objectacl_parser.add_argument('-a', '--ads-path',
+            help='Additional ADS path')
+    get_objectacl_parser.add_argument('--sacl', action='store_true',
+            help='Return the SACL instead of the DACL for the object (requires '\
+            'a privileged account)')
+    get_objectacl_parser.add_argument('--rights-filter', dest='rights_filter',
+            choices=['reset-password', 'write-members', 'all'], help='A specific set of rights to return '\
+                    '(reset-password, write-members, all)')
+    get_objectacl_parser.add_argument('--resolve-sids', dest='resolve_sids',
+            action='store_true', help='Resolve SIDs when querying an ACL')
+    get_objectacl_parser.add_argument('--resolve-guids', action='store_true',
+            help='Resolve GUIDs to their display names')
+    get_objectacl_parser.set_defaults(func=get_objectacl)
 
     # Parser for the get-netuser command
     get_netuser_parser = subparsers.add_parser('get-netuser', help='Queries information about '\
@@ -253,6 +280,19 @@ def main():
     get_netgpo_parser.add_argument('-a', '--ads-path',
             help='Additional ADS path')
     get_netgpo_parser.set_defaults(func=get_netgpo)
+
+    # Parser for the get-netpso command
+    get_netpso_parser = subparsers.add_parser('get-netpso', help='Get a list of all current '\
+        'PSOs in the domain', parents=[ad_parser])
+    get_netpso_parser.add_argument('--psoname', dest='queried_psoname',
+            default='*', help='pso name to query for (wildcards accepted)')
+    get_netpso_parser.add_argument('--displayname', dest='queried_displayname',
+            help='Display name to query for (wildcards accepted)')
+    get_netpso_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_netpso_parser.add_argument('-a', '--ads-path',
+            help='Additional ADS path')
+    get_netpso_parser.set_defaults(func=get_netpso)
 
     # Parser for the get-domainpolicy command
     get_domainpolicy_parser = subparsers.add_parser('get-domainpolicy', help='Returns the default domain or DC '\
@@ -469,7 +509,7 @@ def main():
     if results is not None:
         try:
             for x in results:
-                    print(x)
+                    print(x, '\n')
         # for example, invoke_checklocaladminaccess returns a bool 
         except TypeError:
             print(results)

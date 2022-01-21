@@ -25,13 +25,27 @@ from pywerview.functions.hunting import UserHunter, ProcessHunter, EventHunter
 def get_adobject(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), queried_domain=str(), queried_sid=str(),
                 queried_name=str(), queried_sam_account_name=str(), ads_path=str(),
-                custom_filter=str()):
+                attributes=list(), custom_filter=str()):
     requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
     return requester.get_adobject(queried_domain=queried_domain,
                     queried_sid=queried_sid, queried_name=queried_name,
                     queried_sam_account_name=queried_sam_account_name,
-                    ads_path=ads_path, custom_filter=custom_filter)
+                    ads_path=ads_path, attributes=attributes, custom_filter=custom_filter)
+
+def get_objectacl(domain_controller, domain, user, password=str(),
+                lmhash=str(), nthash=str(), queried_domain=str(), queried_sid=str(),
+                queried_name=str(), queried_sam_account_name=str(), ads_path=str(),
+                sacl=False, rights_filter=str(), resolve_sids=False,
+                resolve_guids=False, custom_filter=str()):
+    requester = NetRequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+    return requester.get_objectacl(queried_domain=queried_domain,
+                    queried_sid=queried_sid, queried_name=queried_name,
+                    queried_sam_account_name=queried_sam_account_name,
+                    ads_path=ads_path, sacl=sacl, rights_filter=rights_filter,
+                    resolve_sids=resolve_sids, resolve_guids=resolve_guids,
+                    custom_filter=custom_filter)
 
 def get_netuser(domain_controller, domain, user, password=str(), lmhash=str(),
                 nthash=str(), queried_username=str(), queried_domain=str(), ads_path=str(),
@@ -194,6 +208,15 @@ def get_netgpo(domain_controller, domain, user, password=str(),
     requester = GPORequester(domain_controller, domain, user, password,
                                  lmhash, nthash)
     return requester.get_netgpo(queried_gponame=queried_gponame,
+                                    queried_displayname=queried_displayname,
+                                    queried_domain=queried_domain, ads_path=ads_path)
+
+def get_netpso(domain_controller, domain, user, password=str(),
+               lmhash=str(), nthash=str(), queried_psoname='*',
+               queried_displayname=str(), queried_domain=str(), ads_path=str()):
+    requester = GPORequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+    return requester.get_netpso(queried_psoname=queried_psoname,
                                     queried_displayname=queried_displayname,
                                     queried_domain=queried_domain, ads_path=ads_path)
 

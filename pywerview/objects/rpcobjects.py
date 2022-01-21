@@ -15,8 +15,6 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
-from __future__ import unicode_literals
-
 import inspect
 
 class RPCObject:

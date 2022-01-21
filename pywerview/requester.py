@@ -19,6 +19,8 @@ import socket
 import ntpath
 import ldap3
 
+from ldap3.protocol.formatters.formatters import *
+
 from impacket.smbconnection import SMBConnection
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
@@ -26,6 +28,8 @@ from impacket.dcerpc.v5.dcom import wmi
 from impacket.dcerpc.v5.dtypes import NULL
 from impacket.dcerpc.v5.dcomrt import DCOMConnection
 from impacket.dcerpc.v5.rpcrt import DCERPCException
+
+import pywerview.formatters as fmt
 
 class LDAPRequester():
     def __init__(self, domain_controller, domain=str(), user=(), password=str(),
@@ -86,12 +90,23 @@ class LDAPRequester():
         # Format the username and the domain
         # ldap3 seems not compatible with USER@DOMAIN format
         user = '{}\\{}'.format(self._domain, self._user)
+
+        # Call custom formatters for several AD attributes
+        formatter = {'userAccountControl': fmt.format_useraccountcontrol,
+                'trustType': fmt.format_trusttype,
+                'trustDirection': fmt.format_trustdirection,
+                'trustAttributes': fmt.format_trustattributes,
+                'msDS-MaximumPasswordAge': format_ad_timedelta,
+                'msDS-MinimumPasswordAge': format_ad_timedelta,
+                'msDS-LockoutDuration': format_ad_timedelta,
+                'msDS-LockoutObservationWindow': format_ad_timedelta}
         
         # Choose between password or pth  
         if self._lmhash and self._nthash:
             lm_nt_hash  = '{}:{}'.format(self._lmhash, self._nthash)
             
-            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
+            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller),
+                    formatter=formatter)
             ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
                                                authentication=ldap3.NTLM, raise_exceptions=True)
             
@@ -99,14 +114,16 @@ class LDAPRequester():
                 ldap_connection.bind()
             except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
                 # We need to try SSL (pth version)
-                ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
+                ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller),
+                    formatter=formatter)
                 ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
                                                    authentication=ldap3.NTLM, raise_exceptions=True)
 
                 ldap_connection.bind()
 
         else:
-            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller))
+            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller),
+                    formatter=formatter)
             ldap_connection = ldap3.Connection(ldap_server, user, self._password,
                                                authentication=ldap3.NTLM, raise_exceptions=True)
 
@@ -114,7 +131,8 @@ class LDAPRequester():
                 ldap_connection.bind()
             except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
                 # We nedd to try SSL (password version)
-                ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller))
+                ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller),
+                    formatter=formatter)
                 ldap_connection = ldap3.Connection(ldap_server, user, self._password,
                                                    authentication=ldap3.NTLM, raise_exceptions=True)        
                 
@@ -122,7 +140,7 @@ class LDAPRequester():
 
         self._ldap_connection = ldap_connection
 
-    def _ldap_search(self, search_filter, class_result, attributes=list()):
+    def _ldap_search(self, search_filter, class_result, attributes=list(), controls=list()):
         results = list()
        
         # if no attribute name specified, we return all attributes 
@@ -133,7 +151,7 @@ class LDAPRequester():
             # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
             search_results=self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
                     search_filter=search_filter, attributes=attributes,
-                    paged_size=1000, generator=True)
+                    controls=controls, paged_size=1000, generator=True)
         # TODO: for debug only
         except Exception as e:
             import sys
@@ -141,9 +159,9 @@ class LDAPRequester():
 
         # Skip searchResRef
         for result in search_results:
-            if result['type'] is not 'searchResEntry':
+            if result['type'] != 'searchResEntry':
                 continue
-            results.append(class_result(result['raw_attributes']))
+            results.append(class_result(result['attributes']))
 
         return results
 

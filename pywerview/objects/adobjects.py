@@ -15,163 +15,129 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
-from datetime import datetime, timedelta
 import inspect
 import struct
 import pyasn1
-import codecs
+from impacket.ldap.ldaptypes import ACE, ACCESS_ALLOWED_OBJECT_ACE, ACCESS_MASK, LDAP_SID, SR_SECURITY_DESCRIPTOR
+
+import pywerview.functions.misc as misc
 
 class ADObject:
-    __uac_flags = {0x0000001: 'SCRIPT',
-                   0x0000002: 'ACCOUNTDISABLE',
-                   0x0000008: 'HOMEDIR_REQUIRED',
-                   0x0000010: 'LOCKOUT',
-                   0x0000020: 'PASSWD_NOTREQD',
-                   0x0000040: 'PASSWD_CANT_CHANGE',
-                   0x0000080: 'ENCRYPTED_TEXT_PWD_ALLOWED',
-                   0x0000100: 'TEMP_DUPLICATE_ACCOUNT',
-                   0x0000200: 'NORMAL_ACCOUNT',
-                   0x0000800: 'INTERDOMAIN_TRUST_ACCOUNT',
-                   0x0001000: 'WORKSTATION_TRUST_ACCOUNT',
-                   0x0002000: 'SERVER_TRUST_ACCOUNT',
-                   0x0010000: 'DONT_EXPIRE_PASSWORD',
-                   0x0020000: 'MNS_LOGON_ACCOUNT',
-                   0x0040000: 'SMARTCARD_REQUIRED',
-                   0x0080000: 'TRUSTED_FOR_DELEGATION',
-                   0x0100000: 'NOT_DELEGATED',
-                   0x0200000: 'USE_DES_KEY_ONLY',
-                   0x0400000: 'DONT_REQ_PREAUTH',
-                   0x0800000: 'PASSWORD_EXPIRED',
-                   0x1000000: 'TRUSTED_TO_AUTH_FOR_DELEGATION',
-                   0x4000000: 'PARTIAL_SECRETS_ACCOUNT'}
+    _well_known_sids = {'S-1-0-0': 'Nobody', 'S-1-0': 'Null Authority', 'S-1-1-0': 'Everyone',
+                        'S-1-1': 'World Authority', 'S-1-2-0': 'Local', 'S-1-2-1': 'Console Logon',
+                        'S-1-2': 'Local Authority', 'S-1-3-0': 'Creator Owner', 'S-1-3-1': 'Creator Group',
+                        'S-1-3-2': 'Creator Owner Server', 'S-1-3-3': 'Creator Group Server', 'S-1-3-4': 'Owner Rights',
+                        'S-1-3': 'Creator Authority', 'S-1-4': 'Non-unique Authority', 'S-1-5-10': 'Principal Self',
+                        'S-1-5-11': 'Authenticated Users', 'S-1-5-12': 'Restricted Code', 'S-1-5-13': 'Terminal Server Users',
+                        'S-1-5-14': 'Remote Interactive Logon', 'S-1-5-17': 'This Organization', 'S-1-5-18': 'Local System',
+                        'S-1-5-19': 'NT Authority', 'S-1-5-1': 'Dialup', 'S-1-5-20': 'NT Authority',
+                        'S-1-5-2': 'Network', 'S-1-5-32-546': 'Guests', 'S-1-5-32-547': 'Power Users',
+                        'S-1-5-32-551': 'Backup Operators', 'S-1-5-32-555': 'Builtin\\Remote Desktop Users',
+                        'S-1-5-32-556': 'Builtin\\Network Configuration Operators',
+                        'S-1-5-32-557': 'Builtin\\Incoming Forest Trust Builders',
+                        'S-1-5-32-558': 'Builtin\\Performance Monitor Users',
+                        'S-1-5-32-559': 'Builtin\\Performance Log Users',
+                        'S-1-5-32-560': 'Builtin\\Windows Authorization Access Group',
+                        'S-1-5-32-561': 'Builtin\\Terminal Server License Servers',
+                        'S-1-5-32-562': 'Builtin\\Distributed COM Users',
+                        'S-1-5-32-569': 'Builtin\\Cryptographic Operators',
+                        'S-1-5-32-573': 'Builtin\\Event Log Readers',
+                        'S-1-5-32-574': 'Builtin\\Certificate Service DCOM Access',
+                        'S-1-5-32-575': 'Builtin\\RDS Remote Access Servers',
+                        'S-1-5-32-576': 'Builtin\\RDS Endpoint Servers',
+                        'S-1-5-32-577': 'Builtin\\RDS Management Servers',
+                        'S-1-5-32-578': 'Builtin\\Hyper-V Administrators',
+                        'S-1-5-32-579': 'Builtin\\Access Control Assistance Operators',
+                        'S-1-5-32-580': 'Builtin\\Remote Management Users',
+                        'S-1-5-32-582': 'Storage Replica Administrators',
+                        'S-1-5-3': 'Batch', 'S-1-5-4': 'Interactive', 'S-1-5-64-10': 'NTLM Authentication',
+                        'S-1-5-64-14': 'SChannel Authentication', 'S-1-5-64-21': 'Digest Authentication',
+                        'S-1-5-6': 'Service', 'S-1-5-7': 'Anonymous', 'S-1-5-80-0': 'NT Services\\All Services',
+                        'S-1-5-80': 'NT Service', 'S-1-5-8': 'Proxy', 'S-1-5-9': 'Enterprise Domain Controllers',
+                        'S-1-5': 'NT Authority'}
 
     def __init__(self, attributes):
+        self._attributes_dict = dict()
         self.add_attributes(attributes)
 
     def add_attributes(self, attributes):
         for attr in attributes:
-            #print(attr)
-            #print(attributes[attr], attr)
-            t = str(attr).lower()
-            if t in ('logonhours', 'msds-generationid'):
-                value = bytes(attributes[attr][0])
-                value = [x for x in value]
-            elif t in ('trustattributes', 'trustdirection', 'trusttype'):
-                value = int(attributes[attr][0])
-            elif t in ('objectsid', 'ms-ds-creatorsid'):
-                value = codecs.encode(bytes(attributes[attr][0]),'hex')
-                init_value = bytes(attributes[attr][0])
-                value = 'S-{0}-{1}'.format(init_value[0], init_value[1])
-                for i in range(8, len(init_value), 4):
-                    value += '-{}'.format(str(struct.unpack('<I', init_value[i:i+4])[0]))
-            elif t == 'objectguid':
-                init_value = bytes(attributes[attr][0])
-                value = str()
-                value += '{}-'.format(hex(struct.unpack('<I', init_value[0:4])[0])[2:].zfill(8))
-                value += '{}-'.format(hex(struct.unpack('<H', init_value[4:6])[0])[2:].zfill(4))
-                value += '{}-'.format(hex(struct.unpack('<H', init_value[6:8])[0])[2:].zfill(4))
-                value += '{}-'.format((codecs.encode(init_value,'hex')[16:20]).decode('utf-8'))
-                value += init_value.hex()[20:]
-            elif t in ('dscorepropagationdata', 'whenchanged', 'whencreated'):
-                value = list()
-                for val in attributes[attr]:
-                    value.append(str(datetime.strptime(str(val.decode('utf-8')), '%Y%m%d%H%M%S.0Z')))
-            elif t in ('accountexpires', 'pwdlastset', 'badpasswordtime', 'lastlogontimestamp', 'lastlogon', 'lastlogoff'):
-                try:
-                    filetimestamp = int(attributes[attr][0].decode('utf-8'))
-                    if filetimestamp != 9223372036854775807:
-                        timestamp = (filetimestamp - 116444736000000000)/10000000
-                        value = datetime.fromtimestamp(0) + timedelta(seconds=timestamp)
-                    else:
-                        value = 'never'
-                except IndexError:
-                    value = 'empty'
-            elif t == 'isgroup':
-                value = attributes[attr]
-            elif t == 'objectclass':
-                value = [x.decode('utf-8') for x in attributes[attr]]
-                setattr(self, 'isgroup', ('group' in value))
-            elif len(attributes[attr]) > 1:
-                try:
-                    value = [x.decode('utf-8') for x in attributes[attr]]
-                except (UnicodeDecodeError):
-                    value = [x for x in attributes[attr]]
-                except (AttributeError):
-                    value = attributes[attr]
-            else:
-                try:
-                    value = attributes[attr][0].decode('utf-8')
-                except (IndexError):
-                    value = str()
-                except (UnicodeDecodeError):
-                    value = attributes[attr][0]
+            self._attributes_dict[attr.lower()] = attributes[attr]
 
-            setattr(self, t, value)
+    def __getattr__(self, attr):
+        try:
+            return self._attributes_dict[attr]
+        except KeyError:
+            if attr == 'isgroup':
+                try:
+                    return 'group' in self._attributes_dict['objectclass']
+                except KeyError:
+                    return False
+            raise AttributeError
 
+    # In this method, we try to pretty print common AD attributes
     def __str__(self):
         s = str()
-        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
         max_length = 0
-        for member in members:
-            if not member[0].startswith('_'):
-                if len(member[0]) > max_length:
-                    max_length = len(member[0])
-        for member in members:
-            if not member[0].startswith('_'):
-                if member[0] == 'msmqdigests':
-                    member_value = (',\n' + ' ' * (max_length + 2)).join(x.hex() for x in member[1])
-                elif member[0] == 'useraccountcontrol':
-                    member_value = list()
-                    for uac_flag, uac_label in ADObject.__uac_flags.items():
-                        if int(member[1]) & uac_flag == uac_flag:
-                            member_value.append(uac_label)
-                elif isinstance(member[1], list):
-                    if member[0] in ('logonhours',):
-                        member_value = member[1]
-                    elif member[0] in ('usercertificate',
-                                       'protocom-sso-entries', 'protocom-sso-security-prefs',):
-                        member_value = (',\n' + ' ' * (max_length + 2)).join(
-                                '{}...'.format(x.hex()[:100]) for x in member[1])
-                    else:
-                        member_value = (',\n' + ' ' * (max_length + 2)).join(str(x) for x in member[1])
-                elif member[0] in('msmqsigncertificates', 'userparameters',
-                                  'jpegphoto', 'thumbnailphoto', 'usercertificate',
-                                  'msexchmailboxguid', 'msexchmailboxsecuritydescriptor',
-                                  'msrtcsip-userroutinggroupid', 'msexchumpinchecksum',
-                                  'protocom-sso-auth-data', 'protocom-sso-entries-checksum',
-                                  'protocom-sso-security-prefs-checksum', ):
-                    # Attribut exists but it is empty
-                    try:
-                        member_value = '{}...'.format(member[1].hex()[:100])
-                    except AttributeError:
-                        member_value = ''
-                else:
-                    member_value = member[1]
-                s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member_value)
+        for attr in self._attributes_dict:
+            if len(attr) > max_length:
+                max_length = len(attr)
+        for attr in self._attributes_dict:
+            attribute = self._attributes_dict[attr]
+            if isinstance(attribute, list):
+                if any(isinstance(x, bytes) for x in attribute):
+                    attribute = ['{}...'.format(x.hex()[:97]) for x in attribute]
+                attribute_temp = ', '.join(str(x) for x in attribute)
+                if len(attribute_temp) > 100:
+                    attribute_temp = str()
+                    line = str()
+                    for x in attribute:
+                        if len(line) + len(str(x)) <= 100:
+                            line += '{}, '.format(x)
+                        else:
+                            attribute_temp += line + '\n' + ' ' * (max_length + 2)
+                            line = str()
+                            line += '{}, '.format(x)
+                    attribute_temp += line + '\n' + ' ' * (max_length + 2)
+                attribute = attribute_temp.rstrip().rstrip(',')
+            elif isinstance(attribute, bytes):
+                attribute = '{}...'.format(attribute.hex()[:100])
+            elif isinstance(attribute, ADObject):
+                attribute = ('\n' + str(attribute)).replace('\n', '\n\t')
 
+            s += '{}: {}{}\n'.format(attr, ' ' * (max_length - len(attr)), attribute)
+            #if not member.startswith('_'):
+                ##print(len(member[1]))
+               ## print(member)
+                ## ??
+                #if member in ('logonhours', 'msds-generationid'):        
+                    #value = member[1]
+                    #member_value = [x for x in value]
+
+                ## Attribute is a SID
+                #elif member in ('objectsid', 'ms-ds-creatorsid', 'securityidentifier'):
+                    #init_value = member[1]
+                    #member_value = misc.Utils.convert_sidtostr(init_value)
+ 
         s = s[:-1]
         return s
-
+             
     def __repr__(self):
         return str(self)
 
-class User(ADObject):
+class ACE(ADObject):
+
     def __init__(self, attributes):
         ADObject.__init__(self, attributes)
-        for attr in filter(lambda _: _ in attributes, ('homedirectory',
-                                                       'scriptpath',
-                                                       'profilepath')):
-            if not hasattr(self, attr):
-                setattr(self, attr, str())
+
+        # We set iscallback, depending on the type of ACE
+        self._attributes_dict['iscallbak'] = ('CALLBACK' in self.acetype)
+
+class User(ADObject):
+    pass
 
 class Group(ADObject):
-    def __init__(self, attributes):
-        ADObject.__init__(self, attributes)
-        try:
-            if not isinstance(self.member, list):
-                self.member = [self.member]
-        except AttributeError:
-            pass
+    pass
 
 class Computer(ADObject):
     pass
@@ -183,9 +149,7 @@ class DFS(ADObject):
     pass
 
 class OU(ADObject):
-    def __init__(self, attributes):
-        ADObject.__init__(self, attributes)
-        self.distinguishedname = 'LDAP://{}'.format(self.distinguishedname)
+    pass
 
 class Site(ADObject):
     pass
@@ -194,62 +158,50 @@ class Subnet(ADObject):
     pass
 
 class Trust(ADObject):
-    __trust_attrib = {0x1: 'non_transitive', 0x2: 'uplevel_only',
-                      0x4: 'filter_sids', 0x8: 'forest_transitive',
-                      0x10: 'cross_organization', 0x20: 'within_forest',
-                      0x40: 'treat_as_external',
-                      0x80: 'trust_uses_rc4_encryption',
-                      0x100: 'trust_uses_aes_keys',
-                      0X200: 'cross_organization_no_tgt_delegation',
-                      0x400: 'pim_trust'}
-
-    __trust_direction = {0: 'disabled', 1: 'inbound',
-                         2: 'outbound', 3: 'bidirectional'}
-
-    __trust_type = {1: 'windows_non_active_directory',
-                    2: 'windows_active_directory', 3: 'mit'}
 
     def __init__(self, attributes):
-        ad_obj = ADObject(attributes)
-        self.targetname = ad_obj.name
-
-        self.trustdirection = Trust.__trust_direction.get(ad_obj.trustdirection, 'unknown')
-        self.trusttype = Trust.__trust_type.get(ad_obj.trusttype, 'unknown')
-        self.whencreated = ad_obj.whencreated
-        self.whenchanged = ad_obj.whenchanged
-
-        self.trustattributes = list()
-        for attrib_flag, attrib_label in Trust.__trust_attrib.items():
-            if ad_obj.trustattributes & attrib_flag:
-                self.trustattributes.append(attrib_label)
-
+        ADObject.__init__(self, attributes)
+        trust_attributes = self.trustattributes
+        trust_direction = self.trustdirection
         # If the filter SIDs attribute is not manually set, we check if we're
         # not in a use case where SIDs are implicitly filtered
         # Based on https://github.com/vletoux/pingcastle/blob/master/Healthcheck/TrustAnalyzer.cs
-        if 'filter_sids' not in self.trustattributes:
-            if not (self.trustdirection == 'disabled' or \
-                    self.trustdirection == 'inbound' or \
-                    'within_forest' in self.trustattributes or \
-                    'pim_trust' in self.trustattributes):
-                if 'forest_transitive' in self.trustattributes and 'treat_as_external' not in self.trustattributes:
-                    self.trustattributes.append('filter_sids')
+        if 'filter_sids' not in trust_attributes:
+            if not (trust_direction == 'disabled' or \
+                    trust_direction == 'inbound' or \
+                    'within_forest' in trust_attributes or \
+                    'pim_trust' in trust_attributes):
+                if 'forest_transitive' in trust_attributes and 'treat_as_external' not in trust_attributes:
+                    self._attributes_dict['trustattributes'].append('filter_sids')
+
+    # Pretty printing Trust object, we don't want to print all the attributes
+    # so we only print useful ones (trustattributes, trustdirection, trustpartner
+    # trusttype, whenchanged, whencreated)
+    def __str__(self):
+        s = str()
+        max_length = len('trustattributes')
+
+        for attr in self._attributes_dict:
+            if attr in ('trustpartner', 'trustdirection', 'trusttype', 'whenchanged', 'whencreated'):
+                attribute = self._attributes_dict[attr]
+            elif attr == 'trustattributes':
+                attribute = ', '.join(self._attributes_dict[attr])
+            else:
+                continue
+            s += '{}: {}{}\n'.format(attr, ' ' * (max_length - len(attr)), attribute)
+
+        s = s[:-1]
+        return s
+    pass
 
 class GPO(ADObject):
     pass
 
-class GptTmpl(ADObject):
-    def __str__(self):
-        s = str()
-        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
-        for member in members:
-            if not member[0].startswith('_'):
-                s += '{}:\n'.format(member[0])
-                member_value_str = str(member[1])
-                for line in member_value_str.split('\n'):
-                    s += '\t{}\n'.format(line)
+class PSO(ADObject):
+    pass
 
-        s = s[:-1]
-        return s
+class GptTmpl(ADObject):
+    pass
 
 class GPOGroup(ADObject):
     pass
