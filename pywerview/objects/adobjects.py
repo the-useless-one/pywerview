@@ -18,6 +18,8 @@
 import inspect
 import struct
 import pyasn1
+import logging
+
 from impacket.ldap.ldaptypes import ACE, ACCESS_ALLOWED_OBJECT_ACE, ACCESS_MASK, LDAP_SID, SR_SECURITY_DESCRIPTOR
 
 import pywerview.functions.misc as misc
@@ -57,10 +59,14 @@ class ADObject:
                         'S-1-5': 'NT Authority'}
 
     def __init__(self, attributes):
+        logger = logging.getLogger('pywerview_main_logger.ADObject')
+        self._logger = logger
+
         self._attributes_dict = dict()
         self.add_attributes(attributes)
 
     def add_attributes(self, attributes):
+        self._logger.debug('ADObject instancied with the following attributes : {}'.format(attributes))
         for attr in attributes:
             self._attributes_dict[attr.lower()] = attributes[attr]
 
@@ -84,6 +90,7 @@ class ADObject:
                 max_length = len(attr)
         for attr in self._attributes_dict:
             attribute = self._attributes_dict[attr]
+            self._logger.debug('Trying to print : attribute name = {0} / value = {1}'.format(attr, attribute))
             if isinstance(attribute, list):
                 if any(isinstance(x, bytes) for x in attribute):
                     attribute = ['{}...'.format(x.hex()[:97]) for x in attribute]
