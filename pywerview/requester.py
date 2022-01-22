@@ -15,6 +15,8 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
+import sys
+import logging
 import socket
 import ntpath
 import ldap3
@@ -22,6 +24,7 @@ import ldap3
 from ldap3.protocol.formatters.formatters import *
 
 from impacket.smbconnection import SMBConnection
+from impacket.smbconnection import SessionError
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
 from impacket.dcerpc.v5.dcom import wmi
@@ -46,6 +49,9 @@ class LDAPRequester():
         self._ldap_connection = None
         self._base_dn = None
 
+        logger = logging.getLogger('pywerview_main_logger.LDAPRequester')
+        self._logger = logger
+
     def _get_netfqdn(self):
         try:
             smb = SMBConnection(self._domain_controller, self._domain_controller)
@@ -61,11 +67,17 @@ class LDAPRequester():
 
     def _create_ldap_connection(self, queried_domain=str(), ads_path=str(),
                                 ads_prefix=str()):
-        if not self._domain:
-            self._domain = self._get_netfqdn()
+        try:
+            if not self._domain:
+                self._domain = self._get_netfqdn()
 
-        if not queried_domain:
-            queried_domain = self._get_netfqdn()
+            if not queried_domain:
+                queried_domain = self._get_netfqdn()
+        except SessionError as e:
+            self._logger.critical(e)
+            # TODO: exit ? really ?
+            sys.exit(-1)
+            
         self._queried_domain = queried_domain
 
         base_dn = str()
@@ -114,6 +126,7 @@ class LDAPRequester():
                 ldap_connection.bind()
             except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
                 # We need to try SSL (pth version)
+                self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
                 ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller),
                     formatter=formatter)
                 ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
@@ -131,6 +144,7 @@ class LDAPRequester():
                 ldap_connection.bind()
             except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
                 # We nedd to try SSL (password version)
+                self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
                 ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller),
                     formatter=formatter)
                 ldap_connection = ldap3.Connection(ldap_server, user, self._password,
@@ -152,10 +166,11 @@ class LDAPRequester():
             search_results=self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
                     search_filter=search_filter, attributes=attributes,
                     controls=controls, paged_size=1000, generator=True)
-        # TODO: for debug only
+        
         except Exception as e:
-            import sys
-            print('Except: ', sys.exc_info()[0])
+            self._logger.critical(e)
+            # TODO: exit ? really ?
+            sys.exit(-1)
 
         # Skip searchResRef
         for result in search_results:
@@ -191,6 +206,7 @@ class LDAPRequester():
         try:
             self._ldap_connection.unbind()
         except AttributeError:
+            self._logger.warning('Error when unbinding')
             pass
         self._ldap_connection = None
 
@@ -207,6 +223,9 @@ class RPCRequester():
         self._rpc_connection = None
         self._dcom = None
         self._wmi_connection = None
+        
+        logger = logging.getLogger('pywerview_main_logger.RPCRequester')
+        self._logger = logger
 
     def _create_rpc_connection(self, pipe):
         # Here we build the DCE/RPC connection
@@ -242,6 +261,7 @@ class RPCRequester():
         try:
             dce.connect()
         except socket.error:
+            self._logger.critical('Error when creating WMI connection')
             self._rpc_connection = None
         else:
             dce.bind(binding_strings[self._pipe[1:]])
@@ -252,6 +272,7 @@ class RPCRequester():
             self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
                                         self._domain, self._lmhash, self._nthash)
         except DCERPCException:
+            self._logger.critical('Error when creating WMI connection')
             self._dcom = None
         else:
             i_interface = self._dcom.CoCreateInstanceEx(wmi.CLSID_WbemLevel1Login,
@@ -311,6 +332,10 @@ class LDAPRPCRequester(LDAPRequester, RPCRequester):
                                lmhash, nthash)
         RPCRequester.__init__(self, target_computer, domain, user, password,
                                lmhash, nthash)
+        
+        logger = logging.getLogger('pywerview_main_logger.LDAPRPCRequester')
+        self._logger = logger
+
     def __enter__(self):
         try:
             LDAPRequester.__enter__(self)

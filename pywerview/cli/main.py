@@ -17,6 +17,7 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
+import logging
 import argparse
 from pywerview.cli.helpers import *
 from pywerview.functions.hunting import *
@@ -479,6 +480,15 @@ def main():
     invoke_eventhunter_parser.add_argument('--search-days', dest='search_days',
             type=int, default=3, help='Number of days back to search logs for (default: %(default)s)')
     invoke_eventhunter_parser.set_defaults(func=invoke_eventhunter)
+
+    # setup the logger
+    logger = logging.getLogger('pywerview_main_logger')
+    logger.setLevel(logging.WARNING) #TODO: via args
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.WARNING) #TODO: via args
+    formatter = logging.Formatter('[%(levelname)s] %(name)s : %(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
 
     args = parser.parse_args()
     if args.hashes:
