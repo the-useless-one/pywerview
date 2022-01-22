@@ -499,7 +499,6 @@ def main():
     formatter = logging.Formatter('[%(levelname)s] %(name)s - %(funcName)s : %(message)s')
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
-    logger.info(args.logging_level)
 
     if args.hashes:
         try:

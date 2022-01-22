@@ -155,6 +155,8 @@ class Subnet(ADObject):
 class Trust(ADObject):
 
     def __init__(self, attributes):
+        logger = logging.getLogger('pywerview_main_logger.Trust')
+        self._logger = logger
         ADObject.__init__(self, attributes)
         trust_attributes = self.trustattributes
         trust_direction = self.trustdirection
@@ -177,11 +179,13 @@ class Trust(ADObject):
         max_length = len('trustattributes')
 
         for attr in self._attributes_dict:
+            self._logger.debug('Trying to print : attribute name = {0} / value = {1}'.format(attr, self._attributes_dict[attr]))
             if attr in ('trustpartner', 'trustdirection', 'trusttype', 'whenchanged', 'whencreated'):
                 attribute = self._attributes_dict[attr]
             elif attr == 'trustattributes':
                 attribute = ', '.join(self._attributes_dict[attr])
             else:
+                self._logger.debug('Ignoring : attribute name = {0}'.format(attr, self._attributes_dict[attr]))
                 continue
             s += '{}: {}{}\n'.format(attr, ' ' * (max_length - len(attr)), attribute)
 
