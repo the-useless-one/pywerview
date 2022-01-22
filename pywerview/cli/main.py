@@ -483,10 +483,10 @@ def main():
 
     # setup the logger
     logger = logging.getLogger('pywerview_main_logger')
-    logger.setLevel(logging.WARNING) #TODO: via args
+    logger.setLevel(logging.DEBUG) #TODO: via args
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.WARNING) #TODO: via args
-    formatter = logging.Formatter('[%(levelname)s] %(name)s : %(message)s')
+    console_handler.setLevel(logging.DEBUG) #TODO: via args
+    formatter = logging.Formatter('[%(levelname)s] %(name)s - %(funcName)s : %(message)s')
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 

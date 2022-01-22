@@ -58,6 +58,11 @@ class LDAPRequester():
         except socket.error:
             return str()
 
+        self._logger.debug('SMB loging parameters : user = {0}  / password = {1} / domain = {2} '
+                           '/ LM hash = {3} / NT hash = {4}'.format(self._user, self._password, 
+                                                                    self._domain, self._lmhash, 
+                                                                    self._nthash))
+
         smb.login(self._user, self._password, domain=self._domain,
                 lmhash=self._lmhash, nthash=self._nthash)
         fqdn = smb.getServerDNSDomainName()
@@ -121,7 +126,11 @@ class LDAPRequester():
                     formatter=formatter)
             ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
                                                authentication=ldap3.NTLM, raise_exceptions=True)
-            
+           
+            self._logger.debug('LDAP binding parameters : server = {0} / user = {1} / hash = {2}'.format(self._domain_controller,
+                                                                                                         user, 
+                                                                                                         lm_nt_hash))
+ 
             try:
                 ldap_connection.bind()
             except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
@@ -139,6 +148,10 @@ class LDAPRequester():
                     formatter=formatter)
             ldap_connection = ldap3.Connection(ldap_server, user, self._password,
                                                authentication=ldap3.NTLM, raise_exceptions=True)
+
+            self._logger.debug('LDAP binding parameters : server = {0} / user = {1} / password = {2}'.format(self._domain_controller,
+                                                                                                             user,
+                                                                                                             self._password)) 
 
             try:
                 ldap_connection.bind()
@@ -160,6 +173,10 @@ class LDAPRequester():
         # if no attribute name specified, we return all attributes 
         if not attributes:
             attributes =  ldap3.ALL_ATTRIBUTES 
+
+        self._logger.debug('search_base = {0} / search_filter = {1} / attributes = {2}'.format(self._base_dn,
+                                                                                               search_filter,
+                                                                                               attributes))
 
         try: 
             # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
