@@ -30,6 +30,14 @@ def main():
     # hack for python < 3.9 : https://stackoverflow.com/questions/23349349/argparse-with-required-subparser
     subparsers.required = True
 
+    # Logging parser
+    parser.add_argument('-l', '--logging-level', dest='logging_level',
+            choices=['CRITICAL', 'WARNING', 'DEBUG'], default='CRITICAL',
+            help='SDTERR logging level: '
+                 'CRITICAL: Only critical errors are displayed (default), '
+                 'WARNING: Warnings are displayed, along with citical errors, '
+                 'DEBUG: Debug level (caution: very verbose)')
+    
     # TODO: support keberos authentication
     # Credentials parser
     credentials_parser = argparse.ArgumentParser(add_help=False)
@@ -481,16 +489,18 @@ def main():
             type=int, default=3, help='Number of days back to search logs for (default: %(default)s)')
     invoke_eventhunter_parser.set_defaults(func=invoke_eventhunter)
 
-    # setup the logger
+    args = parser.parse_args()
+
+    # setup the main logger
     logger = logging.getLogger('pywerview_main_logger')
-    logger.setLevel(logging.DEBUG) #TODO: via args
+    logger.setLevel(getattr(logging, args.logging_level))
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG) #TODO: via args
+    console_handler.setLevel(getattr(logging, args.logging_level))
     formatter = logging.Formatter('[%(levelname)s] %(name)s - %(funcName)s : %(message)s')
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
+    logger.info(args.logging_level)
 
-    args = parser.parse_args()
     if args.hashes:
         try:
             args.lmhash, args.nthash = args.hashes.split(':')
@@ -507,7 +517,7 @@ def main():
 
     parsed_args = dict()
     for k, v in vars(args).items():
-        if k not in ('func', 'hashes', 'submodule'):
+        if k not in ('func', 'hashes', 'submodule', 'logging_level'):
             parsed_args[k] = v
 
     #try:
