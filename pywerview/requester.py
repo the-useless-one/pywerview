@@ -18,10 +18,12 @@
 import socket
 import ntpath
 import ldap3
+import os
 
 from ldap3.protocol.formatters.formatters import *
 
 from impacket.smbconnection import SMBConnection
+from impacket.krb5.ccache import CCache
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
 from impacket.dcerpc.v5.dcom import wmi
@@ -33,13 +35,14 @@ import pywerview.formatters as fmt
 
 class LDAPRequester():
     def __init__(self, domain_controller, domain=str(), user=(), password=str(),
-                 lmhash=str(), nthash=str()):
+                 lmhash=str(), nthash=str(), do_kerberos=False):
         self._domain_controller = domain_controller
         self._domain = domain
         self._user = user
         self._password = password
         self._lmhash = lmhash
         self._nthash = nthash
+        self._do_kerberos = do_kerberos
         self._queried_domain = None
         self._ads_path = None
         self._ads_prefix = None
@@ -62,10 +65,18 @@ class LDAPRequester():
     def _create_ldap_connection(self, queried_domain=str(), ads_path=str(),
                                 ads_prefix=str()):
         if not self._domain:
-            self._domain = self._get_netfqdn()
+            if self._do_kerberos:
+                ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
+                self._domain = ccache.principal.realm['data'].decode('utf-8')
+            else:
+                self._domain = self._get_netfqdn()
 
         if not queried_domain:
-            queried_domain = self._get_netfqdn()
+            if self._do_kerberos:
+                ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
+                queried_domain = ccache.principal.realm['data'].decode('utf-8')
+            else:
+                queried_domain = self._get_netfqdn()
         self._queried_domain = queried_domain
 
         base_dn = str()
@@ -89,7 +100,10 @@ class LDAPRequester():
         
         # Format the username and the domain
         # ldap3 seems not compatible with USER@DOMAIN format
-        user = '{}\\{}'.format(self._domain, self._user)
+        if self._do_kerberos:
+            user = self._user
+        else:
+            user = '{}\\{}'.format(self._domain, self._user)
 
         # Call custom formatters for several AD attributes
         formatter = {'userAccountControl': fmt.format_useraccountcontrol,
@@ -102,7 +116,14 @@ class LDAPRequester():
                 'msDS-LockoutObservationWindow': format_ad_timedelta}
         
         # Choose between password or pth  
-        if self._lmhash and self._nthash:
+        if self._do_kerberos:
+            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller),
+                    formatter=formatter)
+            ldap_connection = ldap3.Connection(ldap_server, user=user,
+                                               authentication=ldap3.SASL, sasl_mechanism=ldap3.KERBEROS, raise_exceptions=True)
+            ldap_connection.bind()
+
+        elif self._lmhash and self._nthash:
             lm_nt_hash  = '{}:{}'.format(self._lmhash, self._nthash)
             
             ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller),
@@ -302,13 +323,13 @@ class RPCRequester():
 
 class LDAPRPCRequester(LDAPRequester, RPCRequester):
     def __init__(self, target_computer, domain=str(), user=(), password=str(),
-                 lmhash=str(), nthash=str(), domain_controller=str()):
+                 lmhash=str(), nthash=str(), do_kerberos=False, domain_controller=str()):
         # If no domain controller was given, we assume that the user wants to
         # target a domain controller to perform LDAP requests against
         if not domain_controller:
             domain_controller = target_computer
         LDAPRequester.__init__(self, domain_controller, domain, user, password,
-                               lmhash, nthash)
+                               lmhash, nthash, do_kerberos)
         RPCRequester.__init__(self, target_computer, domain, user, password,
                                lmhash, nthash)
     def __enter__(self):

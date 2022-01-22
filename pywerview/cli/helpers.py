@@ -23,11 +23,11 @@ from pywerview.functions.misc import Misc
 from pywerview.functions.hunting import UserHunter, ProcessHunter, EventHunter
 
 def get_adobject(domain_controller, domain, user, password=str(),
-                lmhash=str(), nthash=str(), queried_domain=str(), queried_sid=str(),
+                lmhash=str(), nthash=str(), do_kerberos=False, queried_domain=str(), queried_sid=str(),
                 queried_name=str(), queried_sam_account_name=str(), ads_path=str(),
                 attributes=list(), custom_filter=str()):
     requester = NetRequester(domain_controller, domain, user, password,
-                                 lmhash, nthash)
+                                 lmhash, nthash, do_kerberos)
     return requester.get_adobject(queried_domain=queried_domain,
                     queried_sid=queried_sid, queried_name=queried_name,
                     queried_sam_account_name=queried_sam_account_name,
