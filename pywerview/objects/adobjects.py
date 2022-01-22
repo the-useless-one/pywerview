@@ -106,18 +106,6 @@ class ADObject:
                 attribute = ('\n' + str(attribute)).replace('\n', '\n\t')
 
             s += '{}: {}{}\n'.format(attr, ' ' * (max_length - len(attr)), attribute)
-            #if not member.startswith('_'):
-                ##print(len(member[1]))
-               ## print(member)
-                ## ??
-                #if member in ('logonhours', 'msds-generationid'):        
-                    #value = member[1]
-                    #member_value = [x for x in value]
-
-                ## Attribute is a SID
-                #elif member in ('objectsid', 'ms-ds-creatorsid', 'securityidentifier'):
-                    #init_value = member[1]
-                    #member_value = misc.Utils.convert_sidtostr(init_value)
  
         s = s[:-1]
         return s
