@@ -80,20 +80,3 @@ class Misc(LDAPRPCRequester):
 
         return True
 
-class Utils():
-    @staticmethod
-    def convert_sidtostr(raw_sid):
-        str_sid = 'S-{0}-{1}'.format(raw_sid[0], raw_sid[1])
-        for i in range(8, len(raw_sid), 4):
-            str_sid += '-{}'.format(str(struct.unpack('<I', raw_sid[i:i+4])[0]))
-        return str_sid
-
-    @staticmethod
-    def convert_guidtostr(raw_guid):
-        str_guid = str()
-        str_guid += '{}-'.format(hex(struct.unpack('<I', raw_guid[0:4])[0])[2:].zfill(8))
-        str_guid += '{}-'.format(hex(struct.unpack('<H', raw_guid[4:6])[0])[2:].zfill(4))
-        str_guid += '{}-'.format(hex(struct.unpack('<H', raw_guid[6:8])[0])[2:].zfill(4))
-        str_guid += '{}-'.format(raw_guid.hex()[16:20])
-        str_guid += raw_guid.hex()[20:]
-        return str_guid
