@@ -70,11 +70,13 @@ class GPORequester(LDAPRequester):
         smb_connection.login(self._user, self._password, self._domain,
                              self._lmhash, self._nthash)
 
+        self._logger.debug('Get File: Share = {0}, file_name ={1}'.format(share, file_name))
         smb_connection.connectTree(share)
         smb_connection.getFile(share, file_name, content_io.write)
         try:
             content = content_io.getvalue().decode('utf-16le')[1:].replace('\r', '')
         except UnicodeDecodeError:
+            self._logger.warning('Unicode error: trying utf-8')
             content = content_io.getvalue().decode('utf-8').replace('\r', '')
 
         gpttmpl_final = GptTmpl(list())
@@ -111,6 +113,7 @@ class GPORequester(LDAPRequester):
                 try:
                     privilege_rights_policy = gpttmpl.privilegerights
                 except AttributeError:
+                    self._logger.critical('Could not parse privilegerights from the DC policy, SIDs will not be resolved')
                     return gpttmpl
 
                 members = inspect.getmembers(privilege_rights_policy, lambda x: not(inspect.isroutine(x)))
@@ -130,6 +133,7 @@ class GPORequester(LDAPRequester):
                             try:
                                 resolved_sid = net_requester.get_adobject(queried_sid=sid, queried_domain=self._queried_domain)[0]
                             except IndexError:
+                                self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
                                 resolved_sid = sid
                             else:
                                 resolved_sid = resolved_sid.distinguishedname.split(',')[:2]
@@ -160,10 +164,12 @@ class GPORequester(LDAPRequester):
         smb_connection.login(self._user, self._password, self._domain,
                              self._lmhash, self._nthash)
 
+        self._logger.debug('Get File: Share = {0}, file_name ={1}'.format(share, file_name))
         smb_connection.connectTree(share)
         try:
             smb_connection.getFile(share, file_name, content_io.write)
         except SessionError:
+            self._logger.warning('Error while getting the file {}, skipping...'.format(file_name))
             return list()
 
         content = content_io.getvalue().replace(b'\r', b'')
@@ -275,6 +281,7 @@ class GPORequester(LDAPRequester):
                 results += self._get_groupsgpttmpl(gpttmpl_path, gpo_display_name)
             except SessionError:
                 # If the GptTmpl file doesn't exist, we skip this
+                self._logger.warning('Error while getting the file {}, skipping...'.format(gpttmpl_path,))
                 pass
 
         if resolve_sids:
@@ -291,6 +298,7 @@ class GPORequester(LDAPRequester):
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=self._queried_domain)[0]
                             resolved_member = resolved_member.distinguishedname
                         except IndexError:
+                            self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(member))
                             resolved_member = member
                         finally:
                             resolved_members.append(resolved_member)
@@ -301,6 +309,7 @@ class GPORequester(LDAPRequester):
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=self._queried_domain)[0]
                             resolved_member = resolved_member.distinguishedname
                         except IndexError:
+                            self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(member))
                             resolved_member = member
                         finally:
                             resolved_memberof.append(resolved_member)
@@ -435,12 +444,16 @@ class GPORequester(LDAPRequester):
                                                               queried_domain=self._queried_domain)[0].objectsid
             except IndexError:
                 # We may have the name of the group, but not its sam account name
+                self._logger.warning('We may have the name of the group, but not its sam account name.')
                 try:
                     object_group_sid = net_requester.get_adobject(queried_name=object_group.samaccountname,
                                                                   queried_domain=self._queried_domain)[0].objectsid
                 except IndexError:
                     # Freak accident when someone is a member of a group, but
                     # we can't find the group in the AD
+                    self._logger.warning('Freak accident when someone is a member of a group, but we can\'t find the group in the AD,'
+                                         'see DEBUG level for more info')
+                    self._logger.debug('Dumping the mysterious object = {}'.format(object_group))
                     continue
 
             target_sid.append(object_group_sid)
