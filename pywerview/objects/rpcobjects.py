@@ -15,10 +15,15 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
+import logging
 import inspect
 
 class RPCObject:
     def __init__(self, obj):
+        logger = logging.getLogger('pywerview_main_logger.RPCObject')
+        logger.ULTRA = 5
+        self._logger = logger
+
         attributes = dict()
         try:
             for key in obj.fields.keys():
@@ -28,6 +33,7 @@ class RPCObject:
         self.add_attributes(attributes)
 
     def add_attributes(self, attributes):
+        self._logger.log(self._logger.ULTRA,'RPCObject instancied with the following attributes : {}'.format(attributes))
         for key, value in attributes.items():
             key = key.lower()
             if key in ('wkui1_logon_domain', 'wkui1_logon_server',
@@ -46,6 +52,7 @@ class RPCObject:
                 if len(member[0]) > max_length:
                     max_length = len(member[0])
         for member in members:
+            self._logger.log(self._logger.ULTRA,'Trying to print : attribute name = {0} / value = {1}'.format(member[0], member[1]))
             if not member[0].startswith('_'):
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member[1])
 
