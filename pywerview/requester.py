@@ -155,6 +155,7 @@ class LDAPRequester():
                                                authentication=ldap3.NTLM, raise_exceptions=True)
 
             self._logger.debug('LDAP binding parameters : server = {0} / user = {1} / password = {2}'.format(self._domain_controller,
+                                                                                                             user, 
                                                                                                              self._password)) 
 
             try:
