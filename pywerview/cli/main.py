@@ -32,11 +32,12 @@ def main():
 
     # Logging parser
     parser.add_argument('-l', '--logging-level', dest='logging_level',
-            choices=['CRITICAL', 'WARNING', 'DEBUG'], default='CRITICAL',
+            choices=['CRITICAL', 'WARNING', 'DEBUG', 'ULTRA'], default='CRITICAL',
             help='SDTERR logging level: '
                  'CRITICAL: Only critical errors are displayed (default), '
                  'WARNING: Warnings are displayed, along with citical errors, '
-                 'DEBUG: Debug level (caution: very verbose)')
+                 'DEBUG: Debug level (caution: very verbose), '
+                 'ULTRA: Extrem debugging level (caution: very very verbose)')
     
     # TODO: support keberos authentication
     # Credentials parser
@@ -493,9 +494,10 @@ def main():
 
     # setup the main logger
     logger = logging.getLogger('pywerview_main_logger')
-    logger.setLevel(getattr(logging, args.logging_level))
+    logging.addLevelName(5, 'ULTRA')
+    logger.setLevel(args.logging_level)
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(getattr(logging, args.logging_level))
+    console_handler.setLevel(args.logging_level)
     formatter = logging.Formatter('[%(levelname)s] %(name)s - %(funcName)s : %(message)s')
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)

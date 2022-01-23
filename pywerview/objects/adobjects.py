@@ -60,13 +60,14 @@ class ADObject:
 
     def __init__(self, attributes):
         logger = logging.getLogger('pywerview_main_logger.ADObject')
+        logger.ULTRA = 5
         self._logger = logger
 
         self._attributes_dict = dict()
         self.add_attributes(attributes)
 
     def add_attributes(self, attributes):
-        self._logger.debug('ADObject instancied with the following attributes : {}'.format(attributes))
+        self._logger.log(self._logger.ULTRA,'ADObject instancied with the following attributes : {}'.format(attributes))
         for attr in attributes:
             self._attributes_dict[attr.lower()] = attributes[attr]
 
@@ -90,7 +91,7 @@ class ADObject:
                 max_length = len(attr)
         for attr in self._attributes_dict:
             attribute = self._attributes_dict[attr]
-            self._logger.debug('Trying to print : attribute name = {0} / value = {1}'.format(attr, attribute))
+            self._logger.log(self._logger.ULTRA,'Trying to print : attribute name = {0} / value = {1}'.format(attr, attribute))
             if isinstance(attribute, list):
                 if any(isinstance(x, bytes) for x in attribute):
                     attribute = ['{}...'.format(x.hex()[:97]) for x in attribute]
@@ -179,7 +180,7 @@ class Trust(ADObject):
         max_length = len('trustattributes')
 
         for attr in self._attributes_dict:
-            self._logger.debug('Trying to print : attribute name = {0} / value = {1}'.format(attr, self._attributes_dict[attr]))
+            self._logger.log(self._logger.ULTRA,'Trying to print : attribute name = {0} / value = {1}'.format(attr, self._attributes_dict[attr]))
             if attr in ('trustpartner', 'trustdirection', 'trusttype', 'whenchanged', 'whencreated'):
                 attribute = self._attributes_dict[attr]
             elif attr == 'trustattributes':
