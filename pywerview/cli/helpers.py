@@ -289,7 +289,7 @@ def invoke_userhunter(domain_controller, domain, user, password=str(),
                       show_all=False, foreign_users=False):
     user_hunter = UserHunter(domain_controller, domain, user, password,
                              lmhash, nthash)
-    
+
     return user_hunter.invoke_userhunter(queried_computername=queried_computername,
                                          queried_computerfile=queried_computerfile,
                                          queried_computerfilter=queried_computerfilter,

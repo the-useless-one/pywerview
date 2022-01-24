@@ -58,7 +58,7 @@ class Misc(LDAPRPCRequester):
         if domain_controllers:
             primary_dc = domain_controllers[0]
             domain_sid = primary_dc.objectsid
-            
+
             # we need to retrieve the domain sid from the controller sid
             domain_sid = '-'.join(domain_sid.split('-')[:-1])
         else:

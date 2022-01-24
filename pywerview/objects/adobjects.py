@@ -114,10 +114,10 @@ class ADObject:
                 attribute = ('\n' + str(attribute)).replace('\n', '\n\t')
 
             s += '{}: {}{}\n'.format(attr, ' ' * (max_length - len(attr)), attribute)
- 
+
         s = s[:-1]
         return s
-             
+
     def __repr__(self):
         return str(self)
 

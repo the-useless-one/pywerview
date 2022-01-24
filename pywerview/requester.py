@@ -59,8 +59,8 @@ class LDAPRequester():
             return str()
 
         self._logger.debug('SMB loging parameters : user = {0}  / password = {1} / domain = {2} '
-                           '/ LM hash = {3} / NT hash = {4}'.format(self._user, self._password, 
-                                                                    self._domain, self._lmhash, 
+                           '/ LM hash = {3} / NT hash = {4}'.format(self._user, self._password,
+                                                                    self._domain, self._lmhash,
                                                                     self._nthash))
 
         smb.login(self._user, self._password, domain=self._domain,
@@ -82,7 +82,7 @@ class LDAPRequester():
             self._logger.critical(e)
             # TODO: exit ? really ?
             sys.exit(-1)
-            
+
         self._queried_domain = queried_domain
 
         base_dn = str()
@@ -103,7 +103,7 @@ class LDAPRequester():
         # base_dn is no longer used within `_create_ldap_connection()`, but I don't want to break
         # the function call. So we store it in an attriute and use it in `_ldap_search()`
         self._base_dn = base_dn
-        
+
         # Format the username and the domain
         # ldap3 seems not compatible with USER@DOMAIN format
         user = '{}\\{}'.format(self._domain, self._user)
@@ -117,20 +117,20 @@ class LDAPRequester():
                 'msDS-MinimumPasswordAge': format_ad_timedelta,
                 'msDS-LockoutDuration': format_ad_timedelta,
                 'msDS-LockoutObservationWindow': format_ad_timedelta}
-        
-        # Choose between password or pth  
+
+        # Choose between password or pth
         if self._lmhash and self._nthash:
             lm_nt_hash  = '{}:{}'.format(self._lmhash, self._nthash)
-            
+
             ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller),
                     formatter=formatter)
-            ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
+            ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash,
                                                authentication=ldap3.NTLM, raise_exceptions=True)
-           
+
             self._logger.debug('LDAP binding parameters : server = {0} / user = {1} / hash = {2}'.format(self._domain_controller,
-                                                                                                         user, 
+                                                                                                         user,
                                                                                                          lm_nt_hash))
- 
+
             try:
                 ldap_connection.bind()
             except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
@@ -138,7 +138,7 @@ class LDAPRequester():
                 self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
                 ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller),
                     formatter=formatter)
-                    
+
                 ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash,
                                                    authentication=ldap3.NTLM, raise_exceptions=True)
                 try:
@@ -155,8 +155,8 @@ class LDAPRequester():
                                                authentication=ldap3.NTLM, raise_exceptions=True)
 
             self._logger.debug('LDAP binding parameters : server = {0} / user = {1} / password = {2}'.format(self._domain_controller,
-                                                                                                             user, 
-                                                                                                             self._password)) 
+                                                                                                             user,
+                                                                                                             self._password))
 
             try:
                 ldap_connection.bind()
@@ -167,7 +167,7 @@ class LDAPRequester():
                     formatter=formatter)
 
                 ldap_connection = ldap3.Connection(ldap_server, user, self._password,
-                                                   authentication=ldap3.NTLM, raise_exceptions=True)        
+                                                   authentication=ldap3.NTLM, raise_exceptions=True)
                 try:
                     ldap_connection.bind()
                 except ldap3.core.exceptions.LDAPSocketOpenError as e:
@@ -179,21 +179,21 @@ class LDAPRequester():
 
     def _ldap_search(self, search_filter, class_result, attributes=list(), controls=list()):
         results = list()
-       
-        # if no attribute name specified, we return all attributes 
+
+        # if no attribute name specified, we return all attributes
         if not attributes:
-            attributes =  ldap3.ALL_ATTRIBUTES 
+            attributes =  ldap3.ALL_ATTRIBUTES
 
         self._logger.debug('search_base = {0} / search_filter = {1} / attributes = {2}'.format(self._base_dn,
                                                                                                search_filter,
                                                                                                attributes))
 
-        try: 
+        try:
             # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
             search_results=self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
                     search_filter=search_filter, attributes=attributes,
                     controls=controls, paged_size=1000, generator=True)
-        
+
         except Exception as e:
             self._logger.critical(e)
             # TODO: exit ? really ?
@@ -206,8 +206,8 @@ class LDAPRequester():
             results.append(class_result(result['attributes']))
 
         if not results:
-            self._logger.debug('Query returned an empty result') 
-        
+            self._logger.debug('Query returned an empty result')
+
         return results
 
     @staticmethod
@@ -253,7 +253,7 @@ class RPCRequester():
         self._rpc_connection = None
         self._dcom = None
         self._wmi_connection = None
-        
+
         logger = logging.getLogger('pywerview_main_logger.RPCRequester')
         self._logger = logger
 
@@ -362,7 +362,7 @@ class LDAPRPCRequester(LDAPRequester, RPCRequester):
                                lmhash, nthash)
         RPCRequester.__init__(self, target_computer, domain, user, password,
                                lmhash, nthash)
-        
+
         logger = logging.getLogger('pywerview_main_logger.LDAPRPCRequester')
         self._logger = logger
 

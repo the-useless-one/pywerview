@@ -40,7 +40,7 @@ class RPCObject:
                        'wkui1_oth_domains', 'wkui1_username',
                        'sesi10_cname', 'sesi10_username'):
                 value = value.rstrip('\x00')
-            
+
             setattr(self, key.lower(), value)
 
     def __str__(self):

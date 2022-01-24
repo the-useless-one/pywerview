@@ -177,7 +177,7 @@ class GPORequester(LDAPRequester):
         for group in groupsxml_soup.find_all('Group'):
             members = list()
             memberof = list()
-            
+
             raw_xml_member = group.Properties.find_all('Member')
             if not raw_xml_member:
                 continue
@@ -229,7 +229,7 @@ class GPORequester(LDAPRequester):
             return list()
 
         membership = group_membership._attributes_dict
-        
+
         for ma,mv in membership.items():
             if not mv:
                 continue
@@ -375,7 +375,7 @@ class GPORequester(LDAPRequester):
                                 groups_to_resolve = [gpo_computer_admin.objectsid]
                                 while groups_to_resolve:
                                     group_to_resolve = groups_to_resolve.pop(0)
-                                    
+
                                     group_members = net_requester.get_netgroupmember(queried_sid=group_to_resolve,
                                                                                      queried_domain=self._queried_domain,
                                                                                      full_data=True)
@@ -409,7 +409,7 @@ class GPORequester(LDAPRequester):
                 except IndexError:
                     raise ValueError('Username \'{}\' was not found'.format(queried_username))
                 else:
-                    target_sid = [user.objectsid] 
+                    target_sid = [user.objectsid]
                     object_sam_account_name = user.samaccountname
                     object_distinguished_name = user.distinguishedname
         elif queried_groupname:

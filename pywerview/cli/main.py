@@ -26,7 +26,7 @@ def main():
     # Main parser
     parser = argparse.ArgumentParser(description='Rewriting of some PowerView\'s functionalities in Python')
     subparsers = parser.add_subparsers(title='Subcommands', description='Available subcommands', dest='submodule')
-    
+
     # hack for python < 3.9 : https://stackoverflow.com/questions/23349349/argparse-with-required-subparser
     subparsers.required = True
 
@@ -39,7 +39,7 @@ def main():
                  'WARNING: Warnings are displayed, along with citical errors, '
                  'DEBUG: Debug level (caution: very verbose), '
                  'ULTRA: Extrem debugging level (caution: very very verbose)')
-    
+
     # TODO: support keberos authentication
     # Credentials parser
     credentials_parser = argparse.ArgumentParser(add_help=False)
@@ -495,7 +495,7 @@ def main():
 
     # Parser for the invoke-eventhunter command
     invoke_eventhunter_parser = subparsers.add_parser('invoke-eventhunter', help='Searches machines '\
-            'for events with specific name, or ran by specific users', 
+            'for events with specific name, or ran by specific users',
             parents=[ad_parser, hunter_parser, logging_parser])
     invoke_eventhunter_parser.add_argument('--search-days', dest='search_days',
             type=int, default=3, help='Number of days back to search logs for (default: %(default)s)')
@@ -542,7 +542,7 @@ def main():
         try:
             for x in results:
                     print(x, '\n')
-        # for example, invoke_checklocaladminaccess returns a bool 
+        # for example, invoke_checklocaladminaccess returns a bool
         except TypeError:
             print(results)
 
