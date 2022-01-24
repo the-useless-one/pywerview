@@ -56,6 +56,7 @@ class LDAPRequester():
         try:
             smb = SMBConnection(self._domain_controller, self._domain_controller)
         except socket.error:
+            self._logger.warning('Socket error when opening the SMB connection')
             return str()
 
         self._logger.debug('SMB loging parameters : user = {0}  / password = {1} / domain = {2} '
@@ -80,7 +81,6 @@ class LDAPRequester():
                 queried_domain = self._get_netfqdn()
         except SessionError as e:
             self._logger.critical(e)
-            # TODO: exit ? really ?
             sys.exit(-1)
 
         self._queried_domain = queried_domain
@@ -127,12 +127,14 @@ class LDAPRequester():
             ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash,
                                                authentication=ldap3.NTLM, raise_exceptions=True)
 
-            self._logger.debug('LDAP binding parameters : server = {0} / user = {1} / hash = {2}'.format(self._domain_controller,
-                                                                                                         user,
-                                                                                                         lm_nt_hash))
+            self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
+                               '/ hash = {2}'.format(self._domain_controller, user, lm_nt_hash))
 
             try:
                 ldap_connection.bind()
+            except ldap3.core.exceptions.LDAPSocketOpenError as e:
+                self._logger.critical(e)
+                sys.exit(-1)
             except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
                 # We need to try SSL (pth version)
                 self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
@@ -143,9 +145,10 @@ class LDAPRequester():
                                                    authentication=ldap3.NTLM, raise_exceptions=True)
                 try:
                     ldap_connection.bind()
-                except ldap3.core.exceptions.LDAPSocketOpenError:
+                except ldap3.core.exceptions.LDAPSocketOpenError as e:
                     self._logger.critical(e)
-                    self._logger.critical('TLS negociation failed, this error is mostly due to your host not supporting SHA1 as signing algorithm for certificates')
+                    self._logger.critical('TLS negociation failed, this error is mostly due to your host '
+                                          'not supporting SHA1 as signing algorithm for certificates')
                     sys.exit(-1)
 
         else:
@@ -154,12 +157,14 @@ class LDAPRequester():
             ldap_connection = ldap3.Connection(ldap_server, user, self._password,
                                                authentication=ldap3.NTLM, raise_exceptions=True)
 
-            self._logger.debug('LDAP binding parameters : server = {0} / user = {1} / password = {2}'.format(self._domain_controller,
-                                                                                                             user,
-                                                                                                             self._password))
+            self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
+                               '/ password = {2}'.format(self._domain_controller, user, self._password))
 
             try:
                 ldap_connection.bind()
+            except ldap3.core.exceptions.LDAPSocketOpenError as e:
+                self._logger.critical(e)
+                sys.exit(-1)
             except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
                 # We nedd to try SSL (password version)
                 self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
@@ -172,7 +177,8 @@ class LDAPRequester():
                     ldap_connection.bind()
                 except ldap3.core.exceptions.LDAPSocketOpenError as e:
                     self._logger.critical(e)
-                    self._logger.critical('TLS negociation failed, this error is mostly due to your host not supporting SHA1 as signing algorithm for certificates')
+                    self._logger.critical('TLS negociation failed, this error is mostly due to your host '
+                                          'not supporting SHA1 as signing algorithm for certificates')
                     sys.exit(-1)
 
         self._ldap_connection = ldap_connection
@@ -196,7 +202,6 @@ class LDAPRequester():
 
         except Exception as e:
             self._logger.critical(e)
-            # TODO: exit ? really ?
             sys.exit(-1)
 
         # Skip searchResRef
@@ -290,8 +295,9 @@ class RPCRequester():
 
         try:
             dce.connect()
-        except socket.error:
-            self._logger.critical('Error when creating WMI connection')
+        except Exception as e:
+            self._logger.critical('Error when creating RPC connection')
+            self._logger.critical(e)
             self._rpc_connection = None
         else:
             dce.bind(binding_strings[self._pipe[1:]])
@@ -301,8 +307,9 @@ class RPCRequester():
         try:
             self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
                                         self._domain, self._lmhash, self._nthash)
-        except DCERPCException:
+        except Exception as e:
             self._logger.critical('Error when creating WMI connection')
+            self._logger.critical(e)
             self._dcom = None
         else:
             i_interface = self._dcom.CoCreateInstanceEx(wmi.CLSID_WbemLevel1Login,
