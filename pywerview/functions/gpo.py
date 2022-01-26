@@ -135,6 +135,7 @@ class GPORequester(LDAPRequester):
                                 resolved_sid = resolved_sid.distinguishedname.split(',')[:2]
                                 resolved_sid = resolved_sid[1] + '\\' + resolved_sid[0]
                                 resolved_sid = resolved_sid.replace('CN=', '')
+                            finally:
                                 resolved_sids.append(resolved_sid)
                         if len(resolved_sids) == 1:
                             resolved_sids = resolved_sids[0]
