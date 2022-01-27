@@ -15,6 +15,8 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
+import logging
+
 __uac_flags = {0x0000001: 'SCRIPT',
                0x0000002: 'ACCOUNTDISABLE',
                0x0000008: 'HOMEDIR_REQUIRED',
@@ -76,6 +78,7 @@ def __format_flag(raw_value, flag_dict):
     try:
         int_value = int(raw_value)
     except ValueError:
+        self._logger.warning('Unable to convert raw flag value to int')
         return raw_value
 
     parsed_flags = list()
@@ -88,6 +91,7 @@ def __format_dict_lookup(raw_value, dictionary):
     try:
         return dictionary[int(raw_value)]
     except (ValueError, KeyError):
+        self._logger.warning('Unable to convert raw value to int')
         return raw_value
 
 def format_useraccountcontrol(raw_value):
@@ -97,6 +101,7 @@ def format_ace_access_mask(raw_value):
     try:
         int_value = int(raw_value)
     except ValueError:
+        self._logger.warning('Unable to convert raw ace acess mask value to int')
         return raw_value
 
     activedirectoryrights = list()
