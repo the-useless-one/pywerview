@@ -194,21 +194,21 @@ class LDAPRequester():
                                                                                                search_filter,
                                                                                                attributes))
 
-        try:
-            # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
-            search_results=self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
-                    search_filter=search_filter, attributes=attributes,
-                    controls=controls, paged_size=1000, generator=True)
+        # Microsoft Active Directory set an hard limit of 1000 entries returned by any search
+        search_results=self._ldap_connection.extend.standard.paged_search(search_base=self._base_dn,
+                search_filter=search_filter, attributes=attributes,
+                controls=controls, paged_size=1000, generator=True)
 
-        except Exception as e:
+        try:
+            # Skip searchResRef
+            for result in search_results:
+                if result['type'] != 'searchResEntry':
+                    continue
+                results.append(class_result(result['attributes']))
+
+        except ldap3.core.exceptions.LDAPAttributeError as e:
             self._logger.critical(e)
             sys.exit(-1)
-
-        # Skip searchResRef
-        for result in search_results:
-            if result['type'] != 'searchResEntry':
-                continue
-            results.append(class_result(result['attributes']))
 
         if not results:
             self._logger.debug('Query returned an empty result')
