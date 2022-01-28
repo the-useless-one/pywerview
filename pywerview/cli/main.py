@@ -38,7 +38,7 @@ def main():
                  'CRITICAL: Only critical errors are displayed (default), '
                  'WARNING: Warnings are displayed, along with citical errors, '
                  'DEBUG: Debug level (caution: very verbose), '
-                 'ULTRA: Extrem debugging level (caution: very very verbose)')
+                 'ULTRA: Extreme debugging level (caution: very very verbose)')
 
     # TODO: support keberos authentication
     # Credentials parser

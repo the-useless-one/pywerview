@@ -69,9 +69,13 @@ If you like living on the bleeding edge, check out the
 
 Here's the list of available commands:
 
-    $ pywerview.py -h                                                                                                             
+    $ pywerview.py --help
     usage: pywerview.py [-h]
-                        {get-adobject,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
+                        {get-adobject,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,
+                        get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,
+                        find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,
+                        get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,
+                        invoke-eventhunter}
                         ...
 
     Rewriting of some PowerView's functionalities in Python
@@ -82,7 +86,10 @@ Here's the list of available commands:
     Subcommands:
       Available subcommands
 
-      {get-adobject,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
+      {get-adobject,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,
+      get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,
+      find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,
+      get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
         get-adobject        Takes a domain SID, samAccountName or name, and return the associated object
         get-objectacl       Takes a domain SID, samAccountName or name, and return the ACL of the associated object
         get-netuser         Queries information about a domain user
@@ -130,6 +137,15 @@ and not the Win2k compatible name.
 For example, my domain name is `uselessdomain.local`. The Win2K compatible name
 is `USELESSDOMAIN`. In every command,  I must use __`uselessdomain.local`__ as
 an argument, and __not__ `USELESSDOMAIN`.
+
+### LOGGING
+
+You can provide a logging level to `pywerview` modules by using `-l` or `--logging-level` options. Supported levels are:
+
+* `CRITICAL`: Only critical errors are displayed **(default)**
+* `WARNING` Warnings are displayed, along with citical errors
+* `DEBUG`: Debug level (caution: **very** verbose)
+* `ULTRA`: Extreme debugging level (caution: **very very** verbose)
 
 ## TODO
 
