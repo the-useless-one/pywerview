@@ -69,9 +69,9 @@ If you like living on the bleeding edge, check out the
 
 Here's the list of available commands:
 
-    $ ./pywerview.py --help
+    $ pywerview.py -h                                                                                                             
     usage: pywerview.py [-h]
-                        {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-domainpolicy,get-gpttmpl,get-netgpogroup,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
+                        {get-adobject,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
                         ...
 
     Rewriting of some PowerView's functionalities in Python
@@ -82,68 +82,44 @@ Here's the list of available commands:
     Subcommands:
       Available subcommands
 
-      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
-        get-adobject        Takes a domain SID, samAccountName or name, and return
-                            the associated object
+      {get-adobject,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
+        get-adobject        Takes a domain SID, samAccountName or name, and return the associated object
+        get-objectacl       Takes a domain SID, samAccountName or name, and return the ACL of the associated object
         get-netuser         Queries information about a domain user
-        get-netgroup        Get a list of all current domain groups, or a list of
-                            groups a domain user is member of
+        get-netgroup        Get a list of all current domain groups, or a list of groups a domain user is member of
         get-netcomputer     Queries informations about domain computers
         get-netdomaincontroller
                             Get a list of domain controllers for the given domain
-        get-netfileserver   Return a list of file servers, extracted from the
-                            domain users' homeDirectory, scriptPath, and
-                            profilePath fields
-        get-dfsshare        Return a list of all fault tolerant distributed file
-                            systems for a given domain
+        get-netfileserver   Return a list of file servers, extracted from the domain users' homeDirectory, scriptPath, and profilePath fields
+        get-dfsshare        Return a list of all fault tolerant distributed file systems for a given domain
         get-netou           Get a list of all current OUs in the domain
         get-netsite         Get a list of all current sites in the domain
         get-netsubnet       Get a list of all current subnets in the domain
+        get-netdomaintrust  Returns a list of all the trusts of the specified domain
         get-netgpo          Get a list of all current GPOs in the domain
-        get-domainpolicy    Returns the default domain or DC policy for the
-                            queried domain or DC
-        get-gpttmpl         Helper to parse a GptTmpl.inf policy file path into a
-                            custom object
-        get-netgpogroup     Parses all GPOs in the domain that set "Restricted
-                            Group" or "Groups.xml"
+        get-netpso          Get a list of all current PSOs in the domain
+        get-domainpolicy    Returns the default domain or DC policy for the queried domain or DC
+        get-gpttmpl         Helper to parse a GptTmpl.inf policy file path into a custom object
+        get-netgpogroup     Parses all GPOs in the domain that set "Restricted Group" or "Groups.xml"
         find-gpocomputeradmin
-                            Takes a computer (or OU) and determine who has
-                            administrative access to it via GPO
-        find-gpolocation    Takes a username or a group name and determine the
-                            computers it has administrative access to via GPO
+                            Takes a computer (or OU) and determine who has administrative access to it via GPO
+        find-gpolocation    Takes a username or a group name and determine the computers it has administrative access to via GPO
         get-netgroupmember  Return a list of members of a domain group
-        get-netsession      Queries a host to return a list of active sessions on
-                            the host (you can use local credentials instead of
-                            domain credentials)
-        get-localdisks      Queries a host to return a list of active disks on the
-                            host (you can use local credentials instead of domain
-                            credentials)
+        get-netsession      Queries a host to return a list of active sessions on the host (you can use local credentials instead of domain credentials)
+        get-localdisks      Queries a host to return a list of active disks on the host (you can use local credentials instead of domain credentials)
         get-netdomain       Queries a host for available domains
-        get-netshare        Queries a host to return a list of available shares on
-                            the host (you can use local credentials instead of
-                            domain credentials)
-        get-netloggedon     This function will execute the NetWkstaUserEnum RPC
-                            call to query a given host for actively logged on
-                            users
-        get-netlocalgroup   Gets a list of members of a local group on a machine,
-                            or returns every local group. You can use local
-                            credentials instead of domain credentials, however,
-                            domain credentials are needed to resolve domain SIDs.
+        get-netshare        Queries a host to return a list of available shares on the host (you can use local credentials instead of domain credentials)
+        get-netloggedon     This function will execute the NetWkstaUserEnum RPC call to query a given host for actively logged on users
+        get-netlocalgroup   Gets a list of members of a local group on a machine, or returns every local group. You can use local credentials instead of domain credentials, however, domain credentials are needed
+                            to resolve domain SIDs.
         invoke-checklocaladminaccess
-                            Checks if the given user has local admin access on the
-                            given host
-        get-netprocess      This function will execute the 'Select * from
-                            Win32_Process' WMI query to a given host for a list of
-                            executed process
-        get-userevent       This function will execute the 'Select * from
-                            Win32_Process' WMI query to a given host for a list of
-                            executed process
+                            Checks if the given user has local admin access on the given host
+        get-netprocess      This function will execute the 'Select * from Win32_Process' WMI query to a given host for a list of executed process
+        get-userevent       This function will execute the 'Select * from Win32_Process' WMI query to a given host for a list of executed process
         invoke-userhunter   Finds which machines domain users are logged into
         invoke-processhunter
-                            Searches machines for processes with specific name, or
-                            ran by specific users
-        invoke-eventhunter  Searches machines for events with specific name, or
-                            ran by specific users
+                            Searches machines for processes with specific name, or ran by specific users
+        invoke-eventhunter  Searches machines for events with specific name, or ran by specific users
 
 Take a look at the [wiki](https://github.com/the-useless-one/pywerview/wiki) to
 see a more detailed usage of every command.
@@ -160,7 +136,6 @@ an argument, and __not__ `USELESSDOMAIN`.
 * Many, many more PowerView functionalities to implement. I'll now focus on
   forest functions, then inter-forest trust functions
 * Lots of rewrite due to the last version of PowerView
-* Implement a debugging mode (for easier troubleshooting)
 * Gracefully fail against Unix machines running Samba
 * Support Kerberos authentication
 * Perform range cycling in `get-netgroupmember`
