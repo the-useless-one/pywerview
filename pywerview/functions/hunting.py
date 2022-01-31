@@ -155,7 +155,7 @@ class Hunter(NetRequester):
                 rlist, wlist, _ = select.select(self._parent_pipes, write_watch_list, list())
 
                 for readable in rlist:
-                    jobs_done += 1 
+                    jobs_done += 1
                     results = readable.recv()
                     for result in results:
                         yield result
