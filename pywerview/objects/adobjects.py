@@ -121,6 +121,10 @@ class ADObject:
     def __repr__(self):
         return str(self)
 
+    def to_json(self):
+        #print(self._attributes_dict)
+        return(self._attributes_dict)
+
 class ACE(ADObject):
 
     def __init__(self, attributes):
