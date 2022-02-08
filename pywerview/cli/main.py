@@ -443,7 +443,8 @@ def main():
 
     # Parser for the invoke-checklocaladminaccess command
     invoke_checklocaladminaccess_parser = subparsers.add_parser('invoke-checklocaladminaccess', help='Checks '\
-            'if the given user has local admin access on the given host', parents=[target_parser, logging_parser])
+            'if the given user has local admin access on the given host', 
+            parents=[target_parser, logging_parser, json_output_parser])
     invoke_checklocaladminaccess_parser.set_defaults(func=invoke_checklocaladminaccess)
 
     # Parser for the get-netprocess command
@@ -558,7 +559,7 @@ def main():
                 try:
                     objects_json = [results.to_json()]
                 except AttributeError:
-                    objects_json = [results]
+                    objects_json = results
             results_json['results'] = objects_json
             print(json.dumps(results_json, default=str))
         else:
