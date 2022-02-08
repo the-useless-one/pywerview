@@ -19,6 +19,7 @@
 
 import logging
 import argparse
+import json
 from pywerview.cli.helpers import *
 from pywerview.functions.hunting import *
 
@@ -550,7 +551,7 @@ def main():
             if args.json_output:
                 results_json = {"cmd" : {"submodule" : args.submodule, "args" : parsed_args}, 
                             "results" : objects_json}
-                print(results_json)
+                print(json.dumps(results_json, default=str))
         # for example, invoke_checklocaladminaccess returns a bool
         except TypeError:
             print(results)

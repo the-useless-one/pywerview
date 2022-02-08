@@ -122,8 +122,7 @@ class ADObject:
         return str(self)
 
     def to_json(self):
-        #print(self._attributes_dict)
-        return(self._attributes_dict)
+        return self._attributes_dict
 
 class ACE(ADObject):
 
