@@ -20,6 +20,7 @@
 import logging
 import argparse
 import json
+import datetime
 from pywerview.cli.helpers import *
 from pywerview.functions.hunting import *
 
@@ -538,7 +539,9 @@ def main():
         if k not in ('func', 'hashes', 'submodule', 'logging_level', 'json_output'):
             parsed_args[k] = v
 
+    starting_time = datetime.datetime.now()
     results = args.func(**parsed_args)
+    ending_time = datetime.datetime.now()
 
     objects_json = list()
     if results is not None:
@@ -549,8 +552,8 @@ def main():
                 else:
                     print(x, '\n')
             if args.json_output:
-                results_json = {"cmd" : {"submodule" : args.submodule, "args" : parsed_args}, 
-                            "results" : objects_json}
+                results_json = {'cmd' : {'submodule' : args.submodule, 'args' : parsed_args,
+                    'starting_time': starting_time, 'ending_time': ending_time}, 'results' : objects_json}
                 print(json.dumps(results_json, default=str))
         # for example, invoke_checklocaladminaccess returns a bool
         except TypeError:
