@@ -62,6 +62,14 @@ class RPCObject:
     def __repr__(self):
         return str(self)
 
+    def to_json(self):
+        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
+        results = dict()
+        for member in members:
+            if not member[0].startswith('_'):
+                results[member[0]]=member[1]
+        return(results)
+
 class TargetUser(RPCObject):
     pass
 

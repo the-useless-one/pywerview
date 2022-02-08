@@ -400,13 +400,13 @@ def main():
     # Parser for the get-netsession command
     get_netsession_parser = subparsers.add_parser('get-netsession', help='Queries a host to return a '\
         'list of active sessions on the host (you can use local credentials instead of domain credentials)',
-        parents=[target_parser, logging_parser])
+        parents=[target_parser, logging_parser, json_output_parser])
     get_netsession_parser.set_defaults(func=get_netsession)
 
     #Parser for the get-localdisks command
     get_localdisks_parser = subparsers.add_parser('get-localdisks', help='Queries a host to return a '\
         'list of active disks on the host (you can use local credentials instead of domain credentials)',
-        parents=[target_parser, logging_parser])
+        parents=[target_parser, logging_parser, json_output_parser])
     get_localdisks_parser.set_defaults(func=get_localdisks)
 
     #Parser for the get-netdomain command
@@ -417,20 +417,20 @@ def main():
     # Parser for the get-netshare command
     get_netshare_parser = subparsers.add_parser('get-netshare', help='Queries a host to return a '\
         'list of available shares on the host (you can use local credentials instead of domain credentials)',
-        parents=[target_parser, logging_parser])
+        parents=[target_parser, logging_parser, json_output_parser])
     get_netshare_parser.set_defaults(func=get_netshare)
 
     # Parser for the get-netloggedon command
     get_netloggedon_parser = subparsers.add_parser('get-netloggedon', help='This function will '\
         'execute the NetWkstaUserEnum RPC call to query a given host for actively logged on '\
-        'users', parents=[target_parser, logging_parser])
+        'users', parents=[target_parser, logging_parser, json_output_parser])
     get_netloggedon_parser.set_defaults(func=get_netloggedon)
 
     # Parser for the get-netlocalgroup command
     get_netlocalgroup_parser = subparsers.add_parser('get-netlocalgroup', help='Gets a list of '\
         'members of a local group on a machine, or returns every local group. You can use local '\
         'credentials instead of domain credentials, however, domain credentials are needed to '\
-        'resolve domain SIDs.', parents=[target_parser, logging_parser])
+        'resolve domain SIDs.', parents=[target_parser, logging_parser, json_output_parser])
     get_netlocalgroup_parser.add_argument('--groupname', dest='queried_groupname',
             help='Group to list the members of (defaults to the local \'Administrators\' group')
     get_netlocalgroup_parser.add_argument('--list-groups', action='store_true',
@@ -449,13 +449,13 @@ def main():
     # Parser for the get-netprocess command
     get_netprocess_parser = subparsers.add_parser('get-netprocess', help='This function will '\
         'execute the \'Select * from Win32_Process\' WMI query to a given host for a list of '\
-        'executed process', parents=[target_parser, logging_parser])
+        'executed process', parents=[target_parser, logging_parser, json_output_parser])
     get_netprocess_parser.set_defaults(func=get_netprocess)
 
     # Parser for the get-userevent command
     get_userevent_parser = subparsers.add_parser('get-userevent', help='This function will '\
         'execute the \'Select * from Win32_Process\' WMI query to a given host for a list of '\
-        'executed process', parents=[target_parser, logging_parser])
+        'executed process', parents=[target_parser, logging_parser, json_output_parser])
     get_userevent_parser.add_argument('--event-type', nargs='+', choices=['logon', 'tgt'],
             default=['logon', 'tgt'], help='The type of event to search for: logon, tgt, or all (default: all)')
     get_userevent_parser.add_argument('--date-start', type=int,
