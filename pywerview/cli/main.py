@@ -543,19 +543,27 @@ def main():
     results = args.func(**parsed_args)
     ending_time = datetime.datetime.now()
 
-    objects_json = list()
+    try:
+        json_output = args.json_output
+    except AttributeError:
+        json_output = False
+
     if results is not None:
-        try:
-            for x in results:
-                if args.json_output:
-                    objects_json.append(x.to_json())
-                else:
-                    print(x, '\n')
-            if args.json_output:
-                results_json = {'cmd' : {'submodule' : args.submodule, 'args' : parsed_args,
-                    'starting_time': starting_time, 'ending_time': ending_time}, 'results' : objects_json}
-                print(json.dumps(results_json, default=str))
-        # for example, invoke_checklocaladminaccess returns a bool
-        except TypeError:
-            print(results)
+        if json_output:
+            results_json = {'cmd' : {'submodule' : args.submodule, 'args' : parsed_args,
+                'starting_time': starting_time, 'ending_time': ending_time}}
+            try:
+                objects_json = [x.to_json() for x in results]
+            except TypeError:
+                try:
+                    objects_json = [results.to_json()]
+                except AttributeError:
+                    objects_json = [results]
+            results_json['results'] = objects_json
+            print(json.dumps(results_json, default=str))
+        else:
+            try:
+                print('\n\n'.join(str(x) for x in results))
+            except TypeError:
+                print(results)
 
