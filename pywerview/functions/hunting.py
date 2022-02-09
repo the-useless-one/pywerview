@@ -26,9 +26,9 @@ from pywerview.worker.hunting import UserHunterWorker, ProcessHunterWorker, Even
 
 class Hunter(NetRequester):
     def __init__(self, target_computer, domain=str(), user=(), password=str(),
-                 lmhash=str(), nthash=str(), domain_controller=str(), queried_domain=str()):
+                 lmhash=str(), nthash=str(), do_kerberos=False, domain_controller=str(), queried_domain=str()):
         NetRequester.__init__(self, target_computer, domain, user, password,
-                              lmhash, nthash, domain_controller)
+                              lmhash, nthash, do_kerberos, domain_controller)
         self._target_domains = list()
         self._target_computers = list()
         self._target_users = list()
@@ -89,7 +89,7 @@ class Hunter(NetRequester):
             self._target_users.append(rpcobj.TargetUser(attributes))
         elif target_server:
             with NetRequester(target_server, domain, user, password, lmhash,
-                              nthash, domain_controller) as target_server_requester:
+                              nthash, do_kerberos, domain_controller) as target_server_requester:
                 for x in target_server_requester.get_netlocalgroup(recurse=True):
                     if x.isdomain and not x.isgroup:
                         attributes = {'memberdomain': x.name.split('/')[0].lower(),
@@ -139,7 +139,7 @@ class Hunter(NetRequester):
             self._parent_pipes.append(parent_pipe)
             worker = worker_class(worker_pipe, self._domain, self._user,
                                             self._password, self._lmhash, self._nthash,
-                                            *worker_args)
+                                            self._do_kerberos, *worker_args)
 
             worker.start()
             self._workers.append(worker)
@@ -200,7 +200,7 @@ class UserHunter(Hunter):
 
         if foreign_users:
             with Misc(self._domain_controller, self._domain, self._user,
-                      self._password, self._lmhash, self._nthash) as misc_requester:
+                      self._password, self._lmhash, self._nthash, self._do_kerberos) as misc_requester:
                 domain_sid = misc_requester.get_domainsid(queried_domain)
                 domain_short_name = misc_requester.convert_sidtont4(domain_sid).split('\\')[0]
         else:

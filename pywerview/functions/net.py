@@ -69,7 +69,7 @@ class NetRequester(LDAPRPCRequester):
             base_dn = ','.join(self._base_dn.split(',')[-2:])
             guid_map = {'{00000000-0000-0000-0000-000000000000}': 'All'}
             with NetRequester(self._domain_controller, self._domain, self._user, self._password,
-                  self._lmhash, self._nthash) as net_requester:
+                  self._lmhash, self._nthash, self._do_kerberos) as net_requester:
                 for o in net_requester.get_adobject(ads_path='CN=Schema,CN=Configuration,{}'.format(base_dn),
                         attributes=['name', 'schemaIDGUID'], custom_filter='(schemaIDGUID=*)'):
                     guid_map['{{{}}}'.format(o.schemaidguid)] = o.name
@@ -101,7 +101,7 @@ class NetRequester(LDAPRPCRequester):
 
         if resolve_sids:
             sid_resolver = NetRequester(self._domain_controller, self._domain,
-                    self._user, self._password, self._lmhash, self._nthash)
+                    self._user, self._password, self._lmhash, self._nthash, self._do_kerberos)
             sid_mapping = adobj.ADObject._well_known_sids.copy()
         else:
             sid_resolver = None
@@ -469,7 +469,7 @@ class NetRequester(LDAPRPCRequester):
                         with pywerview.functions.misc.Misc(self._domain_controller,
                                                            self._domain, self._user,
                                                            self._password, self._lmhash,
-                                                           self._nthash) as misc_requester:
+                                                           self._nthash, self._do_kerberos) as misc_requester:
                             queried_sid = misc_requester.get_domainsid(queried_domain) + '-512'
                     groups = self.get_netgroup(queried_sid=queried_sid,
                                                queried_domain=self._queried_domain,

@@ -22,7 +22,7 @@ from pywerview.functions.misc import Misc
 import pywerview.objects.rpcobjects as rpcobj
 
 class HunterWorker(Process):
-    def __init__(self, pipe, domain, user, password, lmhash, nthash):
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos):
         Process.__init__(self)
         self._pipe = pipe
         self._domain = domain
@@ -30,6 +30,7 @@ class HunterWorker(Process):
         self._password = password
         self._lmhash = lmhash
         self._nthash = nthash
+        self._do_kerberos = do_kerberos
 
     def terminate(self):
         self._pipe.close()
@@ -42,9 +43,10 @@ class HunterWorker(Process):
             self._pipe.send(result)
 
 class UserHunterWorker(HunterWorker):
-    def __init__(self, pipe, domain, user, password, lmhash, nthash, foreign_users,
-                 stealth, target_users, domain_short_name, check_access):
-        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash)
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos,
+            foreign_users, stealth, target_users, domain_short_name, check_access):
+        HunterWorker.__init__(self, pipe, domain, user, password, lmhash,
+                nthash, do_kerberos)
         self._foreign_users = foreign_users
         self._stealth = stealth
         self._target_users = target_users
@@ -58,7 +60,7 @@ class UserHunterWorker(HunterWorker):
         # First, we get every distant session on the target computer
         distant_sessions = list()
         with NetRequester(target_computer, self._domain, self._user, self._password,
-                          self._lmhash, self._nthash) as net_requester:
+                          self._lmhash, self._nthash, self._do_kerberos) as net_requester:
             if not self._foreign_users:
                 distant_sessions += net_requester.get_netsession()
             if not self._stealth:
@@ -99,7 +101,7 @@ class UserHunterWorker(HunterWorker):
 
                         if self._check_access:
                             with Misc(target_computer, self._domain, self._user, self._password,
-                                              self._lmhash, self._nthash) as misc_requester:
+                                              self._lmhash, self._nthash, self._do_kerberos) as misc_requester:
                                 attributes['localadmin'] = misc_requester.invoke_checklocaladminaccess()
                         else:
                             attributes['localadmin'] = str()
@@ -109,9 +111,9 @@ class UserHunterWorker(HunterWorker):
         return results
 
 class ProcessHunterWorker(HunterWorker):
-    def __init__(self, pipe, domain, user, password, lmhash, nthash, process_name,
-                 target_users):
-        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash)
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos,
+            process_name, target_users):
+        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos)
         self._process_name = process_name
         self._target_users = target_users
 
@@ -120,7 +122,7 @@ class ProcessHunterWorker(HunterWorker):
 
         distant_processes = list()
         with NetRequester(target_computer, self._domain, self._user, self._password,
-                          self._lmhash, self._nthash) as net_requester:
+                          self._lmhash, self._nthash, self._do_kerberos) as net_requester:
             distant_processes = net_requester.get_netprocess()
 
         for process in distant_processes:
@@ -136,9 +138,9 @@ class ProcessHunterWorker(HunterWorker):
         return results
 
 class EventHunterWorker(HunterWorker):
-    def __init__(self, pipe, domain, user, password, lmhash, nthash, search_days,
-                 target_users):
-        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash)
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos,
+            search_days, target_users):
+        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos)
         self._target_users = target_users
         self._search_days = search_days
 
@@ -147,7 +149,7 @@ class EventHunterWorker(HunterWorker):
 
         distant_processes = list()
         with NetRequester(target_computer, self._domain, self._user, self._password,
-                          self._lmhash, self._nthash) as net_requester:
+                          self._lmhash, self._nthash, self._do_kerberos) as net_requester:
             distant_events = net_requester.get_userevent(date_start=self._search_days)
 
         for event in distant_events:
@@ -157,3 +159,4 @@ class EventHunterWorker(HunterWorker):
                         results.append(event)
 
         return results
+

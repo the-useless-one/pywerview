@@ -101,7 +101,7 @@ class LDAPRequester():
         # Format the username and the domain
         # ldap3 seems not compatible with USER@DOMAIN format
         if self._do_kerberos:
-            user = self._user
+            user = '{}@{}'.format(self._user, self._domain.upper())
         else:
             user = '{}\\{}'.format(self._domain, self._user)
 
@@ -217,13 +217,14 @@ class LDAPRequester():
 
 class RPCRequester():
     def __init__(self, target_computer, domain=str(), user=(), password=str(),
-                 lmhash=str(), nthash=str()):
+                 lmhash=str(), nthash=str(), do_kerberos=False):
         self._target_computer = target_computer
         self._domain = domain
         self._user = user
         self._password = password
         self._lmhash = lmhash
         self._nthash = nthash
+        self._do_kerberos = do_kerberos
         self._pipe = None
         self._rpc_connection = None
         self._dcom = None
@@ -252,7 +253,7 @@ class RPCRequester():
             rpctransport = transport.SMBTransport(self._target_computer, 445, self._pipe,
                                                   username=self._user, password=self._password,
                                                   domain=self._domain, lmhash=self._lmhash,
-                                                  nthash=self._nthash)
+                                                  nthash=self._nthash, doKerberos=self._do_kerberos)
 
         rpctransport.set_connect_timeout(10)
         dce = rpctransport.get_dce_rpc()
@@ -271,7 +272,7 @@ class RPCRequester():
     def _create_wmi_connection(self, namespace='root\\cimv2'):
         try:
             self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
-                                        self._domain, self._lmhash, self._nthash)
+                                        self._domain, self._lmhash, self._nthash, doKerberos=self._do_kerberos)
         except DCERPCException:
             self._dcom = None
         else:
@@ -331,7 +332,7 @@ class LDAPRPCRequester(LDAPRequester, RPCRequester):
         LDAPRequester.__init__(self, domain_controller, domain, user, password,
                                lmhash, nthash, do_kerberos)
         RPCRequester.__init__(self, target_computer, domain, user, password,
-                               lmhash, nthash)
+                               lmhash, nthash, do_kerberos)
     def __enter__(self):
         try:
             LDAPRequester.__enter__(self)
