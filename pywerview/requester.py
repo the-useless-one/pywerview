@@ -115,49 +115,28 @@ class LDAPRequester():
                 'msDS-LockoutDuration': format_ad_timedelta,
                 'msDS-LockoutObservationWindow': format_ad_timedelta}
         
-        # Choose between password or pth  
+        ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller), formatter=formatter)
+        ldap_connection_kwargs = {'user': user, 'raise_exceptions': True}
+
+        # We build the authentication arguments depending on auth mode
         if self._do_kerberos:
-            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller),
-                    formatter=formatter)
-            ldap_connection = ldap3.Connection(ldap_server, user=user,
-                                               authentication=ldap3.SASL, sasl_mechanism=ldap3.KERBEROS, raise_exceptions=True)
-            ldap_connection.bind()
-
-        elif self._lmhash and self._nthash:
-            lm_nt_hash  = '{}:{}'.format(self._lmhash, self._nthash)
-            
-            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller),
-                    formatter=formatter)
-            ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
-                                               authentication=ldap3.NTLM, raise_exceptions=True)
-            
-            try:
-                ldap_connection.bind()
-            except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
-                # We need to try SSL (pth version)
-                ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller),
-                    formatter=formatter)
-                ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash, 
-                                                   authentication=ldap3.NTLM, raise_exceptions=True)
-
-                ldap_connection.bind()
-
+            ldap_connection_kwargs['authentication'] = ldap3.SASL
+            ldap_connection_kwargs['sasl_mechanism'] = ldap3.KERBEROS
         else:
-            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller),
-                    formatter=formatter)
-            ldap_connection = ldap3.Connection(ldap_server, user, self._password,
-                                               authentication=ldap3.NTLM, raise_exceptions=True)
+            ldap_connection_kwargs['authentication'] = ldap3.NTLM
+            if self._lmhash and self._nthash:
+                ldap_connection_kwargs['password'] = '{}:{}'.format(self._lmhash, self._nthash)
+            else:
+                ldap_connection_kwargs['password'] = self._password
 
-            try:
-                ldap_connection.bind()
-            except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
-                # We nedd to try SSL (password version)
-                ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller),
-                    formatter=formatter)
-                ldap_connection = ldap3.Connection(ldap_server, user, self._password,
-                                                   authentication=ldap3.NTLM, raise_exceptions=True)        
-                
-                ldap_connection.bind()
+        try:
+            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
+            ldap_connection.bind()
+        except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
+            # We need to try SSL
+            ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller), formatter=formatter)
+            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
+            ldap_connection.bind()
 
         self._ldap_connection = ldap_connection
 
