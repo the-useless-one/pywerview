@@ -204,7 +204,11 @@ class PSO(ADObject):
     pass
 
 class GptTmpl(ADObject):
-    pass
+    def to_json(self):
+        json_dict = {}
+        for k, v in self._attributes_dict.items():
+            json_dict[k] = v.to_json()
+        return json_dict
 
 class GPOGroup(ADObject):
     pass
