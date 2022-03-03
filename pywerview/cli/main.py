@@ -114,6 +114,22 @@ def main():
             default=[], help='Object attributes to return')
     get_adobject_parser.set_defaults(func=get_adobject)
 
+    # Parser for the get-adserviceaccount command
+    get_adserviceaccount_parser = subparsers.add_parser('get-adserviceaccount', help='Get a list of all '\
+        'gMSA account',
+        parents=[ad_parser, logging_parser, json_output_parser])
+    get_adserviceaccount_parser.add_argument('--sid', dest='queried_sid',
+            help='SID to query (wildcards accepted)')
+    get_adserviceaccount_parser.add_argument('--sam-account-name', dest='queried_sam_account_name',
+            help='samAccountName to query (wildcards accepted)')
+    get_adserviceaccount_parser.add_argument('--name', dest='queried_name',
+            help='Name to query (wildcards accepted)')
+    get_adserviceaccount_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_adserviceaccount_parser.add_argument('-a', '--ads-path',
+            help='Additional ADS path')
+    get_adserviceaccount_parser.set_defaults(func=get_adserviceaccount)
+    
     # Parser for the get-objectacl command
     get_objectacl_parser = subparsers.add_parser('get-objectacl', help='Takes a domain SID, '\
         'samAccountName or name, and return the ACL of the associated object',

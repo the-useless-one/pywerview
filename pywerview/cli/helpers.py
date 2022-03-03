@@ -33,6 +33,17 @@ def get_adobject(domain_controller, domain, user, password=str(),
                     queried_sam_account_name=queried_sam_account_name,
                     ads_path=ads_path, attributes=attributes, custom_filter=custom_filter)
 
+def get_adserviceaccount(domain_controller, domain, user, password=str(),
+                lmhash=str(), nthash=str(), queried_domain=str(), queried_sid=str(),
+                queried_name=str(), queried_sam_account_name=str(), ads_path=str(),
+                resolve_sids=False):
+    requester = NetRequester(domain_controller, domain, user, password,
+                                 lmhash, nthash)
+    return requester.get_adserviceaccount(queried_domain=queried_domain,
+                    queried_sid=queried_sid, queried_name=queried_name,
+                    queried_sam_account_name=queried_sam_account_name,
+                    ads_path=ads_path, resolve_sids=resolve_sids)
+
 def get_objectacl(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), queried_domain=str(), queried_sid=str(),
                 queried_name=str(), queried_sam_account_name=str(), ads_path=str(),

@@ -50,6 +50,24 @@ class NetRequester(LDAPRPCRequester):
         return self._ldap_search(object_filter, adobj.ADObject, attributes=attributes)
 
     @LDAPRPCRequester._ldap_connection_init
+    def get_adserviceaccount(self, queried_domain=str(), queried_sid=str(),
+                     queried_name=str(), queried_sam_account_name=str(),
+                     ads_path=str(), resolve_sids=False):
+        filter_objectclass = '(ObjectClass=msDS-GroupManagedServiceAccount)'
+        for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
+                                      ('samAccountName', escape_filter_chars(queried_sam_account_name))):
+            if attr_value:
+                object_filter = '(&({}={}){})'.format(attr_desc, attr_value, filter_objectclass)
+                break
+        else:
+            object_filter = '(&(name=*){})'.format(filter_objectclass)
+
+        attributes = ['samaccountname', 'distinguishedname', 'objectsid', 'description',
+                      'msds-managedpassword', 'msds-groupmsamembership']
+
+        return self._ldap_search(object_filter, adobj.ADObject, attributes=attributes)
+    
+    @LDAPRPCRequester._ldap_connection_init
     def get_objectacl(self, queried_domain=str(), queried_sid=str(),
                      queried_name=str(), queried_sam_account_name=str(),
                      ads_path=str(), sacl=False, rights_filter=str(),
