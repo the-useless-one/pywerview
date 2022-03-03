@@ -54,6 +54,9 @@ class NetRequester(LDAPRPCRequester):
                      queried_name=str(), queried_sam_account_name=str(),
                      ads_path=str(), resolve_sids=False):
         filter_objectclass = '(ObjectClass=msDS-GroupManagedServiceAccount)'
+        attributes = ['samaccountname', 'distinguishedname', 'objectsid', 'description',
+                      'msds-managedpassword', 'msds-groupmsamembership']
+        
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
                                       ('samAccountName', escape_filter_chars(queried_sam_account_name))):
             if attr_value:
@@ -62,11 +65,23 @@ class NetRequester(LDAPRPCRequester):
         else:
             object_filter = '(&(name=*){})'.format(filter_objectclass)
 
-        attributes = ['samaccountname', 'distinguishedname', 'objectsid', 'description',
-                      'msds-managedpassword', 'msds-groupmsamembership']
+        if not resolve_sids:
+            return self._ldap_search(object_filter, adobj.ADObject, attributes=attributes)
+        else:
+            adserviceaccounts = self._ldap_search(object_filter, adobj.ADObject, attributes=attributes)
+            sid_resolver = NetRequester(self._domain_controller, self._domain, self._user, self._password, self._lmhash, self._nthash)
+            for i,adserviceaccount in enumerate(adserviceaccounts):
+                results = list()
+                for sid in getattr(adserviceaccount, 'msds-groupmsamembership'):
+                    try:
+                        resolved_sid = sid_resolver.get_adobject(queried_sid=sid, queried_domain=self._queried_domain, attributes=['distinguishedname'])[0].distinguishedname
+                    except IndexError:
+                        self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
+                        resolved_sid = sid
+                    results.append(resolved_sid)
+                adserviceaccounts[i].add_attributes({'msds-groupmsamembership': results})
+            return adserviceaccounts
 
-        return self._ldap_search(object_filter, adobj.ADObject, attributes=attributes)
-    
     @LDAPRPCRequester._ldap_connection_init
     def get_objectacl(self, queried_domain=str(), queried_sid=str(),
                      queried_name=str(), queried_sam_account_name=str(),

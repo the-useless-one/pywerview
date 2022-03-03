@@ -128,6 +128,8 @@ def main():
             help='Domain to query')
     get_adserviceaccount_parser.add_argument('-a', '--ads-path',
             help='Additional ADS path')
+    get_adserviceaccount_parser.add_argument('--resolve-sids', dest='resolve_sids',
+            action='store_true', help='Resolve SIDs when querying PrincipalsAllowedToRetrieveManagedPassword')
     get_adserviceaccount_parser.set_defaults(func=get_adserviceaccount)
     
     # Parser for the get-objectacl command
