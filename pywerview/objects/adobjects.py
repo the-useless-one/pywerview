@@ -222,3 +222,6 @@ class GPOComputerAdmin(ADObject):
 class GPOLocation(ADObject):
     pass
 
+class GMSAAccount(ADObject):
+    pass
+
