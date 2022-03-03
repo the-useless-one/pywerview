@@ -147,6 +147,8 @@ You can provide a logging level to `pywerview` modules by using `-l` or `--loggi
 * `DEBUG`: Debug level (caution: **very** verbose)
 * `ULTRA`: Extreme debugging level (caution: **very very** verbose)
 
+(level names are case inensitive)
+
 ## TODO
 
 * Many, many more PowerView functionalities to implement. I'll now focus on

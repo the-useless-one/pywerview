@@ -34,7 +34,7 @@ def main():
 
     # Logging parser
     logging_parser = argparse.ArgumentParser(add_help=False)
-    logging_parser.add_argument('-l', '--logging-level', dest='logging_level',
+    logging_parser.add_argument('-l', '--logging-level', dest='logging_level', type=str.upper,
             choices=['CRITICAL', 'WARNING', 'DEBUG', 'ULTRA'], default='CRITICAL',
             help='SDTERR logging level: '
                  'CRITICAL: Only critical errors are displayed (default), '
