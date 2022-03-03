@@ -116,7 +116,7 @@ def main():
 
     # Parser for the get-adserviceaccount command
     get_adserviceaccount_parser = subparsers.add_parser('get-adserviceaccount', help='Get a list of all '\
-        'gMSA account',
+        'gMSA accounts',
         parents=[ad_parser, logging_parser, json_output_parser])
     get_adserviceaccount_parser.add_argument('--sid', dest='queried_sid',
             help='SID to query (wildcards accepted)')

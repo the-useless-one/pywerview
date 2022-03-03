@@ -17,7 +17,7 @@
 
 import logging
 import binascii
-from Cryptodome.Hash import HMAC, SHA1, MD4
+from Cryptodome.Hash import MD4
 from impacket.examples.ntlmrelayx.attacks.ldapattack import MSDS_MANAGEDPASSWORD_BLOB
 from impacket.ldap.ldaptypes import SR_SECURITY_DESCRIPTOR
 
@@ -144,4 +144,4 @@ def format_trusttype(raw_value):
 
 def format_trustattributes(raw_value):
     return __format_flag(raw_value, __trust_attrib)
-    
+ 
