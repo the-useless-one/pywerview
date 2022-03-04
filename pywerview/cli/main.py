@@ -115,8 +115,8 @@ def main():
     get_adobject_parser.set_defaults(func=get_adobject)
 
     # Parser for the get-adserviceaccount command
-    get_adserviceaccount_parser = subparsers.add_parser('get-adserviceaccount', help='Get a list of all '\
-        'gMSA accounts',
+    get_adserviceaccount_parser = subparsers.add_parser('get-adserviceaccount', help='Returns a list of all the '\
+        'gMSA of the specified domain (you need privileged account to retrieve passwords)',
         parents=[ad_parser, logging_parser, json_output_parser])
     get_adserviceaccount_parser.add_argument('--sid', dest='queried_sid',
             help='SID to query (wildcards accepted)')
@@ -473,7 +473,7 @@ def main():
 
     # Parser for the get-userevent command
     get_userevent_parser = subparsers.add_parser('get-userevent', help='This function will '\
-        'execute the \'Select * from Win32_Process\' WMI query to a given host for a list of '\
+        'execute the \'SELECT * from Win32_NTLogEvent\' WMI query to a given host for a list of '\
         'executed process', parents=[target_parser, logging_parser, json_output_parser])
     get_userevent_parser.add_argument('--event-type', nargs='+', choices=['logon', 'tgt'],
             default=['logon', 'tgt'], help='The type of event to search for: logon, tgt, or all (default: all)')

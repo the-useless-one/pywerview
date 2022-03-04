@@ -74,7 +74,8 @@ class NetRequester(LDAPRPCRequester):
                 results = list()
                 for sid in getattr(adserviceaccount, 'msds-groupmsamembership'):
                     try:
-                        resolved_sid = sid_resolver.get_adobject(queried_sid=sid, queried_domain=self._queried_domain, attributes=['distinguishedname'])[0].distinguishedname
+                        resolved_sid = sid_resolver.get_adobject(queried_sid=sid, queried_domain=self._queried_domain, 
+                                                                 attributes=['distinguishedname'])[0].distinguishedname
                     except IndexError:
                         self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
                         resolved_sid = sid
