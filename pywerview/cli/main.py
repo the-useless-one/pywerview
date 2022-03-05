@@ -130,6 +130,9 @@ def main():
             help='Additional ADS path')
     get_adserviceaccount_parser.add_argument('--resolve-sids', dest='resolve_sids',
             action='store_true', help='Resolve SIDs when querying PrincipalsAllowedToRetrieveManagedPassword')
+    get_adserviceaccount_parser.add_argument('--no-managedpassword', dest='no_managedpassword',
+            action='store_true', help='Do not retrieve msds-managedpassword attribute, useful '\
+                'if you can\'t join LDAPS service')
     get_adserviceaccount_parser.set_defaults(func=get_adserviceaccount)
     
     # Parser for the get-objectacl command

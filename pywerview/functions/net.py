@@ -52,11 +52,14 @@ class NetRequester(LDAPRPCRequester):
     @LDAPRPCRequester._ldap_connection_init
     def get_adserviceaccount(self, queried_domain=str(), queried_sid=str(),
                      queried_name=str(), queried_sam_account_name=str(),
-                     ads_path=str(), resolve_sids=False):
+                     ads_path=str(), resolve_sids=False, no_managedpassword=False):
         filter_objectclass = '(ObjectClass=msDS-GroupManagedServiceAccount)'
         attributes = ['samaccountname', 'distinguishedname', 'objectsid', 'description',
                       'msds-managedpassword', 'msds-groupmsamembership', 'useraccountcontrol']
-        
+
+        if no_managedpassword:
+            attributes.remove('msds-managedpassword')
+
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
                                       ('samAccountName', escape_filter_chars(queried_sam_account_name))):
             if attr_value:
@@ -65,7 +68,7 @@ class NetRequester(LDAPRPCRequester):
         else:
             object_filter = '(&(name=*){})'.format(filter_objectclass)
 
-        adserviceaccounts = self._ldap_search(object_filter, adobj.ADObject, attributes=attributes)
+        adserviceaccounts = self._ldap_search(object_filter, adobj.GMSAAccount, attributes=attributes)
         sid_resolver = NetRequester(self._domain_controller, self._domain, self._user, self._password, self._lmhash, self._nthash)
 
         # In this loop, we resolve SID (if true) and we populate 'enabled' attribute
