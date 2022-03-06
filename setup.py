@@ -27,7 +27,8 @@ setup(name='pywerview',
     install_requires=[
         'impacket>=0.9.22',
         'bs4',
-        'lxml'
+        'lxml',
+        'pyasn1',
     ],
     entry_points = {
         'console_scripts': ['pywerview=pywerview.cli.main:main'],
