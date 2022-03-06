@@ -29,6 +29,7 @@ setup(name='pywerview',
         'bs4',
         'lxml',
         'pyasn1',
+        'ldap3>=2.8.1',
     ],
     entry_points = {
         'console_scripts': ['pywerview=pywerview.cli.main:main'],
