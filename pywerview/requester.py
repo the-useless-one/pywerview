@@ -19,11 +19,14 @@ import socket
 import ntpath
 import ldap3
 import os
+import tempfile
 
 from ldap3.protocol.formatters.formatters import *
 
 from impacket.smbconnection import SMBConnection
-from impacket.krb5.ccache import CCache
+from impacket.krb5.ccache import CCache, Credential, CountedOctetString
+from impacket.krb5 import constants
+from impacket.krb5.types import Principal
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
 from impacket.dcerpc.v5.dcom import wmi
@@ -122,6 +125,41 @@ class LDAPRequester():
         if self._do_kerberos:
             ldap_connection_kwargs['authentication'] = ldap3.SASL
             ldap_connection_kwargs['sasl_mechanism'] = ldap3.KERBEROS
+
+            # Verifying if we have the correct TGS/TGT to interrogate the LDAP server
+            ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
+            principal = 'ldap/{}@{}'.format(self._domain_controller.upper(), self._queried_domain.upper())
+
+            # We look for the TGS with the right SPN
+            creds = ccache.getCredential(principal, anySPN=False)
+            if creds:
+                cred_store = dict()
+            else:
+                # If we don't find it, we search for any SPN
+                creds = ccache.getCredential(principal, anySPN=True)
+                from pyasn1.codec.der import decoder, encoder
+                from impacket.krb5.asn1 import TGS_REP, Ticket
+                if creds:
+                    # If we find one, we build a custom TGS
+                    # Code is based on https://github.com/SecureAuthCorp/impacket/pull/1256
+                    # However, it does not seem to work with python-gssapi...
+                    tgs = creds.toTGS(principal)
+                    decoded_st = decoder.decode(tgs['KDC_REP'], asn1Spec=TGS_REP())[0]
+                    new_creds = Credential(data=creds.getData())
+                    new_creds.ticket = CountedOctetString()
+                    new_creds.ticket['data'] = encoder.encode(decoded_st['ticket'].clone(tagSet=Ticket.tagSet, cloneValueFlag=True))
+                    new_creds.ticket['length'] = len(new_creds.ticket['data'])
+                    new_creds['server'].fromPrincipal(Principal(principal, type=constants.PrincipalNameType.NT_PRINCIPAL.value))
+                    
+                    # We build a new CCache with the new ticket
+                    ccache.credentials.append(new_creds)
+                    temp_ccache = tempfile.NamedTemporaryFile()
+                    ccache.saveFile(temp_ccache.name)
+                    cred_store = {'ccache': 'FILE:{}'.format(temp_ccache.name)}
+                else:
+                    # If we don't find any, we hope for the best (TGT in cache)
+                    cred_store = dict()
+            ldap_connection_kwargs['cred_store'] = cred_store
         else:
             ldap_connection_kwargs['authentication'] = ldap3.NTLM
             if self._lmhash and self._nthash:
