@@ -140,69 +140,6 @@ class LDAPRequester():
                 'msDS-GroupMSAMembership': fmt.format_groupmsamembership,
                 'msDS-ManagedPassword': fmt.format_managedpassword}
 
-        # Choose between password or pth
-        if self._lmhash and self._nthash:
-            lm_nt_hash  = '{}:{}'.format(self._lmhash, self._nthash)
-
-            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller),
-                    formatter=formatter)
-            ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash,
-                                               authentication=ldap3.NTLM, raise_exceptions=True)
-
-            self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
-                               '/ hash = {2}'.format(self._domain_controller, user, lm_nt_hash))
-
-            try:
-                ldap_connection.bind()
-            except ldap3.core.exceptions.LDAPSocketOpenError as e:
-                self._logger.critical(e)
-                sys.exit(-1)
-            except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
-                # We need to try SSL (pth version)
-                self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
-                ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller),
-                    formatter=formatter)
-
-                ldap_connection = ldap3.Connection(ldap_server, user, lm_nt_hash,
-                                                   authentication=ldap3.NTLM, raise_exceptions=True)
-                try:
-                    ldap_connection.bind()
-                except ldap3.core.exceptions.LDAPSocketOpenError as e:
-                    self._logger.critical(e)
-                    self._logger.critical('TLS negociation failed, this error is mostly due to your host '
-                                          'not supporting SHA1 as signing algorithm for certificates')
-                    sys.exit(-1)
-
-        else:
-            ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller),
-                    formatter=formatter)
-            ldap_connection = ldap3.Connection(ldap_server, user, self._password,
-                                               authentication=ldap3.NTLM, raise_exceptions=True)
-
-            self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
-                               '/ password = {2}'.format(self._domain_controller, user, self._password))
-
-            try:
-                ldap_connection.bind()
-            except ldap3.core.exceptions.LDAPSocketOpenError as e:
-                self._logger.critical(e)
-                sys.exit(-1)
-            except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
-                # We nedd to try SSL (password version)
-                self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
-                ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller),
-                    formatter=formatter)
-
-                ldap_connection = ldap3.Connection(ldap_server, user, self._password,
-                                                   authentication=ldap3.NTLM, raise_exceptions=True)
-                try:
-                    ldap_connection.bind()
-                except ldap3.core.exceptions.LDAPSocketOpenError as e:
-                    self._logger.critical(e)
-                    self._logger.critical('TLS negociation failed, this error is mostly due to your host '
-                                          'not supporting SHA1 as signing algorithm for certificates')
-                    sys.exit(-1)
-        
         ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller), formatter=formatter)
         ldap_connection_kwargs = {'user': user, 'raise_exceptions': True}
 
