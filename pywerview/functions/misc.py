@@ -52,7 +52,7 @@ class Misc(LDAPRPCRequester):
     def get_domainsid(self, queried_domain=str()):
 
         with pywerview.functions.net.NetRequester(self._domain_controller, self._domain, self._user,
-                                                  self._password, self._lmhash, self._nthash) as r:
+                                                  self._password, self._lmhash, self._nthash, self._do_kerberos) as r:
             domain_controllers = r.get_netdomaincontroller(queried_domain=queried_domain)
 
         if domain_controllers:

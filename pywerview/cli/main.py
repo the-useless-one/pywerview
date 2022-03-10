@@ -45,12 +45,17 @@ def main():
     credentials_parser = argparse.ArgumentParser(add_help=False)
     credentials_parser.add_argument('-w', '--workgroup', dest='domain',
             default=str(), help='Name of the domain we authenticate with')
-    credentials_parser.add_argument('-u', '--user', required=True,
+    credentials_parser.add_argument('-u', '--user',
             help='Username used to connect to the Domain Controller')
     credentials_parser.add_argument('-p', '--password',
             help='Password associated to the username')
-    credentials_parser.add_argument('--hashes', action='store', metavar = 'LMHASH:NTHASH',
+    credentials_parser.add_argument('--hashes', action='store', metavar='LMHASH:NTHASH',
             help='NTLM hashes, format is [LMHASH:]NTHASH')
+    credentials_parser.add_argument('-k', action='store_true', dest='do_kerberos',
+            help='Use Kerberos authentication. Grabs credentials from ccache file '
+            '(KRB5CCNAME) based on target parameters. If valid credentials '
+            'cannot be found, it will use the ones specified in the command '
+            'line')
 
     # AD parser, used for net* functions running against a domain controller
     ad_parser = argparse.ArgumentParser(add_help=False, parents=[credentials_parser])
@@ -523,7 +528,7 @@ def main():
     else:
         args.lmhash = args.nthash = str()
 
-    if args.password is None and not args.hashes:
+    if args.password is None and args.hashes is None and not args.do_kerberos:
         from getpass import getpass
         args.password = getpass('Password:')
 

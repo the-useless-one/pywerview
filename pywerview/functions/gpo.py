@@ -66,9 +66,12 @@ class GPORequester(LDAPRequester):
         file_name = '\\'.join(gpttmpl_path_split[4:])
 
         smb_connection = SMBConnection(remoteName=target, remoteHost=target)
-        # TODO: kerberos login
-        smb_connection.login(self._user, self._password, self._domain,
-                             self._lmhash, self._nthash)
+        if self._do_kerberos:
+            smb_connection.kerberosLogin(self._user, self._password, self._domain,
+                                 self._lmhash, self._nthash)
+        else:
+            smb_connection.login(self._user, self._password, self._domain,
+                                 self._lmhash, self._nthash)
 
         self._logger.debug('Get File: Share = {0}, file_name ={1}'.format(share, file_name))
         smb_connection.connectTree(share)
@@ -118,7 +121,7 @@ class GPORequester(LDAPRequester):
 
                 members = inspect.getmembers(privilege_rights_policy, lambda x: not(inspect.isroutine(x)))
                 with NetRequester(self._domain_controller, self._domain, self._user,
-                                  self._password, self._lmhash, self._nthash) as net_requester:
+                                  self._password, self._lmhash, self._nthash, self._do_kerberos) as net_requester:
                     for attr in privilege_rights_policy._attributes_dict:
                         attribute = privilege_rights_policy._attributes_dict[attr]
                         if not isinstance(attribute, list):
@@ -161,9 +164,12 @@ class GPORequester(LDAPRequester):
         file_name = '\\'.join(groupsxml_path_split[4:])
 
         smb_connection = SMBConnection(remoteName=target, remoteHost=target)
-        # TODO: kerberos login
-        smb_connection.login(self._user, self._password, self._domain,
-                             self._lmhash, self._nthash)
+        if self._do_kerberos:
+            smb_connection.kerberosLogin(self._user, self._password, self._domain,
+                                 self._lmhash, self._nthash)
+        else:
+            smb_connection.login(self._user, self._password, self._domain,
+                                 self._lmhash, self._nthash)
 
         self._logger.debug('Get File: Share = {0}, file_name ={1}'.format(share, file_name))
         smb_connection.connectTree(share)
@@ -293,7 +299,7 @@ class GPORequester(LDAPRequester):
                 resolved_members = list()
                 resolved_memberof = list()
                 with NetRequester(self._domain_controller, self._domain, self._user,
-                                  self._password, self._lmhash, self._nthash) as net_requester:
+                                  self._password, self._lmhash, self._nthash, self._do_kerberos) as net_requester:
                     for member in members:
                         try:
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=self._queried_domain)[0]
@@ -326,7 +332,7 @@ class GPORequester(LDAPRequester):
             raise ValueError('You must specify either a computer name or an OU name')
 
         net_requester = NetRequester(self._domain_controller, self._domain, self._user,
-                                     self._password, self._lmhash, self._nthash)
+                                     self._password, self._lmhash, self._nthash, self._do_kerberos)
         if queried_computername:
             computers = net_requester.get_netcomputer(queried_computername=queried_computername,
                                                       queried_domain=queried_domain,
@@ -402,7 +408,7 @@ class GPORequester(LDAPRequester):
                          queried_localgroup=str(), queried_domain=str()):
         results = list()
         net_requester = NetRequester(self._domain_controller, self._domain, self._user,
-                                     self._password, self._lmhash, self._nthash)
+                                     self._password, self._lmhash, self._nthash, self._do_kerberos)
         if queried_username:
                 try:
                     user = net_requester.get_netuser(queried_username=queried_username,

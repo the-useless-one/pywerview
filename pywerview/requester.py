@@ -20,11 +20,16 @@ import logging
 import socket
 import ntpath
 import ldap3
+import os
+import tempfile
 
 from ldap3.protocol.formatters.formatters import *
 
 from impacket.smbconnection import SMBConnection
 from impacket.smbconnection import SessionError
+from impacket.krb5.ccache import CCache, Credential, CountedOctetString
+from impacket.krb5 import constants
+from impacket.krb5.types import Principal
 from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
 from impacket.dcerpc.v5.dcom import wmi
@@ -36,13 +41,14 @@ import pywerview.formatters as fmt
 
 class LDAPRequester():
     def __init__(self, domain_controller, domain=str(), user=(), password=str(),
-                 lmhash=str(), nthash=str()):
+                 lmhash=str(), nthash=str(), do_kerberos=False):
         self._domain_controller = domain_controller
         self._domain = domain
         self._user = user
         self._password = password
         self._lmhash = lmhash
         self._nthash = nthash
+        self._do_kerberos = do_kerberos
         self._queried_domain = None
         self._ads_path = None
         self._ads_prefix = None
@@ -73,16 +79,27 @@ class LDAPRequester():
 
     def _create_ldap_connection(self, queried_domain=str(), ads_path=str(),
                                 ads_prefix=str()):
-        try:
-            if not self._domain:
-                self._domain = self._get_netfqdn()
+        if not self._domain:
+            if self._do_kerberos:
+                ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
+                self._domain = ccache.principal.realm['data'].decode('utf-8')
+            else:
+                try:
+                    self._domain = self._get_netfqdn()
+                except SessionError as e:
+                    self._logger.critical(e)
+                    sys.exit(-1)
 
-            if not queried_domain:
-                queried_domain = self._get_netfqdn()
-        except SessionError as e:
-            self._logger.critical(e)
-            sys.exit(-1)
-
+        if not queried_domain:
+            if self._do_kerberos:
+                ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
+                queried_domain = ccache.principal.realm['data'].decode('utf-8')
+            else:
+                try:
+                    queried_domain = self._get_netfqdn()
+                except SessionError as e:
+                    self._logger.critical(e)
+                    sys.exit(-1)
         self._queried_domain = queried_domain
 
         base_dn = str()
@@ -106,7 +123,10 @@ class LDAPRequester():
 
         # Format the username and the domain
         # ldap3 seems not compatible with USER@DOMAIN format
-        user = '{}\\{}'.format(self._domain, self._user)
+        if self._do_kerberos:
+            user = '{}@{}'.format(self._user, self._domain.upper())
+        else:
+            user = '{}\\{}'.format(self._domain, self._user)
 
         # Call custom formatters for several AD attributes
         formatter = {'userAccountControl': fmt.format_useraccountcontrol,
@@ -180,6 +200,89 @@ class LDAPRequester():
                     self._logger.critical('TLS negociation failed, this error is mostly due to your host '
                                           'not supporting SHA1 as signing algorithm for certificates')
                     sys.exit(-1)
+        
+        ldap_server = ldap3.Server('ldap://{}'.format(self._domain_controller), formatter=formatter)
+        ldap_connection_kwargs = {'user': user, 'raise_exceptions': True}
+
+        # We build the authentication arguments depending on auth mode
+        if self._do_kerberos:
+            self._logger.debug('LDAP authentication with Keberos')
+            ldap_connection_kwargs['authentication'] = ldap3.SASL
+            ldap_connection_kwargs['sasl_mechanism'] = ldap3.KERBEROS
+
+            # Verifying if we have the correct TGS/TGT to interrogate the LDAP server
+            ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
+            principal = 'ldap/{}@{}'.format(self._domain_controller.upper(), self._queried_domain.upper())
+
+            # We look for the TGS with the right SPN
+            creds = ccache.getCredential(principal, anySPN=False)
+            if creds:
+                self._logger.debug('TGS found in KRB5CCNAME file')
+                cred_store = dict()
+            else:
+                self._logger.debug('TGS not found in KRB5CCNAME, looking for '
+                        'TGS with alternative SPN')
+                # If we don't find it, we search for any SPN
+                creds = ccache.getCredential(principal, anySPN=True)
+                from pyasn1.codec.der import decoder, encoder
+                from impacket.krb5.asn1 import TGS_REP, Ticket
+                if creds:
+                    # If we find one, we build a custom TGS
+                    # Code is based on https://github.com/SecureAuthCorp/impacket/pull/1256
+                    # However, it does not seem to work with python-gssapi...
+                    self._logger.debug('Alternative TGS found, patching SPN')
+                    tgs = creds.toTGS(principal)
+                    decoded_st = decoder.decode(tgs['KDC_REP'], asn1Spec=TGS_REP())[0]
+                    new_creds = Credential(data=creds.getData())
+                    new_creds.ticket = CountedOctetString()
+                    new_creds.ticket['data'] = encoder.encode(decoded_st['ticket'].clone(tagSet=Ticket.tagSet, cloneValueFlag=True))
+                    new_creds.ticket['length'] = len(new_creds.ticket['data'])
+                    new_creds['server'].fromPrincipal(Principal(principal, type=constants.PrincipalNameType.NT_PRINCIPAL.value))
+                    
+                    # We build a new CCache with the new ticket
+                    ccache.credentials.append(new_creds)
+                    temp_ccache = tempfile.NamedTemporaryFile()
+                    ccache.saveFile(temp_ccache.name)
+                    cred_store = {'ccache': 'FILE:{}'.format(temp_ccache.name)}
+                else:
+                    # If we don't find any, we hope for the best (TGT in cache)
+                    self._logger.debug('Alternative TGS not found, using KRB5CCNAME as is '
+                            'while hoping it contains a TGT')
+                    cred_store = dict()
+            ldap_connection_kwargs['cred_store'] = cred_store
+            self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
+                   '/ Kerberos auth'.format(self._domain_controller, user))
+        else:
+            self._logger.debug('LDAP authentication with NTLM')
+            ldap_connection_kwargs['authentication'] = ldap3.NTLM
+            if self._lmhash and self._nthash:
+                ldap_connection_kwargs['password'] = '{}:{}'.format(self._lmhash, self._nthash)
+                self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
+                   '/ hash = {2}'.format(self._domain_controller, user, ldap_connection_kwargs['password']))
+            else:
+                ldap_connection_kwargs['password'] = self._password
+                self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
+                   '/ password = {2}'.format(self._domain_controller, user, ldap_connection_kwargs['password']))
+
+        try:
+            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
+            try:
+                ldap_connection.bind()
+            except ldap3.core.exceptions.LDAPSocketOpenError as e:
+                self._logger.critical(e)
+                sys.exit(-1)
+        except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
+            # We need to try SSL
+            self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
+            ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller), formatter=formatter)
+            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
+            try:
+                ldap_connection.bind()
+            except ldap3.core.exceptions.LDAPSocketOpenError as e:
+                self._logger.critical(e)
+                self._logger.critical('TLS negociation failed, this error is mostly due to your host '
+                                      'not supporting SHA1 as signing algorithm for certificates')
+                sys.exit(-1)
 
         self._ldap_connection = ldap_connection
 
@@ -247,13 +350,14 @@ class LDAPRequester():
 
 class RPCRequester():
     def __init__(self, target_computer, domain=str(), user=(), password=str(),
-                 lmhash=str(), nthash=str()):
+                 lmhash=str(), nthash=str(), do_kerberos=False):
         self._target_computer = target_computer
         self._domain = domain
         self._user = user
         self._password = password
         self._lmhash = lmhash
         self._nthash = nthash
+        self._do_kerberos = do_kerberos
         self._pipe = None
         self._rpc_connection = None
         self._dcom = None
@@ -285,7 +389,7 @@ class RPCRequester():
             rpctransport = transport.SMBTransport(self._target_computer, 445, self._pipe,
                                                   username=self._user, password=self._password,
                                                   domain=self._domain, lmhash=self._lmhash,
-                                                  nthash=self._nthash)
+                                                  nthash=self._nthash, doKerberos=self._do_kerberos)
 
         rpctransport.set_connect_timeout(10)
         dce = rpctransport.get_dce_rpc()
@@ -306,7 +410,7 @@ class RPCRequester():
     def _create_wmi_connection(self, namespace='root\\cimv2'):
         try:
             self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
-                                        self._domain, self._lmhash, self._nthash)
+                                        self._domain, self._lmhash, self._nthash, doKerberos=self._do_kerberos)
         except Exception as e:
             self._logger.critical('Error when creating WMI connection')
             self._logger.critical(e)
@@ -360,15 +464,15 @@ class RPCRequester():
 
 class LDAPRPCRequester(LDAPRequester, RPCRequester):
     def __init__(self, target_computer, domain=str(), user=(), password=str(),
-                 lmhash=str(), nthash=str(), domain_controller=str()):
+                 lmhash=str(), nthash=str(), do_kerberos=False, domain_controller=str()):
         # If no domain controller was given, we assume that the user wants to
         # target a domain controller to perform LDAP requests against
         if not domain_controller:
             domain_controller = target_computer
         LDAPRequester.__init__(self, domain_controller, domain, user, password,
-                               lmhash, nthash)
+                               lmhash, nthash, do_kerberos)
         RPCRequester.__init__(self, target_computer, domain, user, password,
-                               lmhash, nthash)
+                               lmhash, nthash, do_kerberos)
 
         logger = logging.getLogger('pywerview_main_logger.LDAPRPCRequester')
         self._logger = logger

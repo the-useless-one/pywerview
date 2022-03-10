@@ -61,6 +61,7 @@ Also, blah blah blah, don't use it for evil purposes.
 * Python 3.6
 * impacket >= 0.9.22
 * ldap3 >= 2.8.1
+* gssapi (Which requires `libkrb5-dev`)
 
 ## FUNCTIONALITIES
 
@@ -147,13 +148,77 @@ You can provide a logging level to `pywerview` modules by using `-l` or `--loggi
 * `DEBUG`: Debug level (caution: **very** verbose)
 * `ULTRA`: Extreme debugging level (caution: **very very** verbose)
 
+## Kerberos authentication
+
+Kerberos authentication is now (partially) supported, which means you can
+pass the ticket and other stuff. To authenticate via Kerberos:
+
+1. Point the `KRB5CCNAME` environment variable to your cache credential file.
+2. Use the `-k` option in your function call, or the `do_kerberos` in your
+   library call.
+
+```console
+$ klist stormtroopers.ccache
+Ticket cache: FILE:stormtroopers.ccache
+Default principal: stormtroopers@DEEPWAKO.NET
+
+Valid starting       Expires              Service principal
+10/03/2022 16:46:45  11/03/2022 02:46:45  ldap/srv-ad.deepwako.net@DEEPWAKO.NET
+	renew until 11/03/2022 16:43:17
+$ KRB5CCNAME=stormtroopers.ccache python3 pywerview.py get-netcomputer -t srv-ad.deepwako.net -u stormtroopers -k 
+dnshostname: centos.deepwako.net 
+
+dnshostname: debian.deepwako.net 
+
+dnshostname: Windows7.deepwako.net 
+
+dnshostname: Windows10.deepwako.net 
+
+dnshostname: SRV-MAIL.deepwako.net 
+
+dnshostname: SRV-AD.deepwako.net 
+```
+
+If your cache credential file contains a corresponding TGS, or a TGT for your
+calling user, Kerberos authentication will be used.
+
+__SPN patching is not fully supported__. Right now, we're in a mixed
+configuration where we use `ldap3` for LDAP commands and `impacket` for the
+other protocols (SMB, RPC). That is because `impacket`'s LDAP implementation
+has several problems, such as mismanagement of non-ASCII characters (which is
+problematic for us baguette-eaters).
+
+For any functions that only rely on `impacket` (SMB or RPC functions), you can
+use tickets for other SPNs. In the following example, we use an LDAP ticket
+for an SMB function, without any trouble:
+
+```console
+$ klist skywalker.ccache
+Ticket cache: FILE:skywalker.ccache
+Default principal: skywalker@DEEPWAKO.NET
+
+Valid starting       Expires              Service principal
+10/03/2022 16:54:42  11/03/2022 02:54:42  ldap/srv-ad.deepwako.net@DEEPWAKO.NET
+	renew until 11/03/2022 16:51:13
+$ KRB5CCNAME=skywalker.ccache python3 pywerview.py get-localdisks --computername srv-ad.deepwako.net -u skywalker -k  
+disk: A: 
+
+disk: C: 
+
+disk: D:
+```
+
+However `gssapi` (which is used by `ldap3` for Kerberos auth) does not seem to
+like patched SPNs. Therefore you need a TGS for the correct SPN, or better yet
+a TGT of your user. We'll keep investigating (the SPN patching code is kept
+as is, waiting for `gssapi` to catch up).
+
 ## TODO
 
 * Many, many more PowerView functionalities to implement. I'll now focus on
   forest functions, then inter-forest trust functions
 * Lots of rewrite due to the last version of PowerView
 * Gracefully fail against Unix machines running Samba
-* Support Kerberos authentication
 * Perform range cycling in `get-netgroupmember`
 * Manage request to the Global Catalog
 * Try to fall back to `tcp/139` for RPC communications if `tcp/445` is closed
