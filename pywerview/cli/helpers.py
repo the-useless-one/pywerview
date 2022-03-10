@@ -60,12 +60,12 @@ def get_objectacl(domain_controller, domain, user, password=str(),
                     custom_filter=custom_filter)
 
 def get_netuser(domain_controller, domain, user, password=str(), lmhash=str(),
-                nthash=str(), do_kerberos=False, queried_username=str(), queried_domain=str(),
-                ads_path=str(), admin_count=False, spn=False, unconstrained=False,
-                allow_delegation=False, preauth_notreq=False, custom_filter=str(),
-                attributes=[]):
+                nthash=str(), do_kerberos=False, do_tls=False, queried_username=str(),
+                queried_domain=str(), ads_path=str(), admin_count=False, spn=False,
+                unconstrained=False, allow_delegation=False, preauth_notreq=False,
+                custom_filter=str(), attributes=[]):
     requester = NetRequester(domain_controller, domain, user, password,
-                             lmhash, nthash, do_kerberos)
+                             lmhash, nthash, do_kerberos, do_tls)
     return requester.get_netuser(queried_username=queried_username,
                                     queried_domain=queried_domain, ads_path=ads_path, admin_count=admin_count,
                                     spn=spn, unconstrained=unconstrained, allow_delegation=allow_delegation,

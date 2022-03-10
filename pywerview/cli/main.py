@@ -68,6 +68,8 @@ def main():
     ad_parser = argparse.ArgumentParser(add_help=False, parents=[credentials_parser])
     ad_parser.add_argument('-t', '--dc-ip', dest='domain_controller',
             required=True, help='IP address of the Domain Controller to target')
+    ad_parser.add_argument('--tls', action='store_true', dest='do_tls',
+            help='Force TLS connection to the Domain Controller')
 
     # Target parser, used for net* functions running against a normal computer
     target_parser = argparse.ArgumentParser(add_help=False, parents=[credentials_parser])
