@@ -121,6 +121,9 @@ class ADObject:
     def __repr__(self):
         return str(self)
 
+    def to_json(self):
+        return self._attributes_dict
+
 class ACE(ADObject):
 
     def __init__(self, attributes):
@@ -201,7 +204,11 @@ class PSO(ADObject):
     pass
 
 class GptTmpl(ADObject):
-    pass
+    def to_json(self):
+        json_dict = {}
+        for k, v in self._attributes_dict.items():
+            json_dict[k] = v.to_json()
+        return json_dict
 
 class GPOGroup(ADObject):
     pass
@@ -213,5 +220,8 @@ class GPOComputerAdmin(ADObject):
     pass
 
 class GPOLocation(ADObject):
+    pass
+
+class GMSAAccount(ADObject):
     pass
 

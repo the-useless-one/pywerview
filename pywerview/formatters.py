@@ -16,6 +16,10 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
 
 import logging
+import binascii
+from Cryptodome.Hash import MD4
+from impacket.examples.ntlmrelayx.attacks.ldapattack import MSDS_MANAGEDPASSWORD_BLOB
+from impacket.ldap.ldaptypes import SR_SECURITY_DESCRIPTOR
 
 __uac_flags = {0x0000001: 'SCRIPT',
                0x0000002: 'ACCOUNTDISABLE',
@@ -113,6 +117,19 @@ def format_ace_access_mask(raw_value):
 
     return activedirectoryrights
 
+
+def format_managedpassword(raw_value):
+    blob = MSDS_MANAGEDPASSWORD_BLOB()
+    blob.fromString(raw_value)
+    return binascii.hexlify(MD4.new(blob['CurrentPassword'][:-2]).digest()).decode('utf8')
+
+def format_groupmsamembership(raw_value):
+    sid = list()
+    sr = SR_SECURITY_DESCRIPTOR(data=raw_value)
+    for dacl in sr['Dacl']['Data']:
+        sid.append(dacl['Ace']['Sid'].formatCanonical())
+    return sid
+
 def format_ace_flags(raw_value):
     return __format_flag(raw_value, __ace_flags)
 
@@ -127,4 +144,4 @@ def format_trusttype(raw_value):
 
 def format_trustattributes(raw_value):
     return __format_flag(raw_value, __trust_attrib)
-
+ 

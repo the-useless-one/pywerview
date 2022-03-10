@@ -136,7 +136,9 @@ class LDAPRequester():
                 'msDS-MaximumPasswordAge': format_ad_timedelta,
                 'msDS-MinimumPasswordAge': format_ad_timedelta,
                 'msDS-LockoutDuration': format_ad_timedelta,
-                'msDS-LockoutObservationWindow': format_ad_timedelta}
+                'msDS-LockoutObservationWindow': format_ad_timedelta,
+                'msDS-GroupMSAMembership': fmt.format_groupmsamembership,
+                'msDS-ManagedPassword': fmt.format_managedpassword}
 
         # Choose between password or pth
         if self._lmhash and self._nthash:

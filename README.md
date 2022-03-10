@@ -72,11 +72,7 @@ Here's the list of available commands:
 
     $ pywerview.py --help
     usage: pywerview.py [-h]
-                        {get-adobject,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,
-                        get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,
-                        find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,
-                        get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,
-                        invoke-eventhunter}
+                        {get-adobject,get-adserviceaccount,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
                         ...
 
     Rewriting of some PowerView's functionalities in Python
@@ -87,11 +83,10 @@ Here's the list of available commands:
     Subcommands:
       Available subcommands
 
-      {get-adobject,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,
-      get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,
-      find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,
-      get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
+      {get-adobject,get-adserviceaccount,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
         get-adobject        Takes a domain SID, samAccountName or name, and return the associated object
+        get-adserviceaccount
+                            Returns a list of all the gMSA of the specified domain (you need privileged account to retrieve passwords)
         get-objectacl       Takes a domain SID, samAccountName or name, and return the ACL of the associated object
         get-netuser         Queries information about a domain user
         get-netgroup        Get a list of all current domain groups, or a list of groups a domain user is member of
@@ -123,7 +118,7 @@ Here's the list of available commands:
         invoke-checklocaladminaccess
                             Checks if the given user has local admin access on the given host
         get-netprocess      This function will execute the 'Select * from Win32_Process' WMI query to a given host for a list of executed process
-        get-userevent       This function will execute the 'Select * from Win32_Process' WMI query to a given host for a list of executed process
+        get-userevent       This function will execute the 'SELECT * from Win32_NTLogEvent' WMI query to a given host for a list of executed process
         invoke-userhunter   Finds which machines domain users are logged into
         invoke-processhunter
                             Searches machines for processes with specific name, or ran by specific users
@@ -147,6 +142,8 @@ You can provide a logging level to `pywerview` modules by using `-l` or `--loggi
 * `WARNING` Warnings are displayed, along with citical errors
 * `DEBUG`: Debug level (caution: **very** verbose)
 * `ULTRA`: Extreme debugging level (caution: **very very** verbose)
+
+(level names are case insensitive)
 
 ## Kerberos authentication
 
@@ -212,6 +209,10 @@ However `gssapi` (which is used by `ldap3` for Kerberos auth) does not seem to
 like patched SPNs. Therefore you need a TGS for the correct SPN, or better yet
 a TGT of your user. We'll keep investigating (the SPN patching code is kept
 as is, waiting for `gssapi` to catch up).
+
+### JSON OUTPUT
+
+Pywerview can print results in json format by using the `--json` switch.
 
 ## TODO
 
