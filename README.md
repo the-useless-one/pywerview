@@ -145,7 +145,7 @@ You can provide a logging level to `pywerview` modules by using `-l` or `--loggi
 
 (level names are case insensitive)
 
-## Kerberos authentication
+### Kerberos authentication
 
 Kerberos authentication is now (partially) supported, which means you can
 pass the ticket and other stuff. To authenticate via Kerberos:
