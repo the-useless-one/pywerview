@@ -57,7 +57,7 @@ class NetRequester(LDAPRPCRequester):
         attributes = ['samaccountname', 'distinguishedname', 'objectsid', 'description',
                       'msds-managedpassword', 'msds-groupmsamembership', 'useraccountcontrol']
 
-        if not self._do_tls:
+        if not self._ldap_connection.server.ssl:
             attributes.remove('msds-managedpassword')
 
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
@@ -72,7 +72,7 @@ class NetRequester(LDAPRPCRequester):
         sid_resolver = NetRequester(self._domain_controller, self._domain, self._user, self._password, self._lmhash, self._nthash)
 
         # In this loop, we resolve SID (if true) and we populate 'enabled' attribute
-        for i,adserviceaccount in enumerate(adserviceaccounts):
+        for i, adserviceaccount in enumerate(adserviceaccounts):
             if resolve_sids:
                 results = list()
                 for sid in getattr(adserviceaccount, 'msds-groupmsamembership'):
