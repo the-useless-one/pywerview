@@ -123,7 +123,8 @@ def main():
 
     # Parser for the get-adserviceaccount command
     get_adserviceaccount_parser = subparsers.add_parser('get-adserviceaccount', help='Returns a list of all the '\
-        'gMSA of the specified domain (you need privileged account to retrieve passwords)',
+        'gMSA of the specified domain. To retrieve passwords, you need a privileged account and '\
+        'a TLS connection to the LDAP server (use the --tls switch).',
         parents=[ad_parser, logging_parser, json_output_parser])
     get_adserviceaccount_parser.add_argument('--sid', dest='queried_sid',
             help='SID to query (wildcards accepted)')
