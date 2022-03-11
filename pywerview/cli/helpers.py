@@ -37,15 +37,13 @@ def get_adobject(domain_controller, domain, user, password=str(),
 def get_adserviceaccount(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
                 queried_domain=str(), queried_sid=str(), queried_name=str(),
-                queried_sam_account_name=str(), ads_path=str(), resolve_sids=False,
-                no_managedpassword=False):
+                queried_sam_account_name=str(), ads_path=str(), resolve_sids=False):
     requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash, do_kerberos, do_tls)
     return requester.get_adserviceaccount(queried_domain=queried_domain,
                     queried_sid=queried_sid, queried_name=queried_name,
                     queried_sam_account_name=queried_sam_account_name,
-                    ads_path=ads_path, resolve_sids=resolve_sids,
-                    no_managedpassword=no_managedpassword)
+                    ads_path=ads_path, resolve_sids=resolve_sids)
 
 def get_objectacl(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
