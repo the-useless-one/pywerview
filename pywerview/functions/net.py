@@ -58,6 +58,8 @@ class NetRequester(LDAPRPCRequester):
                       'msds-managedpassword', 'msds-groupmsamembership', 'useraccountcontrol']
 
         if not self._ldap_connection.server.ssl:
+            self._logger.warning('LDAP connection is not encrypted, we can\'t ask '\
+                    'for msds-managedpassword, removing from list of attributes')
             attributes.remove('msds-managedpassword')
 
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
