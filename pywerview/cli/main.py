@@ -465,6 +465,8 @@ def main():
             help='If set, returns a list of the local groups on the targets')
     get_netlocalgroup_parser.add_argument('-t', '--dc-ip', dest='domain_controller',
             default=str(), help='IP address of the Domain Controller (used to resolve domain SIDs)')
+    get_netlocalgroup_parser.add_argument('--tls', action='store_true', dest='do_tls',
+            help='Force TLS connection to the Domain Controller')
     get_netlocalgroup_parser.add_argument('-r', '--recurse', action='store_true',
             help='If the group member is a domain group, try to resolve its members as well')
     get_netlocalgroup_parser.set_defaults(func=get_netlocalgroup)
