@@ -77,6 +77,27 @@ class LDAPRequester():
 
         return fqdn
 
+    def _patch_spn(self, creds, principal):
+        self._logger.debug('Patching principal to {}'.format(principal))
+
+        from pyasn1.codec.der import decoder, encoder
+        from impacket.krb5.asn1 import TGS_REP, Ticket
+
+        # Code is ~~based on~~ stolen from https://github.com/SecureAuthCorp/impacket/pull/1256
+        tgs = creds.toTGS(principal)
+        decoded_st = decoder.decode(tgs['KDC_REP'], asn1Spec=TGS_REP())[0]
+        decoded_st['ticket']['sname']['name-string'][0] = 'ldap'
+        decoded_st['ticket']['sname']['name-string'][1] = self._domain_controller.lower()
+        decoded_st['ticket']['realm'] = self._queried_domain.upper()
+
+        new_creds = Credential(data=creds.getData())
+        new_creds.ticket = CountedOctetString()
+        new_creds.ticket['data'] = encoder.encode(decoded_st['ticket'].clone(tagSet=Ticket.tagSet, cloneValueFlag=True))
+        new_creds.ticket['length'] = len(new_creds.ticket['data'])
+        new_creds['server'].fromPrincipal(Principal(principal, type=constants.PrincipalNameType.NT_PRINCIPAL.value))
+
+        return new_creds
+
     def _create_ldap_connection(self, queried_domain=str(), ads_path=str(),
                                 ads_prefix=str()):
         if not self._domain:
@@ -151,33 +172,31 @@ class LDAPRequester():
 
             # Verifying if we have the correct TGS/TGT to interrogate the LDAP server
             ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
-            principal = 'ldap/{}@{}'.format(self._domain_controller.upper(), self._queried_domain.upper())
+            principal = 'ldap/{}@{}'.format(self._domain_controller.lower(), self._queried_domain.upper())
 
             # We look for the TGS with the right SPN
             creds = ccache.getCredential(principal, anySPN=False)
             if creds:
                 self._logger.debug('TGS found in KRB5CCNAME file')
-                cred_store = dict()
+                if creds['server'].prettyPrint().lower() != creds['server'].prettyPrint():
+                    self._logger.debug('SPN not in lowercase, patching SPN')
+                    new_creds = self._patch_spn(creds, principal)
+                    # We build a new CCache with the new ticket
+                    ccache.credentials.append(new_creds)
+                    temp_ccache = tempfile.NamedTemporaryFile()
+                    ccache.saveFile(temp_ccache.name)
+                    cred_store = {'ccache': 'FILE:{}'.format(temp_ccache.name)}
+                else:
+                    cred_store = dict()
             else:
                 self._logger.debug('TGS not found in KRB5CCNAME, looking for '
                         'TGS with alternative SPN')
                 # If we don't find it, we search for any SPN
                 creds = ccache.getCredential(principal, anySPN=True)
-                from pyasn1.codec.der import decoder, encoder
-                from impacket.krb5.asn1 import TGS_REP, Ticket
                 if creds:
                     # If we find one, we build a custom TGS
-                    # Code is based on https://github.com/SecureAuthCorp/impacket/pull/1256
-                    # However, it does not seem to work with python-gssapi...
                     self._logger.debug('Alternative TGS found, patching SPN')
-                    tgs = creds.toTGS(principal)
-                    decoded_st = decoder.decode(tgs['KDC_REP'], asn1Spec=TGS_REP())[0]
-                    new_creds = Credential(data=creds.getData())
-                    new_creds.ticket = CountedOctetString()
-                    new_creds.ticket['data'] = encoder.encode(decoded_st['ticket'].clone(tagSet=Ticket.tagSet, cloneValueFlag=True))
-                    new_creds.ticket['length'] = len(new_creds.ticket['data'])
-                    new_creds['server'].fromPrincipal(Principal(principal, type=constants.PrincipalNameType.NT_PRINCIPAL.value))
-                    
+                    new_creds = self._patch_spn(creds, principal)
                     # We build a new CCache with the new ticket
                     ccache.credentials.append(new_creds)
                     temp_ccache = tempfile.NamedTemporaryFile()
