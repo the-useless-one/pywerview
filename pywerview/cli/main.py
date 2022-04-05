@@ -68,6 +68,8 @@ def main():
     ad_parser = argparse.ArgumentParser(add_help=False, parents=[credentials_parser])
     ad_parser.add_argument('-t', '--dc-ip', dest='domain_controller',
             required=True, help='IP address of the Domain Controller to target')
+    ad_parser.add_argument('--tls', action='store_true', dest='do_tls',
+            help='Force TLS connection to the Domain Controller')
 
     # Target parser, used for net* functions running against a normal computer
     target_parser = argparse.ArgumentParser(add_help=False, parents=[credentials_parser])
@@ -121,7 +123,8 @@ def main():
 
     # Parser for the get-adserviceaccount command
     get_adserviceaccount_parser = subparsers.add_parser('get-adserviceaccount', help='Returns a list of all the '\
-        'gMSA of the specified domain (you need privileged account to retrieve passwords)',
+        'gMSA of the specified domain. To retrieve passwords, you need a privileged account and '\
+        'a TLS connection to the LDAP server (use the --tls switch).',
         parents=[ad_parser, logging_parser, json_output_parser])
     get_adserviceaccount_parser.add_argument('--sid', dest='queried_sid',
             help='SID to query (wildcards accepted)')
@@ -135,9 +138,6 @@ def main():
             help='Additional ADS path')
     get_adserviceaccount_parser.add_argument('--resolve-sids', dest='resolve_sids',
             action='store_true', help='Resolve SIDs when querying PrincipalsAllowedToRetrieveManagedPassword')
-    get_adserviceaccount_parser.add_argument('--no-managedpassword', dest='no_managedpassword',
-            action='store_true', help='Do not retrieve msds-managedpassword attribute, useful '\
-                'if you can\'t join LDAPS service')
     get_adserviceaccount_parser.set_defaults(func=get_adserviceaccount)
     
     # Parser for the get-objectacl command
@@ -463,6 +463,8 @@ def main():
             help='If set, returns a list of the local groups on the targets')
     get_netlocalgroup_parser.add_argument('-t', '--dc-ip', dest='domain_controller',
             default=str(), help='IP address of the Domain Controller (used to resolve domain SIDs)')
+    get_netlocalgroup_parser.add_argument('--tls', action='store_true', dest='do_tls',
+            help='Force TLS connection to the Domain Controller')
     get_netlocalgroup_parser.add_argument('-r', '--recurse', action='store_true',
             help='If the group member is a domain group, try to resolve its members as well')
     get_netlocalgroup_parser.set_defaults(func=get_netlocalgroup)

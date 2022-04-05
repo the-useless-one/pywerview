@@ -121,7 +121,7 @@ class GPORequester(LDAPRequester):
 
                 members = inspect.getmembers(privilege_rights_policy, lambda x: not(inspect.isroutine(x)))
                 with NetRequester(self._domain_controller, self._domain, self._user,
-                                  self._password, self._lmhash, self._nthash, self._do_kerberos) as net_requester:
+                                  self._password, self._lmhash, self._nthash, self._do_kerberos, self._do_tls) as net_requester:
                     for attr in privilege_rights_policy._attributes_dict:
                         attribute = privilege_rights_policy._attributes_dict[attr]
                         if not isinstance(attribute, list):
@@ -299,7 +299,7 @@ class GPORequester(LDAPRequester):
                 resolved_members = list()
                 resolved_memberof = list()
                 with NetRequester(self._domain_controller, self._domain, self._user,
-                                  self._password, self._lmhash, self._nthash, self._do_kerberos) as net_requester:
+                                  self._password, self._lmhash, self._nthash, self._do_kerberos, self._do_tls) as net_requester:
                     for member in members:
                         try:
                             resolved_member = net_requester.get_adobject(queried_sid=member, queried_domain=self._queried_domain)[0]
@@ -332,7 +332,8 @@ class GPORequester(LDAPRequester):
             raise ValueError('You must specify either a computer name or an OU name')
 
         net_requester = NetRequester(self._domain_controller, self._domain, self._user,
-                                     self._password, self._lmhash, self._nthash, self._do_kerberos)
+                                     self._password, self._lmhash, self._nthash, self._do_kerberos,
+                                     self._do_tls)
         if queried_computername:
             computers = net_requester.get_netcomputer(queried_computername=queried_computername,
                                                       queried_domain=queried_domain,
@@ -408,7 +409,8 @@ class GPORequester(LDAPRequester):
                          queried_localgroup=str(), queried_domain=str()):
         results = list()
         net_requester = NetRequester(self._domain_controller, self._domain, self._user,
-                                     self._password, self._lmhash, self._nthash, self._do_kerberos)
+                                     self._password, self._lmhash, self._nthash, self._do_kerberos,
+                                     self._do_tls)
         if queried_username:
                 try:
                     user = net_requester.get_netuser(queried_username=queried_username,

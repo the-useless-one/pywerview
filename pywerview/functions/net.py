@@ -52,12 +52,14 @@ class NetRequester(LDAPRPCRequester):
     @LDAPRPCRequester._ldap_connection_init
     def get_adserviceaccount(self, queried_domain=str(), queried_sid=str(),
                      queried_name=str(), queried_sam_account_name=str(),
-                     ads_path=str(), resolve_sids=False, no_managedpassword=False):
+                     ads_path=str(), resolve_sids=False):
         filter_objectclass = '(ObjectClass=msDS-GroupManagedServiceAccount)'
         attributes = ['samaccountname', 'distinguishedname', 'objectsid', 'description',
                       'msds-managedpassword', 'msds-groupmsamembership', 'useraccountcontrol']
 
-        if no_managedpassword:
+        if not self._ldap_connection.server.ssl:
+            self._logger.warning('LDAP connection is not encrypted, we can\'t ask '\
+                    'for msds-managedpassword, removing from list of attributes')
             attributes.remove('msds-managedpassword')
 
         for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
@@ -72,7 +74,7 @@ class NetRequester(LDAPRPCRequester):
         sid_resolver = NetRequester(self._domain_controller, self._domain, self._user, self._password, self._lmhash, self._nthash)
 
         # In this loop, we resolve SID (if true) and we populate 'enabled' attribute
-        for i,adserviceaccount in enumerate(adserviceaccounts):
+        for i, adserviceaccount in enumerate(adserviceaccounts):
             if resolve_sids:
                 results = list()
                 for sid in getattr(adserviceaccount, 'msds-groupmsamembership'):
@@ -108,7 +110,7 @@ class NetRequester(LDAPRPCRequester):
             base_dn = ','.join(self._base_dn.split(',')[-2:])
             guid_map = {'{00000000-0000-0000-0000-000000000000}': 'All'}
             with NetRequester(self._domain_controller, self._domain, self._user, self._password,
-                  self._lmhash, self._nthash, self._do_kerberos) as net_requester:
+                  self._lmhash, self._nthash, self._do_kerberos, self._do_tls) as net_requester:
                 for o in net_requester.get_adobject(ads_path='CN=Schema,CN=Configuration,{}'.format(base_dn),
                         attributes=['name', 'schemaIDGUID'], custom_filter='(schemaIDGUID=*)'):
                     guid_map['{{{}}}'.format(o.schemaidguid)] = o.name
@@ -140,7 +142,8 @@ class NetRequester(LDAPRPCRequester):
 
         if resolve_sids:
             sid_resolver = NetRequester(self._domain_controller, self._domain,
-                    self._user, self._password, self._lmhash, self._nthash, self._do_kerberos)
+                    self._user, self._password, self._lmhash, self._nthash,
+                    self._do_kerberos, self._do_tls)
             sid_mapping = adobj.ADObject._well_known_sids.copy()
         else:
             sid_resolver = None
@@ -517,7 +520,8 @@ class NetRequester(LDAPRPCRequester):
                         with pywerview.functions.misc.Misc(self._domain_controller,
                                                            self._domain, self._user,
                                                            self._password, self._lmhash,
-                                                           self._nthash, self._do_kerberos) as misc_requester:
+                                                           self._nthash, self._do_kerberos,
+                                                           self._do_tls) as misc_requester:
                             queried_sid = misc_requester.get_domainsid(queried_domain) + '-512'
                             self._logger.debug('Found Domains Admins SID = {}'.format(queried_sid))
                     groups = self.get_netgroup(queried_sid=queried_sid,
