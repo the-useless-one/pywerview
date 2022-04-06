@@ -243,7 +243,7 @@ Pywerview can print results in json format by using the `--json` switch.
 
 PywerView - A Python rewriting of PowerSploit's PowerView
 
-Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
+Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
 
 This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
