@@ -21,8 +21,6 @@ from impacket.dcerpc.v5 import scmr, drsuapi
 from pywerview.requester import LDAPRPCRequester
 import pywerview.functions.net
 
-import struct
-
 class Misc(LDAPRPCRequester):
     @LDAPRPCRequester._rpc_connection_init(r'\drsuapi')
     def convert_sidtont4(self, sid):

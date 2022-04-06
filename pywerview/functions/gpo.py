@@ -15,7 +15,6 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
 
-import codecs
 from bs4 import BeautifulSoup
 from io import BytesIO
 

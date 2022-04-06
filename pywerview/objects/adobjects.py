@@ -16,8 +16,6 @@
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
 
 import inspect
-import struct
-import pyasn1
 import logging
 
 from impacket.ldap.ldaptypes import ACE, ACCESS_ALLOWED_OBJECT_ACE, ACCESS_MASK, LDAP_SID, SR_SECURITY_DESCRIPTOR

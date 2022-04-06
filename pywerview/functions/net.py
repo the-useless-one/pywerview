@@ -15,7 +15,6 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
 
-import socket
 from datetime import datetime, timedelta
 from impacket.dcerpc.v5.ndr import NULL
 from impacket.dcerpc.v5 import wkst, srvs, samr
