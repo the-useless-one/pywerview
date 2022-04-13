@@ -28,6 +28,8 @@ setup(name='pywerview',
         'impacket>=0.9.22',
         'bs4',
         'lxml',
+        'pyasn1',
+        'ldap3>=2.8.1',
         'gssapi'
     ],
     entry_points = {
