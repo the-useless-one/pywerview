@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 long_description = open('README.md').read()
 
 setup(name='pywerview',
-    version='0.3.3',
+    version='0.4.0',
     description='A Python port of PowerSploit\'s PowerView',
     long_description=long_description,
     long_description_content_type='text/markdown',
