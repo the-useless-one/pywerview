@@ -13,7 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
+
+import logging
+import binascii
+from Cryptodome.Hash import MD4
+from impacket.examples.ntlmrelayx.attacks.ldapattack import MSDS_MANAGEDPASSWORD_BLOB
+from impacket.ldap.ldaptypes import SR_SECURITY_DESCRIPTOR
 
 __uac_flags = {0x0000001: 'SCRIPT',
                0x0000002: 'ACCOUNTDISABLE',
@@ -76,6 +82,7 @@ def __format_flag(raw_value, flag_dict):
     try:
         int_value = int(raw_value)
     except ValueError:
+        self._logger.warning('Unable to convert raw flag value to int')
         return raw_value
 
     parsed_flags = list()
@@ -88,6 +95,7 @@ def __format_dict_lookup(raw_value, dictionary):
     try:
         return dictionary[int(raw_value)]
     except (ValueError, KeyError):
+        self._logger.warning('Unable to convert raw value to int')
         return raw_value
 
 def format_useraccountcontrol(raw_value):
@@ -97,6 +105,7 @@ def format_ace_access_mask(raw_value):
     try:
         int_value = int(raw_value)
     except ValueError:
+        self._logger.warning('Unable to convert raw ace acess mask value to int')
         return raw_value
 
     activedirectoryrights = list()
@@ -107,6 +116,19 @@ def format_ace_access_mask(raw_value):
     activedirectoryrights += __format_flag(raw_value, __access_mask)
 
     return activedirectoryrights
+
+
+def format_managedpassword(raw_value):
+    blob = MSDS_MANAGEDPASSWORD_BLOB()
+    blob.fromString(raw_value)
+    return binascii.hexlify(MD4.new(blob['CurrentPassword'][:-2]).digest()).decode('utf8')
+
+def format_groupmsamembership(raw_value):
+    sid = list()
+    sr = SR_SECURITY_DESCRIPTOR(data=raw_value)
+    for dacl in sr['Dacl']['Data']:
+        sid.append(dacl['Ace']['Sid'].formatCanonical())
+    return sid
 
 def format_ace_flags(raw_value):
     return __format_flag(raw_value, __ace_flags)
@@ -122,4 +144,4 @@ def format_trusttype(raw_value):
 
 def format_trustattributes(raw_value):
     return __format_flag(raw_value, __trust_attrib)
-
+ 

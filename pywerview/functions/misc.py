@@ -13,15 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
 
 from impacket.dcerpc.v5.rpcrt import DCERPCException
 from impacket.dcerpc.v5 import scmr, drsuapi
 
 from pywerview.requester import LDAPRPCRequester
 import pywerview.functions.net
-
-import struct
 
 class Misc(LDAPRPCRequester):
     @LDAPRPCRequester._rpc_connection_init(r'\drsuapi')
@@ -52,13 +50,14 @@ class Misc(LDAPRPCRequester):
     def get_domainsid(self, queried_domain=str()):
 
         with pywerview.functions.net.NetRequester(self._domain_controller, self._domain, self._user,
-                                                  self._password, self._lmhash, self._nthash) as r:
+                                                  self._password, self._lmhash, self._nthash,
+                                                  self._do_kerberos, self._do_tls) as r:
             domain_controllers = r.get_netdomaincontroller(queried_domain=queried_domain)
 
         if domain_controllers:
             primary_dc = domain_controllers[0]
             domain_sid = primary_dc.objectsid
-            
+
             # we need to retrieve the domain sid from the controller sid
             domain_sid = '-'.join(domain_sid.split('-')[:-1])
         else:

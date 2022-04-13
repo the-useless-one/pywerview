@@ -13,12 +13,17 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
 
+import logging
 import inspect
 
 class RPCObject:
     def __init__(self, obj):
+        logger = logging.getLogger('pywerview_main_logger.RPCObject')
+        logger.ULTRA = 5
+        self._logger = logger
+
         attributes = dict()
         try:
             for key in obj.fields.keys():
@@ -28,13 +33,14 @@ class RPCObject:
         self.add_attributes(attributes)
 
     def add_attributes(self, attributes):
+        self._logger.log(self._logger.ULTRA,'RPCObject instancied with the following attributes : {}'.format(attributes))
         for key, value in attributes.items():
             key = key.lower()
             if key in ('wkui1_logon_domain', 'wkui1_logon_server',
                        'wkui1_oth_domains', 'wkui1_username',
                        'sesi10_cname', 'sesi10_username'):
                 value = value.rstrip('\x00')
-            
+
             setattr(self, key.lower(), value)
 
     def __str__(self):
@@ -46,6 +52,7 @@ class RPCObject:
                 if len(member[0]) > max_length:
                     max_length = len(member[0])
         for member in members:
+            self._logger.log(self._logger.ULTRA,'Trying to print : attribute name = {0} / value = {1}'.format(member[0], member[1]))
             if not member[0].startswith('_'):
                 s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member[1])
 
@@ -54,6 +61,14 @@ class RPCObject:
 
     def __repr__(self):
         return str(self)
+
+    def to_json(self):
+        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
+        results = dict()
+        for member in members:
+            if not member[0].startswith('_'):
+                results[member[0]]=member[1]
+        return(results)
 
 class TargetUser(RPCObject):
     pass
