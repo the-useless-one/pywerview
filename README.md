@@ -134,6 +134,8 @@ For example, my domain name is `uselessdomain.local`. The Win2K compatible name
 is `USELESSDOMAIN`. In every command,  I must use __`uselessdomain.local`__ as
 an argument, and __not__ `USELESSDOMAIN`.
 
+## GLOBAL ARGUMENTS
+
 ### LOGGING
 
 You can provide a logging level to `pywerview` modules by using `-l` or `--logging-level` options. Supported levels are:
@@ -157,47 +159,54 @@ pass the ticket and other stuff. To authenticate via Kerberos:
 ```console
 $ klist stormtroopers.ccache
 Ticket cache: FILE:stormtroopers.ccache
-Default principal: stormtroopers@DEEPWAKO.NET
+Default principal: stormtroopers@CONTOSO.COM
 
 Valid starting       Expires              Service principal
-10/03/2022 16:46:45  11/03/2022 02:46:45  ldap/srv-ad.deepwako.net@DEEPWAKO.NET
+10/03/2022 16:46:45  11/03/2022 02:46:45  ldap/srv-ad.contoso.com@CONTOSO.COM
 	renew until 11/03/2022 16:43:17
-$ KRB5CCNAME=stormtroopers.ccache python3 pywerview.py get-netcomputer -t srv-ad.deepwako.net -u stormtroopers -k 
-dnshostname: centos.deepwako.net 
+$ KRB5CCNAME=stormtroopers.ccache python3 pywerview.py get-netcomputer -t srv-ad.contoso.com -u stormtroopers -k 
+dnshostname: centos.contoso.com 
 
-dnshostname: debian.deepwako.net 
+dnshostname: debian.contoso.com 
 
-dnshostname: Windows7.deepwako.net 
+dnshostname: Windows7.contoso.com 
 
-dnshostname: Windows10.deepwako.net 
+dnshostname: Windows10.contoso.com 
 
-dnshostname: SRV-MAIL.deepwako.net 
+dnshostname: SRV-MAIL.contoso.com 
 
-dnshostname: SRV-AD.deepwako.net 
+dnshostname: SRV-AD.contoso.com 
 ```
 
 If your cache credential file contains a corresponding TGS, or a TGT for your
 calling user, Kerberos authentication will be used.
 
-__SPN patching is not fully supported__. Right now, we're in a mixed
+__SPN patching is partial__. Right now, we're in a mixed
 configuration where we use `ldap3` for LDAP commands and `impacket` for the
 other protocols (SMB, RPC). That is because `impacket`'s LDAP implementation
 has several problems, such as mismanagement of non-ASCII characters (which is
 problematic for us baguette-eaters).
 
+`ldap3` uses `gssapi` to authenticate with Kerberos, and `gssapi` needs the
+full hostname in the SPN of a ticket, otherwise it throws an error. It would
+be possible to patch an SPN with an incomplete hostname, however it's not done
+for now.
+
 For any functions that only rely on `impacket` (SMB or RPC functions), you can
-use tickets for other SPNs. In the following example, we use an LDAP ticket
-for an SMB function, without any trouble:
+use tickets with SPNs with an incomplete hostname. In the following example, we
+use an LDAP ticket with an incomplete hostname for an SMB function, without any
+trouble. You just have to make sure that the `--computername` argument matches
+this incomplete hostname in the SPN:
 
 ```console
 $ klist skywalker.ccache
 Ticket cache: FILE:skywalker.ccache
-Default principal: skywalker@DEEPWAKO.NET
+Default principal: skywalker@CONTOSO.COM
 
 Valid starting       Expires              Service principal
-10/03/2022 16:54:42  11/03/2022 02:54:42  ldap/srv-ad.deepwako.net@DEEPWAKO.NET
-	renew until 11/03/2022 16:51:13
-$ KRB5CCNAME=skywalker.ccache python3 pywerview.py get-localdisks --computername srv-ad.deepwako.net -u skywalker -k  
+13/04/2022 14:26:59  14/04/2022 00:26:58  ldap/srv-ad@CONTOSO.COM
+	renew until 14/04/2022 14:23:29
+$ KRB5CCNAME=skywalker.ccache python3 pywerview.py get-localdisks --computername srv-ad -u skywalker -k  
 disk: A: 
 
 disk: C: 
@@ -205,10 +214,13 @@ disk: C:
 disk: D:
 ```
 
-However `gssapi` (which is used by `ldap3` for Kerberos auth) does not seem to
-like patched SPNs. Therefore you need a TGS for the correct SPN, or better yet
-a TGT of your user. We'll keep investigating (the SPN patching code is kept
-as is, waiting for `gssapi` to catch up).
+To recap:
+
+|           SPN in the ticket           | Can be used with LDAP functions | Can be used with SMB/RPC functions |
+| :-----------------------------------: | :-----------------------------: | :--------------------------------: |
+| `ldap/srv-ad.contoso.com@CONTOSO.COM` |              ✅                 |                 ✅                 |
+| `cifs/srv-ad.contoso.com@CONTOSO.COm` |              ✅                 |                 ✅                 |
+|       `ldap/srv-ad@CONTOSO.COM`       |              ❌                 |                 ✅                 |
 
 ### JSON OUTPUT
 
