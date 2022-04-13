@@ -181,11 +181,11 @@ dnshostname: SRV-AD.contoso.com
 If your cache credential file contains a corresponding TGS, or a TGT for your
 calling user, Kerberos authentication will be used.
 
-__SPN patching is partial__. Right now, we're in a mixed
-configuration where we use `ldap3` for LDAP commands and `impacket` for the
-other protocols (SMB, RPC). That is because `impacket`'s LDAP implementation
-has several problems, such as mismanagement of non-ASCII characters (which is
-problematic for us baguette-eaters).
+__SPN patching is partial__. Right now, we're in a mixed configuration where we
+use `ldap3` for LDAP commands and `impacket` for the other protocols (SMB,
+RPC). That is because `impacket`'s LDAP implementation has several problems,
+such as mismanagement of non-ASCII characters (which is problematic for us
+baguette-eaters).
 
 `ldap3` uses `gssapi` to authenticate with Kerberos, and `gssapi` needs the
 full hostname in the SPN of a ticket, otherwise it throws an error. It would
@@ -218,9 +218,33 @@ To recap:
 
 |           SPN in the ticket           | Can be used with LDAP functions | Can be used with SMB/RPC functions |
 | :-----------------------------------: | :-----------------------------: | :--------------------------------: |
-| `ldap/srv-ad.contoso.com@CONTOSO.COM` |              ✅                 |                 ✅                 |
-| `cifs/srv-ad.contoso.com@CONTOSO.COm` |              ✅                 |                 ✅                 |
-|       `ldap/srv-ad@CONTOSO.COM`       |              ❌                 |                 ✅                 |
+| `ldap/srv-ad.contoso.com@CONTOSO.COM` |              ✔️                  |                 ✔️                  |
+| `cifs/srv-ad.contoso.com@CONTOSO.COm` |              ✔️                  |                 ✔️                  |
+|       `ldap/srv-ad@CONTOSO.COM`       |              ❌                 |                 ✔️                  |
+
+### TLS CONNECTION
+
+You can force a connection to the LDAPS port by using the `--tls` switch. It
+can be necessary with some functions, for example when retrieving gMSA
+passwords with `get-adserviceaccount`:
+
+```console
+$ python3 pywerview.py get-adserviceaccount -t srv-ad.contoso.com -u 'SRV-MAIL$' --hashes $NT_HASH --resolve-sids
+distinguishedname:       CN=gMSA-01,CN=Managed Service Accounts,DC=contoso,DC=com
+objectsid:               S-1-5-21-863927164-4106933278-53377030-3115
+samaccountname:          gMSA-01$
+msds-groupmsamembership: CN=SRV-MAIL,CN=Computers,DC=contoso,DC=com
+description:
+enabled:                 True
+$ python3 pywerview.py get-adserviceaccount -t srv-ad.contoso.com -u 'SRV-MAIL$' --hashes $NT_HASH --resolve-sids --tls
+distinguishedname:       CN=gMSA-01,CN=Managed Service Accounts,DC=contoso,DC=com
+objectsid:               S-1-5-21-863927164-4106933278-53377030-3115
+samaccountname:          gMSA-01$
+msds-managedpassword:    69730ce3914ac6[redacted]
+msds-groupmsamembership: CN=SRV-MAIL,CN=Computers,DC=contoso,DC=com
+description:
+enabled:                 True
+```
 
 ### JSON OUTPUT
 
