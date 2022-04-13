@@ -13,11 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
 
 import inspect
-import struct
-import pyasn1
+import logging
+
 from impacket.ldap.ldaptypes import ACE, ACCESS_ALLOWED_OBJECT_ACE, ACCESS_MASK, LDAP_SID, SR_SECURITY_DESCRIPTOR
 
 import pywerview.functions.misc as misc
@@ -57,10 +57,15 @@ class ADObject:
                         'S-1-5': 'NT Authority'}
 
     def __init__(self, attributes):
+        logger = logging.getLogger('pywerview_main_logger.ADObject')
+        logger.ULTRA = 5
+        self._logger = logger
+
         self._attributes_dict = dict()
         self.add_attributes(attributes)
 
     def add_attributes(self, attributes):
+        self._logger.log(self._logger.ULTRA,'ADObject instancied with the following attributes : {}'.format(attributes))
         for attr in attributes:
             self._attributes_dict[attr.lower()] = attributes[attr]
 
@@ -84,6 +89,7 @@ class ADObject:
                 max_length = len(attr)
         for attr in self._attributes_dict:
             attribute = self._attributes_dict[attr]
+            self._logger.log(self._logger.ULTRA,'Trying to print : attribute name = {0} / value = {1}'.format(attr, attribute))
             if isinstance(attribute, list):
                 if any(isinstance(x, bytes) for x in attribute):
                     attribute = ['{}...'.format(x.hex()[:97]) for x in attribute]
@@ -106,12 +112,15 @@ class ADObject:
                 attribute = ('\n' + str(attribute)).replace('\n', '\n\t')
 
             s += '{}: {}{}\n'.format(attr, ' ' * (max_length - len(attr)), attribute)
- 
+
         s = s[:-1]
         return s
-             
+
     def __repr__(self):
         return str(self)
+
+    def to_json(self):
+        return self._attributes_dict
 
 class ACE(ADObject):
 
@@ -148,6 +157,8 @@ class Subnet(ADObject):
 class Trust(ADObject):
 
     def __init__(self, attributes):
+        logger = logging.getLogger('pywerview_main_logger.Trust')
+        self._logger = logger
         ADObject.__init__(self, attributes)
         trust_attributes = self.trustattributes
         trust_direction = self.trustdirection
@@ -170,11 +181,13 @@ class Trust(ADObject):
         max_length = len('trustattributes')
 
         for attr in self._attributes_dict:
+            self._logger.log(self._logger.ULTRA,'Trying to print : attribute name = {0} / value = {1}'.format(attr, self._attributes_dict[attr]))
             if attr in ('trustpartner', 'trustdirection', 'trusttype', 'whenchanged', 'whencreated'):
                 attribute = self._attributes_dict[attr]
             elif attr == 'trustattributes':
                 attribute = ', '.join(self._attributes_dict[attr])
             else:
+                self._logger.debug('Ignoring : attribute name = {0}'.format(attr, self._attributes_dict[attr]))
                 continue
             s += '{}: {}{}\n'.format(attr, ' ' * (max_length - len(attr)), attribute)
 
@@ -189,7 +202,11 @@ class PSO(ADObject):
     pass
 
 class GptTmpl(ADObject):
-    pass
+    def to_json(self):
+        json_dict = {}
+        for k, v in self._attributes_dict.items():
+            json_dict[k] = v.to_json()
+        return json_dict
 
 class GPOGroup(ADObject):
     pass
@@ -201,5 +218,8 @@ class GPOComputerAdmin(ADObject):
     pass
 
 class GPOLocation(ADObject):
+    pass
+
+class GMSAAccount(ADObject):
     pass
 

@@ -30,6 +30,7 @@ setup(name='pywerview',
         'lxml',
         'pyasn1',
         'ldap3>=2.8.1',
+        'gssapi'
     ],
     entry_points = {
         'console_scripts': ['pywerview=pywerview.cli.main:main'],

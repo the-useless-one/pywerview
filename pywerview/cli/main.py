@@ -15,9 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
 
+import logging
 import argparse
+import json
+import datetime
 from pywerview.cli.helpers import *
 from pywerview.functions.hunting import *
 
@@ -25,26 +28,48 @@ def main():
     # Main parser
     parser = argparse.ArgumentParser(description='Rewriting of some PowerView\'s functionalities in Python')
     subparsers = parser.add_subparsers(title='Subcommands', description='Available subcommands', dest='submodule')
-    
+
     # hack for python < 3.9 : https://stackoverflow.com/questions/23349349/argparse-with-required-subparser
     subparsers.required = True
+
+    # Logging parser
+    logging_parser = argparse.ArgumentParser(add_help=False)
+    logging_parser.add_argument('-l', '--logging-level', dest='logging_level', type=str.upper,
+            choices=['CRITICAL', 'WARNING', 'DEBUG', 'ULTRA'], default='CRITICAL',
+            help='SDTERR logging level: '
+                 'CRITICAL: Only critical errors are displayed (default), '
+                 'WARNING: Warnings are displayed, along with citical errors, '
+                 'DEBUG: Debug level (caution: very verbose), '
+                 'ULTRA: Extreme debugging level (caution: very very verbose)')
+    
+    # json parser
+    json_output_parser = argparse.ArgumentParser(add_help=False)
+    json_output_parser.add_argument('--json', dest='json_output', action='store_true',
+            help='Print results in JSON format')
 
     # TODO: support keberos authentication
     # Credentials parser
     credentials_parser = argparse.ArgumentParser(add_help=False)
     credentials_parser.add_argument('-w', '--workgroup', dest='domain',
             default=str(), help='Name of the domain we authenticate with')
-    credentials_parser.add_argument('-u', '--user', required=True,
+    credentials_parser.add_argument('-u', '--user',
             help='Username used to connect to the Domain Controller')
     credentials_parser.add_argument('-p', '--password',
             help='Password associated to the username')
-    credentials_parser.add_argument('--hashes', action='store', metavar = 'LMHASH:NTHASH',
+    credentials_parser.add_argument('--hashes', action='store', metavar='LMHASH:NTHASH',
             help='NTLM hashes, format is [LMHASH:]NTHASH')
+    credentials_parser.add_argument('-k', action='store_true', dest='do_kerberos',
+            help='Use Kerberos authentication. Grabs credentials from ccache file '
+            '(KRB5CCNAME) based on target parameters. If valid credentials '
+            'cannot be found, it will use the ones specified in the command '
+            'line')
 
     # AD parser, used for net* functions running against a domain controller
     ad_parser = argparse.ArgumentParser(add_help=False, parents=[credentials_parser])
     ad_parser.add_argument('-t', '--dc-ip', dest='domain_controller',
             required=True, help='IP address of the Domain Controller to target')
+    ad_parser.add_argument('--tls', action='store_true', dest='do_tls',
+            help='Force TLS connection to the Domain Controller')
 
     # Target parser, used for net* functions running against a normal computer
     target_parser = argparse.ArgumentParser(add_help=False, parents=[credentials_parser])
@@ -80,7 +105,8 @@ def main():
 
     # Parser for the get-adobject command
     get_adobject_parser = subparsers.add_parser('get-adobject', help='Takes a domain SID, '\
-        'samAccountName or name, and return the associated object', parents=[ad_parser])
+        'samAccountName or name, and return the associated object',
+        parents=[ad_parser, logging_parser, json_output_parser])
     get_adobject_parser.add_argument('--sid', dest='queried_sid',
             help='SID to query (wildcards accepted)')
     get_adobject_parser.add_argument('--sam-account-name', dest='queried_sam_account_name',
@@ -95,9 +121,29 @@ def main():
             default=[], help='Object attributes to return')
     get_adobject_parser.set_defaults(func=get_adobject)
 
+    # Parser for the get-adserviceaccount command
+    get_adserviceaccount_parser = subparsers.add_parser('get-adserviceaccount', help='Returns a list of all the '\
+        'gMSA of the specified domain. To retrieve passwords, you need a privileged account and '\
+        'a TLS connection to the LDAP server (use the --tls switch).',
+        parents=[ad_parser, logging_parser, json_output_parser])
+    get_adserviceaccount_parser.add_argument('--sid', dest='queried_sid',
+            help='SID to query (wildcards accepted)')
+    get_adserviceaccount_parser.add_argument('--sam-account-name', dest='queried_sam_account_name',
+            help='samAccountName to query (wildcards accepted)')
+    get_adserviceaccount_parser.add_argument('--name', dest='queried_name',
+            help='Name to query (wildcards accepted)')
+    get_adserviceaccount_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_adserviceaccount_parser.add_argument('-a', '--ads-path',
+            help='Additional ADS path')
+    get_adserviceaccount_parser.add_argument('--resolve-sids', dest='resolve_sids',
+            action='store_true', help='Resolve SIDs when querying PrincipalsAllowedToRetrieveManagedPassword')
+    get_adserviceaccount_parser.set_defaults(func=get_adserviceaccount)
+    
     # Parser for the get-objectacl command
     get_objectacl_parser = subparsers.add_parser('get-objectacl', help='Takes a domain SID, '\
-        'samAccountName or name, and return the ACL of the associated object', parents=[ad_parser])
+        'samAccountName or name, and return the ACL of the associated object',
+        parents=[ad_parser, logging_parser, json_output_parser])
     get_objectacl_parser.add_argument('--sid', dest='queried_sid',
             help='SID to query (wildcards accepted)')
     get_objectacl_parser.add_argument('--sam-account-name', dest='queried_sam_account_name',
@@ -122,7 +168,7 @@ def main():
 
     # Parser for the get-netuser command
     get_netuser_parser = subparsers.add_parser('get-netuser', help='Queries information about '\
-        'a domain user', parents=[ad_parser])
+        'a domain user', parents=[ad_parser, logging_parser, json_output_parser])
     get_netuser_parser.add_argument('--username', dest='queried_username',
             help='Username to query (wildcards accepted)')
     get_netuser_parser.add_argument('-d', '--domain', dest='queried_domain',
@@ -147,7 +193,8 @@ def main():
 
     # Parser for the get-netgroup command
     get_netgroup_parser = subparsers.add_parser('get-netgroup', help='Get a list of all current '\
-        'domain groups, or a list of groups a domain user is member of', parents=[ad_parser])
+        'domain groups, or a list of groups a domain user is member of',
+        parents=[ad_parser, logging_parser, json_output_parser])
     get_netgroup_parser.add_argument('--groupname', dest='queried_groupname',
             default='*', help='Group to query (wildcards accepted)')
     get_netgroup_parser.add_argument('--sid', dest='queried_sid',
@@ -166,7 +213,7 @@ def main():
 
     # Parser for the get-netcomputer command
     get_netcomputer_parser = subparsers.add_parser('get-netcomputer', help='Queries informations about '\
-        'domain computers', parents=[ad_parser])
+        'domain computers', parents=[ad_parser, logging_parser, json_output_parser])
     get_netcomputer_parser.add_argument('--computername', dest='queried_computername',
             default='*', help='Computer name to query')
     get_netcomputer_parser.add_argument('-os', '--operating-system', dest='queried_os',
@@ -193,14 +240,15 @@ def main():
 
     # Parser for the get-netdomaincontroller command
     get_netdomaincontroller_parser = subparsers.add_parser('get-netdomaincontroller', help='Get a list of '\
-        'domain controllers for the given domain', parents=[ad_parser])
+        'domain controllers for the given domain', parents=[ad_parser, logging_parser, json_output_parser])
     get_netdomaincontroller_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
     get_netdomaincontroller_parser.set_defaults(func=get_netdomaincontroller)
 
     # Parser for the get-netfileserver command
     get_netfileserver_parser = subparsers.add_parser('get-netfileserver', help='Return a list of '\
-        'file servers, extracted from the domain users\' homeDirectory, scriptPath, and profilePath fields', parents=[ad_parser])
+        'file servers, extracted from the domain users\' homeDirectory, scriptPath, and profilePath fields',
+        parents=[ad_parser, logging_parser, json_output_parser])
     get_netfileserver_parser.add_argument('--target-users', nargs='+',
             metavar='TARGET_USER', help='A list of users to target to find file servers (wildcards accepted)')
     get_netfileserver_parser.add_argument('-d', '--domain', dest='queried_domain',
@@ -209,7 +257,7 @@ def main():
 
     # Parser for the get-dfsshare command
     get_dfsshare_parser = subparsers.add_parser('get-dfsshare', help='Return a list of '\
-        'all fault tolerant distributed file systems for a given domain', parents=[ad_parser])
+        'all fault tolerant distributed file systems for a given domain', parents=[ad_parser, logging_parser, json_output_parser])
     get_dfsshare_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
     get_dfsshare_parser.add_argument('-v', '--version', nargs='+', choices=['v1', 'v2'],
@@ -220,7 +268,7 @@ def main():
 
     # Parser for the get-netou command
     get_netou_parser = subparsers.add_parser('get-netou', help='Get a list of all current '\
-        'OUs in the domain', parents=[ad_parser])
+        'OUs in the domain', parents=[ad_parser, logging_parser, json_output_parser])
     get_netou_parser.add_argument('--ouname', dest='queried_ouname',
             default='*', help='OU name to query (wildcards accepted)')
     get_netou_parser.add_argument('--guid', dest='queried_guid',
@@ -235,7 +283,7 @@ def main():
 
     # Parser for the get-netsite command
     get_netsite_parser = subparsers.add_parser('get-netsite', help='Get a list of all current '\
-        'sites in the domain', parents=[ad_parser])
+        'sites in the domain', parents=[ad_parser, logging_parser, json_output_parser])
     get_netsite_parser.add_argument('--sitename', dest='queried_sitename',
             help='Site name to query (wildcards accepted)')
     get_netsite_parser.add_argument('--guid', dest='queried_guid',
@@ -250,7 +298,7 @@ def main():
 
     # Parser for the get-netsubnet command
     get_netsubnet_parser = subparsers.add_parser('get-netsubnet', help='Get a list of all current '\
-        'subnets in the domain', parents=[ad_parser])
+        'subnets in the domain', parents=[ad_parser, logging_parser, json_output_parser])
     get_netsubnet_parser.add_argument('--sitename', dest='queried_sitename',
             help='Only return subnets for the specified site name (wildcards accepted)')
     get_netsubnet_parser.add_argument('-d', '--domain', dest='queried_domain',
@@ -263,14 +311,14 @@ def main():
 
     # Parser for the get-netdomaintrust command
     get_netdomaintrust_parser = subparsers.add_parser('get-netdomaintrust', help='Returns a list of all the '\
-        'trusts of the specified domain', parents=[ad_parser])
+        'trusts of the specified domain', parents=[ad_parser, logging_parser, json_output_parser])
     get_netdomaintrust_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
     get_netdomaintrust_parser.set_defaults(func=get_netdomaintrust)
 
     # Parser for the get-netgpo command
     get_netgpo_parser = subparsers.add_parser('get-netgpo', help='Get a list of all current '\
-        'GPOs in the domain', parents=[ad_parser])
+        'GPOs in the domain', parents=[ad_parser, logging_parser, json_output_parser])
     get_netgpo_parser.add_argument('--gponame', dest='queried_gponame',
             default='*', help='GPO name to query for (wildcards accepted)')
     get_netgpo_parser.add_argument('--displayname', dest='queried_displayname',
@@ -283,7 +331,7 @@ def main():
 
     # Parser for the get-netpso command
     get_netpso_parser = subparsers.add_parser('get-netpso', help='Get a list of all current '\
-        'PSOs in the domain', parents=[ad_parser])
+        'PSOs in the domain', parents=[ad_parser, logging_parser, json_output_parser])
     get_netpso_parser.add_argument('--psoname', dest='queried_psoname',
             default='*', help='pso name to query for (wildcards accepted)')
     get_netpso_parser.add_argument('--displayname', dest='queried_displayname',
@@ -296,7 +344,7 @@ def main():
 
     # Parser for the get-domainpolicy command
     get_domainpolicy_parser = subparsers.add_parser('get-domainpolicy', help='Returns the default domain or DC '\
-        'policy for the queried domain or DC', parents=[ad_parser])
+        'policy for the queried domain or DC', parents=[ad_parser, logging_parser, json_output_parser])
     get_domainpolicy_parser.add_argument('--source', dest='source', default='domain',
             choices=['domain', 'dc'], help='Extract domain or DC policy (default: %(default)s)')
     get_domainpolicy_parser.add_argument('-d', '--domain', dest='queried_domain',
@@ -307,14 +355,14 @@ def main():
 
     # Parser for the get-gpttmpl command
     get_gpttmpl_parser = subparsers.add_parser('get-gpttmpl', help='Helper to parse a GptTmpl.inf policy '\
-            'file path into a custom object', parents=[ad_parser])
+            'file path into a custom object', parents=[ad_parser, logging_parser, json_output_parser])
     get_gpttmpl_parser.add_argument('--gpt-tmpl-path', type=str, required=True,
             dest='gpttmpl_path', help='The GptTmpl.inf file path name to parse')
     get_gpttmpl_parser.set_defaults(func=get_gpttmpl)
 
     # Parser for the get-netgpogroup command
     get_netgpogroup_parser = subparsers.add_parser('get-netgpogroup', help='Parses all GPOs in the domain '\
-        'that set "Restricted Group" or "Groups.xml"', parents=[ad_parser])
+        'that set "Restricted Group" or "Groups.xml"', parents=[ad_parser, logging_parser, json_output_parser])
     get_netgpogroup_parser.add_argument('--gponame', dest='queried_gponame',
             default='*', help='GPO name to query for (wildcards accepted)')
     get_netgpogroup_parser.add_argument('--displayname', dest='queried_displayname',
@@ -329,7 +377,7 @@ def main():
 
     # Parser for the find-gpocomputeradmin command
     find_gpocomputeradmin_parser = subparsers.add_parser('find-gpocomputeradmin', help='Takes a computer (or OU) and determine '\
-        'who has administrative access to it via GPO', parents=[ad_parser])
+        'who has administrative access to it via GPO', parents=[ad_parser, logging_parser, json_output_parser])
     find_gpocomputeradmin_parser.add_argument('--computername', dest='queried_computername',
             default=str(), help='The computer to determine who has administrative access to it')
     find_gpocomputeradmin_parser.add_argument('--ouname', dest='queried_ouname',
@@ -343,7 +391,7 @@ def main():
 
     # Parser for the find-gpolocation command
     find_gpolocation_parser = subparsers.add_parser('find-gpolocation', help='Takes a username or a group name and determine '\
-        'the computers it has administrative access to via GPO', parents=[ad_parser])
+        'the computers it has administrative access to via GPO', parents=[ad_parser, logging_parser, json_output_parser])
     find_gpolocation_parser.add_argument('--username', dest='queried_username',
             default=str(), help='The username to query for access (no wildcard)')
     find_gpolocation_parser.add_argument('--groupname', dest='queried_groupname',
@@ -356,7 +404,8 @@ def main():
     find_gpolocation_parser.set_defaults(func=find_gpolocation)
 
     # Parser for the get-netgroup command
-    get_netgroupmember_parser = subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain group', parents=[ad_parser])
+    get_netgroupmember_parser = subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain group',
+        parents=[ad_parser, logging_parser, json_output_parser])
     get_netgroupmember_parser.add_argument('--groupname', dest='queried_groupname',
             help='Group to query, defaults to the \'Domain Admins\' group (wildcards accepted)')
     get_netgroupmember_parser.add_argument('--sid', dest='queried_sid',
@@ -376,60 +425,66 @@ def main():
 
     # Parser for the get-netsession command
     get_netsession_parser = subparsers.add_parser('get-netsession', help='Queries a host to return a '\
-        'list of active sessions on the host (you can use local credentials instead of domain credentials)', parents=[target_parser])
+        'list of active sessions on the host (you can use local credentials instead of domain credentials)',
+        parents=[target_parser, logging_parser, json_output_parser])
     get_netsession_parser.set_defaults(func=get_netsession)
 
     #Parser for the get-localdisks command
     get_localdisks_parser = subparsers.add_parser('get-localdisks', help='Queries a host to return a '\
-        'list of active disks on the host (you can use local credentials instead of domain credentials)', parents=[target_parser])
+        'list of active disks on the host (you can use local credentials instead of domain credentials)',
+        parents=[target_parser, logging_parser, json_output_parser])
     get_localdisks_parser.set_defaults(func=get_localdisks)
 
     #Parser for the get-netdomain command
     get_netdomain_parser = subparsers.add_parser('get-netdomain', help='Queries a host for available domains',
-        parents=[ad_parser])
+        parents=[ad_parser, logging_parser, json_output_parser])
     get_netdomain_parser.set_defaults(func=get_netdomain)
 
     # Parser for the get-netshare command
     get_netshare_parser = subparsers.add_parser('get-netshare', help='Queries a host to return a '\
-        'list of available shares on the host (you can use local credentials instead of domain credentials)', parents=[target_parser])
+        'list of available shares on the host (you can use local credentials instead of domain credentials)',
+        parents=[target_parser, logging_parser, json_output_parser])
     get_netshare_parser.set_defaults(func=get_netshare)
 
     # Parser for the get-netloggedon command
     get_netloggedon_parser = subparsers.add_parser('get-netloggedon', help='This function will '\
         'execute the NetWkstaUserEnum RPC call to query a given host for actively logged on '\
-        'users', parents=[target_parser])
+        'users', parents=[target_parser, logging_parser, json_output_parser])
     get_netloggedon_parser.set_defaults(func=get_netloggedon)
 
     # Parser for the get-netlocalgroup command
     get_netlocalgroup_parser = subparsers.add_parser('get-netlocalgroup', help='Gets a list of '\
         'members of a local group on a machine, or returns every local group. You can use local '\
         'credentials instead of domain credentials, however, domain credentials are needed to '\
-        'resolve domain SIDs.', parents=[target_parser])
+        'resolve domain SIDs.', parents=[target_parser, logging_parser, json_output_parser])
     get_netlocalgroup_parser.add_argument('--groupname', dest='queried_groupname',
             help='Group to list the members of (defaults to the local \'Administrators\' group')
     get_netlocalgroup_parser.add_argument('--list-groups', action='store_true',
             help='If set, returns a list of the local groups on the targets')
     get_netlocalgroup_parser.add_argument('-t', '--dc-ip', dest='domain_controller',
             default=str(), help='IP address of the Domain Controller (used to resolve domain SIDs)')
+    get_netlocalgroup_parser.add_argument('--tls', action='store_true', dest='do_tls',
+            help='Force TLS connection to the Domain Controller')
     get_netlocalgroup_parser.add_argument('-r', '--recurse', action='store_true',
             help='If the group member is a domain group, try to resolve its members as well')
     get_netlocalgroup_parser.set_defaults(func=get_netlocalgroup)
 
     # Parser for the invoke-checklocaladminaccess command
     invoke_checklocaladminaccess_parser = subparsers.add_parser('invoke-checklocaladminaccess', help='Checks '\
-            'if the given user has local admin access on the given host', parents=[target_parser])
+            'if the given user has local admin access on the given host', 
+            parents=[target_parser, logging_parser, json_output_parser])
     invoke_checklocaladminaccess_parser.set_defaults(func=invoke_checklocaladminaccess)
 
     # Parser for the get-netprocess command
     get_netprocess_parser = subparsers.add_parser('get-netprocess', help='This function will '\
         'execute the \'Select * from Win32_Process\' WMI query to a given host for a list of '\
-        'executed process', parents=[target_parser])
+        'executed process', parents=[target_parser, logging_parser, json_output_parser])
     get_netprocess_parser.set_defaults(func=get_netprocess)
 
     # Parser for the get-userevent command
     get_userevent_parser = subparsers.add_parser('get-userevent', help='This function will '\
-        'execute the \'Select * from Win32_Process\' WMI query to a given host for a list of '\
-        'executed process', parents=[target_parser])
+        'execute the \'SELECT * from Win32_NTLogEvent\' WMI query to a given host for a list of '\
+        'executed process', parents=[target_parser, logging_parser, json_output_parser])
     get_userevent_parser.add_argument('--event-type', nargs='+', choices=['logon', 'tgt'],
             default=['logon', 'tgt'], help='The type of event to search for: logon, tgt, or all (default: all)')
     get_userevent_parser.add_argument('--date-start', type=int,
@@ -438,7 +493,7 @@ def main():
 
     # Parser for the invoke-userhunter command
     invoke_userhunter_parser = subparsers.add_parser('invoke-userhunter', help='Finds '\
-            'which machines domain users are logged into', parents=[ad_parser, hunter_parser])
+            'which machines domain users are logged into', parents=[ad_parser, hunter_parser, logging_parser])
     invoke_userhunter_parser.add_argument('--unconstrained', action='store_true',
             help='Query only computers with unconstrained delegation')
     invoke_userhunter_parser.add_argument('--admin-count', action='store_true',
@@ -464,7 +519,8 @@ def main():
 
     # Parser for the invoke-processhunter command
     invoke_processhunter_parser = subparsers.add_parser('invoke-processhunter', help='Searches machines '\
-            'for processes with specific name, or ran by specific users', parents=[ad_parser, hunter_parser])
+            'for processes with specific name, or ran by specific users',
+            parents=[ad_parser, hunter_parser, logging_parser])
     invoke_processhunter_parser.add_argument('--processname', dest='queried_processname',
             nargs='+', default=list(), help='Names of the process to hunt')
     invoke_processhunter_parser.add_argument('--stop-on-success', action='store_true',
@@ -475,12 +531,24 @@ def main():
 
     # Parser for the invoke-eventhunter command
     invoke_eventhunter_parser = subparsers.add_parser('invoke-eventhunter', help='Searches machines '\
-            'for events with specific name, or ran by specific users', parents=[ad_parser, hunter_parser])
+            'for events with specific name, or ran by specific users',
+            parents=[ad_parser, hunter_parser, logging_parser])
     invoke_eventhunter_parser.add_argument('--search-days', dest='search_days',
             type=int, default=3, help='Number of days back to search logs for (default: %(default)s)')
     invoke_eventhunter_parser.set_defaults(func=invoke_eventhunter)
 
     args = parser.parse_args()
+
+    # setup the main logger
+    logger = logging.getLogger('pywerview_main_logger')
+    logging.addLevelName(5, 'ULTRA')
+    logger.setLevel(args.logging_level)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(args.logging_level)
+    formatter = logging.Formatter('[%(levelname)s] %(name)s - %(funcName)s : %(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
     if args.hashes:
         try:
             args.lmhash, args.nthash = args.hashes.split(':')
@@ -491,26 +559,40 @@ def main():
     else:
         args.lmhash = args.nthash = str()
 
-    if args.password is None and not args.hashes:
+    if args.password is None and args.hashes is None and not args.do_kerberos:
         from getpass import getpass
         args.password = getpass('Password:')
 
     parsed_args = dict()
     for k, v in vars(args).items():
-        if k not in ('func', 'hashes', 'submodule'):
+        if k not in ('func', 'hashes', 'submodule', 'logging_level', 'json_output'):
             parsed_args[k] = v
 
-    #try:
+    starting_time = datetime.datetime.now()
     results = args.func(**parsed_args)
-    #except Exception, e:
-        #print >>sys.stderr, repr(e)
-        #sys.exit(-1)
+    ending_time = datetime.datetime.now()
+
+    try:
+        json_output = args.json_output
+    except AttributeError:
+        json_output = False
 
     if results is not None:
-        try:
-            for x in results:
-                    print(x, '\n')
-        # for example, invoke_checklocaladminaccess returns a bool 
-        except TypeError:
-            print(results)
+        if json_output:
+            results_json = {'cmd' : {'submodule' : args.submodule, 'args' : parsed_args,
+                'starting_time': starting_time, 'ending_time': ending_time}}
+            try:
+                objects_json = [x.to_json() for x in results]
+            except TypeError:
+                try:
+                    objects_json = [results.to_json()]
+                except AttributeError:
+                    objects_json = results
+            results_json['results'] = objects_json
+            print(json.dumps(results_json, default=str))
+        else:
+            try:
+                print('\n\n'.join(str(x) for x in results))
+            except TypeError:
+                print(results)
 

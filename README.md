@@ -61,6 +61,7 @@ Also, blah blah blah, don't use it for evil purposes.
 * Python 3.6
 * impacket >= 0.9.22
 * ldap3 >= 2.8.1
+* gssapi (Which requires `libkrb5-dev`)
 
 ## FUNCTIONALITIES
 
@@ -69,9 +70,9 @@ If you like living on the bleeding edge, check out the
 
 Here's the list of available commands:
 
-    $ ./pywerview.py --help
+    $ pywerview.py --help
     usage: pywerview.py [-h]
-                        {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-domainpolicy,get-gpttmpl,get-netgpogroup,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
+                        {get-adobject,get-adserviceaccount,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
                         ...
 
     Rewriting of some PowerView's functionalities in Python
@@ -82,68 +83,46 @@ Here's the list of available commands:
     Subcommands:
       Available subcommands
 
-      {get-adobject,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netgpo,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
-        get-adobject        Takes a domain SID, samAccountName or name, and return
-                            the associated object
+      {get-adobject,get-adserviceaccount,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
+        get-adobject        Takes a domain SID, samAccountName or name, and return the associated object
+        get-adserviceaccount
+                            Returns a list of all the gMSA of the specified domain (you need privileged account to retrieve passwords)
+        get-objectacl       Takes a domain SID, samAccountName or name, and return the ACL of the associated object
         get-netuser         Queries information about a domain user
-        get-netgroup        Get a list of all current domain groups, or a list of
-                            groups a domain user is member of
+        get-netgroup        Get a list of all current domain groups, or a list of groups a domain user is member of
         get-netcomputer     Queries informations about domain computers
         get-netdomaincontroller
                             Get a list of domain controllers for the given domain
-        get-netfileserver   Return a list of file servers, extracted from the
-                            domain users' homeDirectory, scriptPath, and
-                            profilePath fields
-        get-dfsshare        Return a list of all fault tolerant distributed file
-                            systems for a given domain
+        get-netfileserver   Return a list of file servers, extracted from the domain users' homeDirectory, scriptPath, and profilePath fields
+        get-dfsshare        Return a list of all fault tolerant distributed file systems for a given domain
         get-netou           Get a list of all current OUs in the domain
         get-netsite         Get a list of all current sites in the domain
         get-netsubnet       Get a list of all current subnets in the domain
+        get-netdomaintrust  Returns a list of all the trusts of the specified domain
         get-netgpo          Get a list of all current GPOs in the domain
-        get-domainpolicy    Returns the default domain or DC policy for the
-                            queried domain or DC
-        get-gpttmpl         Helper to parse a GptTmpl.inf policy file path into a
-                            custom object
-        get-netgpogroup     Parses all GPOs in the domain that set "Restricted
-                            Group" or "Groups.xml"
+        get-netpso          Get a list of all current PSOs in the domain
+        get-domainpolicy    Returns the default domain or DC policy for the queried domain or DC
+        get-gpttmpl         Helper to parse a GptTmpl.inf policy file path into a custom object
+        get-netgpogroup     Parses all GPOs in the domain that set "Restricted Group" or "Groups.xml"
         find-gpocomputeradmin
-                            Takes a computer (or OU) and determine who has
-                            administrative access to it via GPO
-        find-gpolocation    Takes a username or a group name and determine the
-                            computers it has administrative access to via GPO
+                            Takes a computer (or OU) and determine who has administrative access to it via GPO
+        find-gpolocation    Takes a username or a group name and determine the computers it has administrative access to via GPO
         get-netgroupmember  Return a list of members of a domain group
-        get-netsession      Queries a host to return a list of active sessions on
-                            the host (you can use local credentials instead of
-                            domain credentials)
-        get-localdisks      Queries a host to return a list of active disks on the
-                            host (you can use local credentials instead of domain
-                            credentials)
+        get-netsession      Queries a host to return a list of active sessions on the host (you can use local credentials instead of domain credentials)
+        get-localdisks      Queries a host to return a list of active disks on the host (you can use local credentials instead of domain credentials)
         get-netdomain       Queries a host for available domains
-        get-netshare        Queries a host to return a list of available shares on
-                            the host (you can use local credentials instead of
-                            domain credentials)
-        get-netloggedon     This function will execute the NetWkstaUserEnum RPC
-                            call to query a given host for actively logged on
-                            users
-        get-netlocalgroup   Gets a list of members of a local group on a machine,
-                            or returns every local group. You can use local
-                            credentials instead of domain credentials, however,
-                            domain credentials are needed to resolve domain SIDs.
+        get-netshare        Queries a host to return a list of available shares on the host (you can use local credentials instead of domain credentials)
+        get-netloggedon     This function will execute the NetWkstaUserEnum RPC call to query a given host for actively logged on users
+        get-netlocalgroup   Gets a list of members of a local group on a machine, or returns every local group. You can use local credentials instead of domain credentials, however, domain credentials are needed
+                            to resolve domain SIDs.
         invoke-checklocaladminaccess
-                            Checks if the given user has local admin access on the
-                            given host
-        get-netprocess      This function will execute the 'Select * from
-                            Win32_Process' WMI query to a given host for a list of
-                            executed process
-        get-userevent       This function will execute the 'Select * from
-                            Win32_Process' WMI query to a given host for a list of
-                            executed process
+                            Checks if the given user has local admin access on the given host
+        get-netprocess      This function will execute the 'Select * from Win32_Process' WMI query to a given host for a list of executed process
+        get-userevent       This function will execute the 'SELECT * from Win32_NTLogEvent' WMI query to a given host for a list of executed process
         invoke-userhunter   Finds which machines domain users are logged into
         invoke-processhunter
-                            Searches machines for processes with specific name, or
-                            ran by specific users
-        invoke-eventhunter  Searches machines for events with specific name, or
-                            ran by specific users
+                            Searches machines for processes with specific name, or ran by specific users
+        invoke-eventhunter  Searches machines for events with specific name, or ran by specific users
 
 Take a look at the [wiki](https://github.com/the-useless-one/pywerview/wiki) to
 see a more detailed usage of every command.
@@ -155,14 +134,92 @@ For example, my domain name is `uselessdomain.local`. The Win2K compatible name
 is `USELESSDOMAIN`. In every command,  I must use __`uselessdomain.local`__ as
 an argument, and __not__ `USELESSDOMAIN`.
 
+### LOGGING
+
+You can provide a logging level to `pywerview` modules by using `-l` or `--logging-level` options. Supported levels are:
+
+* `CRITICAL`: Only critical errors are displayed **(default)**
+* `WARNING` Warnings are displayed, along with citical errors
+* `DEBUG`: Debug level (caution: **very** verbose)
+* `ULTRA`: Extreme debugging level (caution: **very very** verbose)
+
+(level names are case insensitive)
+
+### Kerberos authentication
+
+Kerberos authentication is now (partially) supported, which means you can
+pass the ticket and other stuff. To authenticate via Kerberos:
+
+1. Point the `KRB5CCNAME` environment variable to your cache credential file.
+2. Use the `-k` option in your function call, or the `do_kerberos` in your
+   library call.
+
+```console
+$ klist stormtroopers.ccache
+Ticket cache: FILE:stormtroopers.ccache
+Default principal: stormtroopers@DEEPWAKO.NET
+
+Valid starting       Expires              Service principal
+10/03/2022 16:46:45  11/03/2022 02:46:45  ldap/srv-ad.deepwako.net@DEEPWAKO.NET
+	renew until 11/03/2022 16:43:17
+$ KRB5CCNAME=stormtroopers.ccache python3 pywerview.py get-netcomputer -t srv-ad.deepwako.net -u stormtroopers -k 
+dnshostname: centos.deepwako.net 
+
+dnshostname: debian.deepwako.net 
+
+dnshostname: Windows7.deepwako.net 
+
+dnshostname: Windows10.deepwako.net 
+
+dnshostname: SRV-MAIL.deepwako.net 
+
+dnshostname: SRV-AD.deepwako.net 
+```
+
+If your cache credential file contains a corresponding TGS, or a TGT for your
+calling user, Kerberos authentication will be used.
+
+__SPN patching is not fully supported__. Right now, we're in a mixed
+configuration where we use `ldap3` for LDAP commands and `impacket` for the
+other protocols (SMB, RPC). That is because `impacket`'s LDAP implementation
+has several problems, such as mismanagement of non-ASCII characters (which is
+problematic for us baguette-eaters).
+
+For any functions that only rely on `impacket` (SMB or RPC functions), you can
+use tickets for other SPNs. In the following example, we use an LDAP ticket
+for an SMB function, without any trouble:
+
+```console
+$ klist skywalker.ccache
+Ticket cache: FILE:skywalker.ccache
+Default principal: skywalker@DEEPWAKO.NET
+
+Valid starting       Expires              Service principal
+10/03/2022 16:54:42  11/03/2022 02:54:42  ldap/srv-ad.deepwako.net@DEEPWAKO.NET
+	renew until 11/03/2022 16:51:13
+$ KRB5CCNAME=skywalker.ccache python3 pywerview.py get-localdisks --computername srv-ad.deepwako.net -u skywalker -k  
+disk: A: 
+
+disk: C: 
+
+disk: D:
+```
+
+However `gssapi` (which is used by `ldap3` for Kerberos auth) does not seem to
+like patched SPNs. Therefore you need a TGS for the correct SPN, or better yet
+a TGT of your user. We'll keep investigating (the SPN patching code is kept
+as is, waiting for `gssapi` to catch up).
+
+### JSON OUTPUT
+
+Pywerview can print results in json format by using the `--json` switch.
+
 ## TODO
 
 * Many, many more PowerView functionalities to implement. I'll now focus on
   forest functions, then inter-forest trust functions
 * Lots of rewrite due to the last version of PowerView
-* Implement a debugging mode (for easier troubleshooting)
 * Gracefully fail against Unix machines running Samba
-* Support Kerberos authentication
 * Perform range cycling in `get-netgroupmember`
 * Manage request to the Global Catalog
 * Try to fall back to `tcp/139` for RPC communications if `tcp/445` is closed
@@ -186,7 +243,7 @@ an argument, and __not__ `USELESSDOMAIN`.
 
 PywerView - A Python rewriting of PowerSploit's PowerView
 
-Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2021
+Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
 
 This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
