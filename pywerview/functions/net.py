@@ -313,7 +313,7 @@ class NetRequester(LDAPRPCRequester):
     @LDAPRPCRequester._ldap_connection_init
     def get_netcomputer(self, queried_computername='*', queried_spn=str(),
                         queried_os=str(), queried_sp=str(), queried_domain=str(),
-                        ads_path=str(), printers=False, unconstrained=False,
+                        ads_path=str(), printers=False, unconstrained=False, laps_passwords=False,
                         ping=False, full_data=False, custom_filter=str(), attributes=[]):
 
         if unconstrained:
@@ -321,6 +321,9 @@ class NetRequester(LDAPRPCRequester):
 
         if printers:
             custom_filter += '(objectCategory=printQueue)'
+
+        if laps_passwords:
+            custom_filter += '(ms-mcs-AdmPwd=*)'
 
         computer_search_filter = '(samAccountType=805306369){}'.format(custom_filter)
         for (attr_desc, attr_value) in (('servicePrincipalName', queried_spn),
@@ -334,6 +337,8 @@ class NetRequester(LDAPRPCRequester):
         else:
             if not attributes:
                 attributes=['dnsHostName']
+            if laps_passwords:
+                attributes.append('ms-mcs-AdmPwd')
 
         computer_search_filter = '(&{})'.format(computer_search_filter)
 

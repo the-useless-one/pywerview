@@ -89,15 +89,15 @@ def get_netcomputer(domain_controller, domain, user, password=str(),
                     lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
                     queried_computername='*', queried_spn=str(), queried_os=str(),
                     queried_sp=str(), queried_domain=str(), ads_path=str(),
-                    printers=False, unconstrained=False, ping=False, full_data=False,
-                    custom_filter=str(), attributes=[]):
+                    printers=False, unconstrained=False, laps_passwords=False,
+                    ping=False, full_data=False, custom_filter=str(), attributes=[]):
     requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash, do_kerberos, do_tls)
     return requester.get_netcomputer(queried_computername=queried_computername,
                                         queried_spn=queried_spn, queried_os=queried_os, queried_sp=queried_sp,
                                         queried_domain=queried_domain, ads_path=ads_path, printers=printers,
-                                        unconstrained=unconstrained, ping=ping, full_data=full_data,
-                                        custom_filter=custom_filter, attributes=attributes)
+                                        unconstrained=unconstrained, laps_passwords=laps_passwords, ping=ping,
+                                        full_data=full_data, custom_filter=custom_filter, attributes=attributes)
 
 def get_netdomaincontroller(domain_controller, domain, user, password=str(),
                                  lmhash=str(), nthash=str(), do_kerberos=False,

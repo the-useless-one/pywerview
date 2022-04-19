@@ -230,6 +230,8 @@ def main():
             help='Query only printers')
     get_netcomputer_parser.add_argument('--unconstrained', action='store_true',
             help='Query only computers with unconstrained delegation')
+    get_netcomputer_parser.add_argument('--laps-passwords', action='store_true', dest='laps_passwords',
+            help='Query only computers for which the user can read LAPS passwords')
     get_netcomputer_parser.add_argument('--ping', action='store_true',
             help='Ping computers (will only return up computers)')
     get_netcomputer_parser.add_argument('--full-data', action='store_true',
