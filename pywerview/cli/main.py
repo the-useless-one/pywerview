@@ -47,7 +47,6 @@ def main():
     json_output_parser.add_argument('--json', dest='json_output', action='store_true',
             help='Print results in JSON format')
 
-    # TODO: support keberos authentication
     # Credentials parser
     credentials_parser = argparse.ArgumentParser(add_help=False)
     credentials_parser.add_argument('-w', '--workgroup', dest='domain',
@@ -63,6 +62,12 @@ def main():
             '(KRB5CCNAME) based on target parameters. If valid credentials '
             'cannot be found, it will use the ones specified in the command '
             'line')
+    credentials_parser.add_argument('-c', action='store_true', dest='do_certificate',
+            help='Use certificate authentication')
+    credentials_parser.add_argument('--cert', dest='user_cert',
+            help='Certificatie associated to the user')
+    credentials_parser.add_argument('--key', dest='user_key',
+            help='Private key associated to the user')
 
     # AD parser, used for net* functions running against a domain controller
     ad_parser = argparse.ArgumentParser(add_help=False, parents=[credentials_parser])
@@ -561,7 +566,7 @@ def main():
     else:
         args.lmhash = args.nthash = str()
 
-    if args.password is None and args.hashes is None and not args.do_kerberos:
+    if args.password is None and args.hashes is None and not args.do_kerberos and not args.do_certificate:
         from getpass import getpass
         args.password = getpass('Password:')
 

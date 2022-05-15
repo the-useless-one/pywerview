@@ -22,6 +22,7 @@ import ntpath
 import ldap3
 import os
 import tempfile
+import ssl
 
 from ldap3.protocol.formatters.formatters import *
 
@@ -41,7 +42,8 @@ import pywerview.formatters as fmt
 
 class LDAPRequester():
     def __init__(self, domain_controller, domain=str(), user=(), password=str(),
-                 lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False):
+                 lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
+                 do_certificate=False, user_cert=str(), user_key=str()):
         self._domain_controller = domain_controller
         self._domain = domain
         self._user = user
@@ -49,6 +51,9 @@ class LDAPRequester():
         self._lmhash = lmhash
         self._nthash = nthash
         self._do_kerberos = do_kerberos
+        self._do_certificate = do_certificate
+        self._user_cert = user_cert
+        self._user_key = user_key
         self._do_tls = do_tls
         self._queried_domain = None
         self._ads_path = None
@@ -102,7 +107,10 @@ class LDAPRequester():
     def _create_ldap_connection(self, queried_domain=str(), ads_path=str(),
                                 ads_prefix=str()):
         if not self._domain:
-            if self._do_kerberos:
+            if self._do_certificate:
+                self._logger.critical('-w with the FQDN must be used when authenticating with certificates')
+                sys.exit(-1)
+            elif self._do_kerberos:
                 ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
                 self._domain = ccache.principal.realm['data'].decode('utf-8')
             else:
@@ -113,7 +121,12 @@ class LDAPRequester():
                     sys.exit(-1)
 
         if not queried_domain:
-            if self._do_kerberos:
+            if self._do_certificate:
+                # TODO: CHECK!
+                # Change this message
+                self._logger.warning('Cross domain query with certificate is not yet supported, so domain=queried domain')
+                queried_domain = self._domain
+            elif self._do_kerberos:
                 ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
                 queried_domain = ccache.principal.realm['data'].decode('utf-8')
             else:
@@ -122,6 +135,13 @@ class LDAPRequester():
                 except SessionError as e:
                     self._logger.critical(e)
                     sys.exit(-1)
+        else:
+            if self._do_certificate:
+                # TODO: CHECK!
+                # Change this message
+                self._logger.warning('Cross domain query with certificate is not yet supported, so domain=queried domain')
+                queried_domain = self._domain
+
         self._queried_domain = queried_domain
 
         base_dn = str()
@@ -144,9 +164,11 @@ class LDAPRequester():
         self._base_dn = base_dn
 
         # Format the username and the domain
-        # ldap3 seems not compatible with USER@DOMAIN format
+        # ldap3 seems not compatible with USER@DOMAIN format with NTLM auth
         if self._do_kerberos:
             user = '{}@{}'.format(self._user, self._domain.upper())
+        elif self._do_certificate:
+            user = None
         else:
             user = '{}\\{}'.format(self._domain, self._user)
 
@@ -162,7 +184,8 @@ class LDAPRequester():
                 'msDS-GroupMSAMembership': fmt.format_groupmsamembership,
                 'msDS-ManagedPassword': fmt.format_managedpassword}
 
-        if self._do_tls:
+        # TODO: implement StartTLS
+        if self._do_tls or self._do_certificate:
             ldap_scheme = 'ldaps'
             self._logger.debug('LDAPS connection forced')
         else:
@@ -216,6 +239,14 @@ class LDAPRequester():
             ldap_connection_kwargs['cred_store'] = cred_store
             self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
                    '/ Kerberos auth'.format(self._domain_controller, user))
+
+        elif self._do_certificate:
+            self._logger.debug('LDAPS authentication with certificate')
+            tls = ldap3.Tls(local_private_key_file=self._user_key, local_certificate_file=self._user_cert, validate=ssl.CERT_NONE)
+            ldap_server.tls = tls
+            self._logger.debug('LDAP binding parameters: server = {0} / cert = {1} '
+                '/ key = {2} / Certificate auth'.format(self._domain_controller, self._user_cert, self._user_key))
+
         else:
             self._logger.debug('LDAP authentication with NTLM')
             ldap_connection_kwargs['authentication'] = ldap3.NTLM
@@ -231,14 +262,17 @@ class LDAPRequester():
         try:
             ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
             try:
-                ldap_connection.bind()
+                if self._do_certificate:
+                    ldap_connection.open()
+                else:
+                    ldap_connection.bind()
             except ldap3.core.exceptions.LDAPSocketOpenError as e:
                 self._logger.critical(e)
                 if self._do_tls:
                     self._logger.critical('TLS negociation failed, this error is mostly due to your host '
                                           'not supporting SHA1 as signing algorithm for certificates')
                 sys.exit(-1)
-        except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
+        except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult as e:
             # We need to try TLS
             self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
             ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller), formatter=formatter)
@@ -251,6 +285,7 @@ class LDAPRequester():
                                       'not supporting SHA1 as signing algorithm for certificates')
                 sys.exit(-1)
 
+        self._logger.debug('Successfully connected to the LDAP as {}'.format(ldap_connection.extend.standard.who_am_i()))
         self._ldap_connection = ldap_connection
 
     def _ldap_search(self, search_filter, class_result, attributes=list(), controls=list()):
@@ -432,15 +467,20 @@ class RPCRequester():
 class LDAPRPCRequester(LDAPRequester, RPCRequester):
     def __init__(self, target_computer, domain=str(), user=(), password=str(),
                  lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
-                 domain_controller=str()):
+                 do_certificate=False, user_cert=str(), 
+                 user_key=str(), domain_controller=str()):
         # If no domain controller was given, we assume that the user wants to
         # target a domain controller to perform LDAP requests against
         if not domain_controller:
             domain_controller = target_computer
+
         LDAPRequester.__init__(self, domain_controller, domain, user, password,
-                               lmhash, nthash, do_kerberos, do_tls)
-        RPCRequester.__init__(self, target_computer, domain, user, password,
-                               lmhash, nthash, do_kerberos)
+                               lmhash, nthash, do_kerberos, do_tls,
+                               do_certificate, user_cert, user_key)
+
+        if not do_certificate:
+            RPCRequester.__init__(self, target_computer, domain, user, password,
+                                  lmhash, nthash, do_kerberos)
 
         logger = logging.getLogger('pywerview_main_logger.LDAPRPCRequester')
         self._logger = logger
