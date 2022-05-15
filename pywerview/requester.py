@@ -184,8 +184,7 @@ class LDAPRequester():
                 'msDS-GroupMSAMembership': fmt.format_groupmsamembership,
                 'msDS-ManagedPassword': fmt.format_managedpassword}
 
-        # TODO: implement StartTLS
-        if self._do_tls or self._do_certificate:
+        if self._do_tls:
             ldap_scheme = 'ldaps'
             self._logger.debug('LDAPS connection forced')
         else:
@@ -244,6 +243,11 @@ class LDAPRequester():
             self._logger.debug('LDAPS authentication with certificate')
             tls = ldap3.Tls(local_private_key_file=self._user_key, local_certificate_file=self._user_cert, validate=ssl.CERT_NONE)
             ldap_server.tls = tls
+            # Explicit TLS, setting up StartTLS
+            if not self._do_tls:
+                self._logger.warning('Using certificate authentication but --tls not provided, setting up TLS with StartTLS')
+                ldap_connection_kwargs['authentication'] = ldap3.SASL
+                ldap_connection_kwargs['sasl_mechanism'] = ldap3.EXTERNAL
             self._logger.debug('LDAP binding parameters: server = {0} / cert = {1} '
                 '/ key = {2} / Certificate auth'.format(self._domain_controller, self._user_cert, self._user_key))
 
@@ -264,6 +268,19 @@ class LDAPRequester():
             try:
                 if self._do_certificate:
                     ldap_connection.open()
+                    if not self._do_tls:
+                        # raise_exceptions = True raises an exception (oh!) during StartTLS and
+                        # I don't know why, so we disable it for a moment
+                        ldap_connection.raise_exceptions = False
+                        self._logger.debug('Sending StartTLS command')
+                        if ldap_connection.start_tls():
+                            self._logger.debug('StartTLS succeded')
+                            # Ok, back to normal
+                            ldap_connection.raise_exceptions = True
+                            ldap_connection.bind()
+                        else:
+                            self._logger.critical('StartTLS failed, exiting')
+                            sys.exit(-1)
                 else:
                     ldap_connection.bind()
             except ldap3.core.exceptions.LDAPSocketOpenError as e:
