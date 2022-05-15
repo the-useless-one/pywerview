@@ -272,7 +272,7 @@ class LDAPRequester():
                     self._logger.critical('TLS negociation failed, this error is mostly due to your host '
                                           'not supporting SHA1 as signing algorithm for certificates')
                 sys.exit(-1)
-        except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult as e:
+        except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
             # We need to try TLS
             self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
             ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller), formatter=formatter)
@@ -285,7 +285,13 @@ class LDAPRequester():
                                       'not supporting SHA1 as signing algorithm for certificates')
                 sys.exit(-1)
 
-        self._logger.debug('Successfully connected to the LDAP as {}'.format(ldap_connection.extend.standard.who_am_i()))
+        who_am_i = ldap_connection.extend.standard.who_am_i()
+
+        # Only failed here when using certificate authentication
+        if not who_am_i:
+            self._logger.critical('Certificate authentication failed')
+            sys.exit(-1)
+        self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
         self._ldap_connection = ldap_connection
 
     def _ldap_search(self, search_filter, class_result, attributes=list(), controls=list()):

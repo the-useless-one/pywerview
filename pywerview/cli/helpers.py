@@ -24,11 +24,13 @@ from pywerview.functions.hunting import UserHunter, ProcessHunter, EventHunter
 
 def get_adobject(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
+                user_cert=str(), user_key=str(),do_certificate=False,
                 queried_domain=str(), queried_sid=str(), queried_name=str(),
                 queried_sam_account_name=str(), ads_path=str(), attributes=list(),
                 custom_filter=str()):
     requester = NetRequester(domain_controller, domain, user, password,
-                                 lmhash, nthash, do_kerberos, do_tls)
+                                 lmhash, nthash, do_kerberos, do_tls,
+                                 do_certificate, user_cert, user_key)
     return requester.get_adobject(queried_domain=queried_domain,
                     queried_sid=queried_sid, queried_name=queried_name,
                     queried_sam_account_name=queried_sam_account_name,
@@ -36,10 +38,12 @@ def get_adobject(domain_controller, domain, user, password=str(),
 
 def get_adserviceaccount(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
+                user_cert=str(), user_key=str(),do_certificate=False,
                 queried_domain=str(), queried_sid=str(), queried_name=str(),
                 queried_sam_account_name=str(), ads_path=str(), resolve_sids=False):
     requester = NetRequester(domain_controller, domain, user, password,
-                                 lmhash, nthash, do_kerberos, do_tls)
+                                 lmhash, nthash, do_kerberos, do_tls,
+                                 do_certificate, user_cert, user_key)
     return requester.get_adserviceaccount(queried_domain=queried_domain,
                     queried_sid=queried_sid, queried_name=queried_name,
                     queried_sam_account_name=queried_sam_account_name,
@@ -48,11 +52,13 @@ def get_adserviceaccount(domain_controller, domain, user, password=str(),
 def get_objectacl(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
                 queried_domain=str(), queried_sid=str(), queried_name=str(),
+                user_cert=str(), user_key=str(),do_certificate=False,
                 queried_sam_account_name=str(), ads_path=str(), sacl=False,
                 rights_filter=str(), resolve_sids=False, resolve_guids=False,
                 custom_filter=str()):
     requester = NetRequester(domain_controller, domain, user, password,
-                                 lmhash, nthash, do_kerberos, do_tls)
+                                 lmhash, nthash, do_kerberos, do_tls,
+                                 do_certificate, user_cert, user_key)
     return requester.get_objectacl(queried_domain=queried_domain,
                     queried_sid=queried_sid, queried_name=queried_name,
                     queried_sam_account_name=queried_sam_account_name,
@@ -77,11 +83,13 @@ def get_netuser(domain_controller, domain, user, password=str(), lmhash=str(),
 
 def get_netgroup(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
+                user_cert=str(), user_key=str(),do_certificate=False,
                 queried_groupname='*', queried_sid=str(), queried_username=str(),
                 queried_domain=str(), ads_path=str(), admin_count=False,
                 full_data=False, custom_filter=str()):
     requester = NetRequester(domain_controller, domain, user, password,
-                                lmhash, nthash, do_kerberos, do_tls)
+                                lmhash, nthash, do_kerberos, do_tls,
+                                do_certificate, user_cert, user_key)
     return requester.get_netgroup(queried_groupname=queried_groupname,
                                     queried_sid=queried_sid, queried_username=queried_username,
                                     queried_domain=queried_domain, ads_path=ads_path, admin_count=admin_count,
@@ -89,12 +97,14 @@ def get_netgroup(domain_controller, domain, user, password=str(),
 
 def get_netcomputer(domain_controller, domain, user, password=str(),
                     lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
+                    user_cert=str(), user_key=str(),do_certificate=False,
                     queried_computername='*', queried_spn=str(), queried_os=str(),
                     queried_sp=str(), queried_domain=str(), ads_path=str(),
                     printers=False, unconstrained=False, laps_passwords=False,
                     ping=False, full_data=False, custom_filter=str(), attributes=[]):
     requester = NetRequester(domain_controller, domain, user, password,
-                                 lmhash, nthash, do_kerberos, do_tls)
+                                 lmhash, nthash, do_kerberos, do_tls,
+                                 do_certificate, user_cert, user_key)
     return requester.get_netcomputer(queried_computername=queried_computername,
                                         queried_spn=queried_spn, queried_os=queried_os, queried_sp=queried_sp,
                                         queried_domain=queried_domain, ads_path=ads_path, printers=printers,
@@ -103,9 +113,11 @@ def get_netcomputer(domain_controller, domain, user, password=str(),
 
 def get_netdomaincontroller(domain_controller, domain, user, password=str(),
                                  lmhash=str(), nthash=str(), do_kerberos=False,
+                                 user_cert=str(), user_key=str(),do_certificate=False,
                                  do_tls=False, queried_domain=str()):
     requester = NetRequester(domain_controller, domain, user, password,
-                                 lmhash, nthash, do_kerberos, do_tls)
+                                 lmhash, nthash, do_kerberos, do_tls,
+                                 do_certificate, user_cert, user_key)
     return requester.get_netdomaincontroller(queried_domain=queried_domain)
 
 def get_netfileserver(domain_controller, domain, user, password=str(),
