@@ -51,7 +51,7 @@ class LDAPRequester():
         self._lmhash = lmhash
         self._nthash = nthash
         self._do_kerberos = do_kerberos
-        self._do_certificate = do_certificate
+        self._do_certificate = user_cert is not None and user_key is not None
         self._user_cert = user_cert
         self._user_key = user_key
         self._do_tls = do_tls

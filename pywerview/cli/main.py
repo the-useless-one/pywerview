@@ -65,8 +65,6 @@ def main():
 
     # Certificate authentication parser
     certificate_parser = argparse.ArgumentParser(add_help=False)
-    certificate_parser.add_argument('-c', action='store_true', dest='do_certificate',
-            help='Use certificate authentication')
     certificate_parser.add_argument('--cert', dest='user_cert',
             help='Certificatie associated to the user')
     certificate_parser.add_argument('--key', dest='user_key',
@@ -414,9 +412,9 @@ def main():
                     '\'Administrators\', \'RDP\', or a \'S-1-5-X\' SID type')
     find_gpolocation_parser.set_defaults(func=find_gpolocation)
 
-    # Parser for the get-netgroup command
+    # Parser for the get-netgroupmember command
     get_netgroupmember_parser = subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain group',
-        parents=[ad_parser, logging_parser, json_output_parser])
+        parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
     get_netgroupmember_parser.add_argument('--groupname', dest='queried_groupname',
             help='Group to query, defaults to the \'Domain Admins\' group (wildcards accepted)')
     get_netgroupmember_parser.add_argument('--sid', dest='queried_sid',
@@ -570,7 +568,8 @@ def main():
     else:
         args.lmhash = args.nthash = str()
 
-    if args.password is None and args.hashes is None and not args.do_kerberos and not args.do_certificate:
+    if (args.password is None and args.hashes is None and not args.do_kerberos 
+            and not args.user_cert is None and args.user_key is None):
         from getpass import getpass
         args.password = getpass('Password:')
 
