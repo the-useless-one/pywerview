@@ -240,16 +240,18 @@ class LDAPRequester():
                    '/ Kerberos auth'.format(self._domain_controller, user))
 
         elif self._do_certificate:
+            tls_mode = 'Implicit'
             self._logger.debug('LDAPS authentication with certificate')
             tls = ldap3.Tls(local_private_key_file=self._user_key, local_certificate_file=self._user_cert, validate=ssl.CERT_NONE)
             ldap_server.tls = tls
             # Explicit TLS, setting up StartTLS
             if not self._do_tls:
+                tls_mode = 'Explicit'
                 self._logger.warning('Using certificate authentication but --tls not provided, setting up TLS with StartTLS')
                 ldap_connection_kwargs['authentication'] = ldap3.SASL
                 ldap_connection_kwargs['sasl_mechanism'] = ldap3.EXTERNAL
             self._logger.debug('LDAP binding parameters: server = {0} / cert = {1} '
-                '/ key = {2} / Certificate auth'.format(self._domain_controller, self._user_cert, self._user_key))
+                '/ key = {2} / {3} TLS / Certificate auth'.format(self._domain_controller, self._user_cert, self._user_key, tls_mode))
 
         else:
             self._logger.debug('LDAP authentication with NTLM')
