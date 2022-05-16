@@ -259,7 +259,7 @@ def main():
     # Parser for the get-netfileserver command
     get_netfileserver_parser = subparsers.add_parser('get-netfileserver', help='Return a list of '\
         'file servers, extracted from the domain users\' homeDirectory, scriptPath, and profilePath fields',
-        parents=[ad_parser, logging_parser, json_output_parser])
+        parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
     get_netfileserver_parser.add_argument('--target-users', nargs='+',
             metavar='TARGET_USER', help='A list of users to target to find file servers (wildcards accepted)')
     get_netfileserver_parser.add_argument('-d', '--domain', dest='queried_domain',
@@ -279,7 +279,7 @@ def main():
 
     # Parser for the get-netou command
     get_netou_parser = subparsers.add_parser('get-netou', help='Get a list of all current '\
-        'OUs in the domain', parents=[ad_parser, logging_parser, json_output_parser])
+        'OUs in the domain', parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
     get_netou_parser.add_argument('--ouname', dest='queried_ouname',
             default='*', help='OU name to query (wildcards accepted)')
     get_netou_parser.add_argument('--guid', dest='queried_guid',
@@ -294,7 +294,7 @@ def main():
 
     # Parser for the get-netsite command
     get_netsite_parser = subparsers.add_parser('get-netsite', help='Get a list of all current '\
-        'sites in the domain', parents=[ad_parser, logging_parser, json_output_parser])
+        'sites in the domain', parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
     get_netsite_parser.add_argument('--sitename', dest='queried_sitename',
             help='Site name to query (wildcards accepted)')
     get_netsite_parser.add_argument('--guid', dest='queried_guid',
@@ -309,7 +309,7 @@ def main():
 
     # Parser for the get-netsubnet command
     get_netsubnet_parser = subparsers.add_parser('get-netsubnet', help='Get a list of all current '\
-        'subnets in the domain', parents=[ad_parser, logging_parser, json_output_parser])
+        'subnets in the domain', parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
     get_netsubnet_parser.add_argument('--sitename', dest='queried_sitename',
             help='Only return subnets for the specified site name (wildcards accepted)')
     get_netsubnet_parser.add_argument('-d', '--domain', dest='queried_domain',
@@ -322,14 +322,14 @@ def main():
 
     # Parser for the get-netdomaintrust command
     get_netdomaintrust_parser = subparsers.add_parser('get-netdomaintrust', help='Returns a list of all the '\
-        'trusts of the specified domain', parents=[ad_parser, logging_parser, json_output_parser])
+        'trusts of the specified domain', parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
     get_netdomaintrust_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
     get_netdomaintrust_parser.set_defaults(func=get_netdomaintrust)
 
     # Parser for the get-netgpo command
     get_netgpo_parser = subparsers.add_parser('get-netgpo', help='Get a list of all current '\
-        'GPOs in the domain', parents=[ad_parser, logging_parser, json_output_parser])
+        'GPOs in the domain', parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
     get_netgpo_parser.add_argument('--gponame', dest='queried_gponame',
             default='*', help='GPO name to query for (wildcards accepted)')
     get_netgpo_parser.add_argument('--displayname', dest='queried_displayname',
@@ -342,7 +342,7 @@ def main():
 
     # Parser for the get-netpso command
     get_netpso_parser = subparsers.add_parser('get-netpso', help='Get a list of all current '\
-        'PSOs in the domain', parents=[ad_parser, logging_parser, json_output_parser])
+        'PSOs in the domain', parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
     get_netpso_parser.add_argument('--psoname', dest='queried_psoname',
             default='*', help='pso name to query for (wildcards accepted)')
     get_netpso_parser.add_argument('--displayname', dest='queried_displayname',
