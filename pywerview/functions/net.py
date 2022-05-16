@@ -525,7 +525,8 @@ class NetRequester(LDAPRPCRequester):
                                                            self._domain, self._user,
                                                            self._password, self._lmhash,
                                                            self._nthash, self._do_kerberos,
-                                                           self._do_tls) as misc_requester:
+                                                           self._do_tls,
+                                                           self._user_cert, self._user_key) as misc_requester:
                             queried_sid = misc_requester.get_domainsid(queried_domain) + '-512'
                             self._logger.debug('Found Domains Admins SID = {}'.format(queried_sid))
                     groups = self.get_netgroup(queried_sid=queried_sid,

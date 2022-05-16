@@ -43,7 +43,7 @@ import pywerview.formatters as fmt
 class LDAPRequester():
     def __init__(self, domain_controller, domain=str(), user=(), password=str(),
                  lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
-                 do_certificate=False, user_cert=str(), user_key=str()):
+                 user_cert=str(), user_key=str()):
         self._domain_controller = domain_controller
         self._domain = domain
         self._user = user
@@ -492,8 +492,7 @@ class RPCRequester():
 class LDAPRPCRequester(LDAPRequester, RPCRequester):
     def __init__(self, target_computer, domain=str(), user=(), password=str(),
                  lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
-                 do_certificate=False, user_cert=str(), 
-                 user_key=str(), domain_controller=str()):
+                 user_cert=str(), user_key=str(), domain_controller=str()):
         # If no domain controller was given, we assume that the user wants to
         # target a domain controller to perform LDAP requests against
         if not domain_controller:
@@ -501,9 +500,9 @@ class LDAPRPCRequester(LDAPRequester, RPCRequester):
 
         LDAPRequester.__init__(self, domain_controller, domain, user, password,
                                lmhash, nthash, do_kerberos, do_tls,
-                               do_certificate, user_cert, user_key)
+                               user_cert, user_key)
 
-        if not do_certificate:
+        if user_cert is not None and user_key is not None:
             RPCRequester.__init__(self, target_computer, domain, user, password,
                                   lmhash, nthash, do_kerberos)
 
@@ -515,8 +514,11 @@ class LDAPRPCRequester(LDAPRequester, RPCRequester):
             LDAPRequester.__enter__(self)
         except (socket.error, IndexError):
             pass
-        # This should work every time
-        RPCRequester.__enter__(self)
+
+        try:
+            RPCRequester.__enter__(self)
+        except (AttributeError):
+            pass
 
         return self
 
