@@ -580,6 +580,11 @@ class NetRequester(LDAPRPCRequester):
                     attributes['groupname'] = group.name
                     attributes['membername'] = member.samaccountname
                     attributes['memberdomain'] = member_domain
+                    if is_group:
+                        attributes['useraccountcontrol'] = str()
+                        self._logger.debug('{} is a group, ignoring the useraccountcontrol'.format(member.samaccountname)) 
+                    else:
+                        attributes['useraccountcontrol'] = member.useraccountcontrol
                     attributes['isgroup'] = is_group
                     attributes['memberdn'] = member_dn
                     attributes['objectsid'] = member.objectsid
