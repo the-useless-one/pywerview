@@ -136,6 +136,7 @@ class NetRequester(LDAPRPCRequester):
 
         rights_to_guid = {'reset-password': '{00299570-246d-11d0-a768-00aa006e0529}',
                 'write-members': '{bf9679c0-0de6-11d0-a285-00aa003049e2}',
+                'allowed-to-authenticate':'{68b1d179-0d15-4d4f-ab71-46152e79a7bc}',
                 'all': '{00000000-0000-0000-0000-000000000000}'}
         guid_filter = rights_to_guid.get(rights_filter, None)
 

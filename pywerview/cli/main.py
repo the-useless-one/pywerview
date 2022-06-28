@@ -158,8 +158,8 @@ def main():
             help='Return the SACL instead of the DACL for the object (requires '\
             'a privileged account)')
     get_objectacl_parser.add_argument('--rights-filter', dest='rights_filter',
-            choices=['reset-password', 'write-members', 'all'], help='A specific set of rights to return '\
-                    '(reset-password, write-members, all)')
+            choices=['reset-password', 'write-members', 'allowed-to-authenticate', 'all'], help='A specific set of rights to return '\
+                    '(reset-password, write-members, allowed-to-authenticate , all)')
     get_objectacl_parser.add_argument('--resolve-sids', dest='resolve_sids',
             action='store_true', help='Resolve SIDs when querying an ACL')
     get_objectacl_parser.add_argument('--resolve-guids', action='store_true',
