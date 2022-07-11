@@ -265,8 +265,8 @@ Pywerview can print results in json format by using the `--json` switch.
 
 * Thanks to the [@PowerSploit](https://github.com/PowerShellMafia/PowerSploit/)
   team for an awesome tool.
-* Thanks to [@CoreSecurity](https://github.com/CoreSecurity/) for this complete
-  and comprehensive library that is [impacket](https://github.com/CoreSecurity/impacket).
+* Thanks to [@SecureAuthCorp](https://github.com/SecureAuthCorp/) for this complete
+  and comprehensive library that is [impacket](https://github.com/SecureAuthCorp/impacket).
 * Special thanks to [@asolino](https://github.com/asolino) for his help on
   developing using impacket.
 * Thanks to [@byt3bl33d3r](https://github.com/byt3bl33d3r) for his
