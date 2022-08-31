@@ -160,7 +160,8 @@ class LDAPRequester():
                 'msDS-LockoutDuration': format_ad_timedelta,
                 'msDS-LockoutObservationWindow': format_ad_timedelta,
                 'msDS-GroupMSAMembership': fmt.format_groupmsamembership,
-                'msDS-ManagedPassword': fmt.format_managedpassword}
+                'msDS-ManagedPassword': fmt.format_managedpassword,
+                'ms-Mcs-AdmPwdExpirationTime': format_ad_timestamp}
 
         if self._do_tls:
             ldap_scheme = 'ldaps'
