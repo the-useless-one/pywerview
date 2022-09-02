@@ -232,6 +232,9 @@ def main():
             help='Query only computers with unconstrained delegation')
     get_netcomputer_parser.add_argument('--laps-passwords', action='store_true', dest='laps_passwords',
             help='Query only computers for which the user can read LAPS passwords')
+    # See: https://www.trustedsec.com/blog/diving-into-pre-created-computer-accounts/
+    get_netcomputer_parser.add_argument('--pre-created', action='store_true', dest='pre_created',
+            help='Query only computers which are potentially vulnerable to "pre-created computer account" attack')
     get_netcomputer_parser.add_argument('--ping', action='store_true',
             help='Ping computers (will only return up computers)')
     get_netcomputer_parser.add_argument('--full-data', action='store_true',
