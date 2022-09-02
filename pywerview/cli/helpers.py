@@ -87,7 +87,7 @@ def get_netgroup(domain_controller, domain, user, password=str(),
 
 def get_netcomputer(domain_controller, domain, user, password=str(),
                     lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
-                    queried_computername='*', queried_spn=str(), queried_os=str(),
+                    queried_computername=str(), queried_spn=str(), queried_os=str(),
                     queried_sp=str(), queried_domain=str(), ads_path=str(),
                     printers=False, unconstrained=False, laps_passwords=False,
                     ping=False, full_data=False, custom_filter=str(), attributes=[]):

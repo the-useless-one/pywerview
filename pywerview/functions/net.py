@@ -312,7 +312,7 @@ class NetRequester(LDAPRPCRequester):
             return self._ldap_search(group_search_filter, adobj.Group, attributes=attributes)
 
     @LDAPRPCRequester._ldap_connection_init
-    def get_netcomputer(self, queried_computername='*', queried_spn=str(),
+    def get_netcomputer(self, queried_computername=str(), queried_spn=str(),
                         queried_os=str(), queried_sp=str(), queried_domain=str(),
                         ads_path=str(), printers=False, unconstrained=False, laps_passwords=False,
                         ping=False, full_data=False, custom_filter=str(), attributes=[]):
@@ -337,7 +337,7 @@ class NetRequester(LDAPRPCRequester):
             attributes=list()
         else:
             if not attributes:
-                attributes=['dnsHostName']
+                attributes=['samaccountname', 'dnsHostName']
             if laps_passwords:
                 attributes.append('ms-mcs-AdmPwd')
 

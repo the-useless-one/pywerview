@@ -215,7 +215,7 @@ def main():
     get_netcomputer_parser = subparsers.add_parser('get-netcomputer', help='Queries informations about '\
         'domain computers', parents=[ad_parser, logging_parser, json_output_parser])
     get_netcomputer_parser.add_argument('--computername', dest='queried_computername',
-            default='*', help='Computer name to query')
+            default=str(), help='Computer name to query')
     get_netcomputer_parser.add_argument('-os', '--operating-system', dest='queried_os',
             help='Return computers with a specific operating system (wildcards accepted)')
     get_netcomputer_parser.add_argument('-sp', '--service-pack', dest='queried_sp',
