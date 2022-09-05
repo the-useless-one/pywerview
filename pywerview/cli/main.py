@@ -235,7 +235,7 @@ def main():
     # See: https://www.trustedsec.com/blog/diving-into-pre-created-computer-accounts/
     get_netcomputer_parser.add_argument('--pre-created', action='store_true', dest='pre_created',
             help='Query only computers which are potentially vulnerable to "pre-created computer account" attack. '\
-                 'Caution: This option is prone to false and true positive results.')
+                 'Caution: This option is prone to false positives and negatives.')
     get_netcomputer_parser.add_argument('--ping', action='store_true',
             help='Ping computers (will only return up computers)')
     get_netcomputer_parser.add_argument('--full-data', action='store_true',
