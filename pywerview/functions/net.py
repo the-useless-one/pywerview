@@ -574,7 +574,7 @@ class NetRequester(LDAPRPCRequester):
                     except IndexError:
                         self._logger.warning('Exception was raised while handling member_dn, falling back to empty string')
                         member_domain = str()
-                    is_group = (member.samaccounttype != 'USER_OBJECT')
+                    is_group = (member.samaccounttype == 'GROUP_OBJECT')
 
                     attributes = dict()
                     if queried_domain:

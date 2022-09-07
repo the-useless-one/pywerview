@@ -52,7 +52,6 @@ __sat_flags = {0x00000000: 'DOMAIN_OBJECT',
                # According to https://docs.microsoft.com/en-us/windows/win32/adschema/a-samaccounttype
                # USER_OBJECT and NORMAL_USER_ACCOUNT are both 0x30000000
                0x30000000: 'USER_OBJECT',
-               0x30000000: 'NORMAL_USER_ACCOUNT',
                0x30000001: 'MACHINE_ACCOUNT',
                0x30000002: 'TRUST_ACCOUNT',
                0x40000000: 'APP_BASIC_GROUP',
