@@ -152,6 +152,7 @@ class LDAPRequester():
 
         # Call custom formatters for several AD attributes
         formatter = {'userAccountControl': fmt.format_useraccountcontrol,
+                'samAccountType': fmt.format_samaccounttype,
                 'trustType': fmt.format_trusttype,
                 'trustDirection': fmt.format_trustdirection,
                 'trustAttributes': fmt.format_trustattributes,

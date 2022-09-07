@@ -374,7 +374,7 @@ class GPORequester(LDAPRequester):
                             gpo_computer_admin.add_attributes({'objectname' : obj.name})
                             gpo_computer_admin.add_attributes({'objectdn' : obj.distinguishedname})
                             gpo_computer_admin.add_attributes({'objectsid' : obj.objectsid})
-                            gpo_computer_admin.add_attributes({'isgroup' : (obj.samaccounttype != 805306368)})
+                            gpo_computer_admin.add_attributes({'isgroup' : ('USER_OBJECT' not in obj.samaccounttype)})
 
                             results.append(gpo_computer_admin)
 
@@ -395,7 +395,7 @@ class GPORequester(LDAPRequester):
                                         gpo_computer_admin.add_attributes({'objectname' : group_member.samaccountname})
                                         gpo_computer_admin.add_attributes({'objectdn' : group_member.distinguishedname})
                                         gpo_computer_admin.add_attributes({'objectsid' : group_member.objectsid})
-                                        gpo_computer_admin.add_attributes({'isgroup' : (group_member.samaccounttype != 805306368)})
+                                        gpo_computer_admin.add_attributes({'isgroup' : ('USER_OBJECT' not in group_member.samaccounttype)})
 
                                         results.append(gpo_computer_admin)
 

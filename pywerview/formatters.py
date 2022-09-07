@@ -44,6 +44,21 @@ __uac_flags = {0x0000001: 'SCRIPT',
                0x1000000: 'TRUSTED_TO_AUTH_FOR_DELEGATION',
                0x4000000: 'PARTIAL_SECRETS_ACCOUNT'}
 
+__sat_flags = {0x00000000: 'DOMAIN_OBJECT',
+               0x10000000: 'GROUP_OBJECT',
+               0x10000001: 'NON_SECURITY_GROUP_OBJECT',
+               0x20000000: 'ALIAS_OBJECT',
+               0x20000001: 'NON_SECURITY_ALIAS_OBJECT',
+               # According to https://docs.microsoft.com/en-us/windows/win32/adschema/a-samaccounttype
+               # USER_OBJECT and NORMAL_USER_ACCOUNT are both 0x30000000
+               0x30000000: 'USER_OBJECT',
+               0x30000000: 'NORMAL_USER_ACCOUNT',
+               0x30000001: 'MACHINE_ACCOUNT',
+               0x30000002: 'TRUST_ACCOUNT',
+               0x40000000: 'APP_BASIC_GROUP',
+               0x40000001: 'APP_QUERY_GROUP',
+               0x7fffffff: 'ACCOUNT_TYPE_MAX'}
+
 __ace_flags = {0x1: 'object_inherit', 0x2: 'container_inherit',
                0x4: 'non_propagate_inherit', 0x8: 'inherit_only',
                0x10: 'inherited_ace', 0x20: 'audit_successful_accesses',
@@ -100,6 +115,9 @@ def __format_dict_lookup(raw_value, dictionary):
 
 def format_useraccountcontrol(raw_value):
     return __format_flag(raw_value, __uac_flags)
+
+def format_samaccounttype(raw_value):
+    return __format_flag(raw_value, __sat_flags)
 
 def format_ace_access_mask(raw_value):
     try:
