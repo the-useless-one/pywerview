@@ -117,7 +117,7 @@ def format_useraccountcontrol(raw_value):
     return __format_flag(raw_value, __uac_flags)
 
 def format_samaccounttype(raw_value):
-    return __format_flag(raw_value, __sat_flags)
+    return __sat_flags[int(raw_value)]
 
 def format_ace_access_mask(raw_value):
     try:
