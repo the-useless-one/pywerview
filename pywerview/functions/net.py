@@ -327,7 +327,7 @@ class NetRequester(LDAPRPCRequester):
             custom_filter += '(ms-mcs-AdmPwd=*)'
 
         if pre_created:
-            custom_filter += '(&(userAccountControl:1.2.840.113556.1.4.803:=4128)(logonCount=0))'
+            custom_filter += '(userAccountControl:1.2.840.113556.1.4.803:=4128)'
 
         computer_search_filter = '(samAccountType=805306369){}'.format(custom_filter)
         for (attr_desc, attr_value) in (('servicePrincipalName', queried_spn),
