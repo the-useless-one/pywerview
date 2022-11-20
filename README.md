@@ -14,7 +14,7 @@ Fork me on [GitHub](https://github.com/the-useless-one/pywerview).
 [![License](https://img.shields.io/github/license/the-useless-one/pywerview)](https://github.com/the-useless-one/pywerview/blob/master/LICENSE)
 ![Python versions](https://img.shields.io/pypi/pyversions/pywerview)
 [![GitHub release](https://img.shields.io/github/v/release/the-useless-one/pywerview)](https://github.com/the-useless-one/pywerview/releases/latest)
-[![PyPI version](https://img.shields.io/pypi/v/pywerview)](https://pypi.python.org/pypi/pywerview)
+[![PyPI version](https://img.shields.io/pypi/v/pywerview)](https://pypi.org/project/pywerview/)
 
 ## HISTORY
 
