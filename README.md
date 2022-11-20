@@ -62,6 +62,7 @@ Also, blah blah blah, don't use it for evil purposes.
 * impacket >= 0.9.22
 * ldap3 >= 2.8.1
 * gssapi (Which requires `libkrb5-dev`)
+* pycryptodomex (or pycryptodome)
 
 ## FUNCTIONALITIES
 
