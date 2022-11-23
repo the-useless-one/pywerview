@@ -17,7 +17,12 @@
 
 import logging
 import binascii
-from Cryptodome.Hash import MD4
+
+try:
+    from Cryptodome.Hash import MD4
+except ImportError:
+    from Crypto.Hash import MD4
+
 from impacket.examples.ntlmrelayx.attacks.ldapattack import MSDS_MANAGEDPASSWORD_BLOB
 from impacket.ldap.ldaptypes import SR_SECURITY_DESCRIPTOR
 

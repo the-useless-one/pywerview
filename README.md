@@ -14,7 +14,7 @@ Fork me on [GitHub](https://github.com/the-useless-one/pywerview).
 [![License](https://img.shields.io/github/license/the-useless-one/pywerview)](https://github.com/the-useless-one/pywerview/blob/master/LICENSE)
 ![Python versions](https://img.shields.io/pypi/pyversions/pywerview)
 [![GitHub release](https://img.shields.io/github/v/release/the-useless-one/pywerview)](https://github.com/the-useless-one/pywerview/releases/latest)
-[![PyPI version](https://img.shields.io/pypi/v/pywerview)](https://pypi.python.org/pypi/pywerview)
+[![PyPI version](https://img.shields.io/pypi/v/pywerview)](https://pypi.org/project/pywerview/)
 
 ## HISTORY
 
@@ -62,6 +62,7 @@ Also, blah blah blah, don't use it for evil purposes.
 * impacket >= 0.9.22
 * ldap3 >= 2.8.1
 * gssapi (Which requires `libkrb5-dev`)
+* pycryptodomex (or pycryptodome)
 
 ## FUNCTIONALITIES
 
@@ -293,5 +294,5 @@ Public License for more details.
 
 You should have received a copy of the GNU General Public License along
 with this program. If not, see
-[http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
+[https://www.gnu.org/licenses/](https://www.gnu.org/licenses/).
 
