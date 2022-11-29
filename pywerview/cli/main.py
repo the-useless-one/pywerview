@@ -409,7 +409,7 @@ def main():
                     '\'Administrators\', \'RDP\', or a \'S-1-5-X\' SID type')
     find_gpolocation_parser.set_defaults(func=find_gpolocation)
 
-    # Parser for the get-netgroup command
+    # Parser for the get-netgroupmember command
     get_netgroupmember_parser = subparsers.add_parser('get-netgroupmember', help='Return a list of members of a domain group',
         parents=[ad_parser, logging_parser, json_output_parser])
     get_netgroupmember_parser.add_argument('--groupname', dest='queried_groupname',
@@ -427,6 +427,8 @@ def main():
         'Much faster than manual recursion, but doesn\'t reveal cross-domain groups')
     get_netgroupmember_parser.add_argument('--full-data', action='store_true',
             help='If set, returns full information on the members')
+    get_netgroupmember_parser.add_argument('--include-computers', dest='include_computers', action='store_true',
+            help='Include computer accounts')
     get_netgroupmember_parser.set_defaults(func=get_netgroupmember)
 
     # Parser for the get-netsession command

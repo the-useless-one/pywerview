@@ -508,7 +508,7 @@ class NetRequester(LDAPRPCRequester):
     def get_netgroupmember(self, queried_groupname=str(), queried_sid=str(),
                            queried_domain=str(), ads_path=str(), recurse=False,
                            use_matching_rule=False, full_data=False,
-                           custom_filter=str()):
+                           custom_filter=str(), include_computers=False):
 
         def _get_members(_groupname=str(), _sid=str()):
             try:
@@ -557,6 +557,8 @@ class NetRequester(LDAPRPCRequester):
                             dn_filter = '(distinguishedname={}){}'.format(member, custom_filter)
                             members += self.get_netuser(custom_filter=dn_filter, queried_domain=self._queried_domain)
                             members += self.get_netgroup(custom_filter=dn_filter, queried_domain=self._queried_domain, full_data=True)
+                            if include_computers:
+                                members += self.get_netcomputer(custom_filter=dn_filter, queried_domain=self._queried_domain, full_data=True)
                     # The group doesn't have any members
                     except AttributeError:
                         self._logger.debug('The group doesn\'t have any members')
