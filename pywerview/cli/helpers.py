@@ -161,15 +161,14 @@ def get_netgroupmember(domain_controller, domain, user, password=str(),
                        lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
                        queried_groupname=str(), queried_sid=str(), queried_domain=str(),
                        ads_path=str(), recurse=False, use_matching_rule=False,
-                       full_data=False, custom_filter=str(), include_computers=False):
+                       full_data=False, custom_filter=str()):
     requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash, do_kerberos, do_tls)
     return requester.get_netgroupmember(queried_groupname=queried_groupname,
                                             queried_sid=queried_sid, queried_domain=queried_domain,
                                             ads_path=ads_path, recurse=recurse,
                                             use_matching_rule=use_matching_rule,
-                                            full_data=full_data, custom_filter=custom_filter, 
-                                            include_computers=include_computers)
+                                            full_data=full_data, custom_filter=custom_filter)
 
 def get_netsession(target_computername, domain, user, password=str(),
                    lmhash=str(), nthash=str(), do_kerberos=False):
