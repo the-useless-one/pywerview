@@ -555,8 +555,7 @@ class NetRequester(LDAPRPCRequester):
                             self._logger.warning('Member name = "{}" will be escaped'.format(member))
                             member = escape_filter_chars(member, encoding='utf-8')
                             dn_filter = '(distinguishedname={}){}'.format(member, custom_filter)
-                            members += self.get_netuser(custom_filter=dn_filter, queried_domain=self._queried_domain)
-                            members += self.get_netgroup(custom_filter=dn_filter, queried_domain=self._queried_domain, full_data=True)
+                            members += self.get_adobject(custom_filter=dn_filter, queried_domain=self._queried_domain)
                     # The group doesn't have any members
                     except AttributeError:
                         self._logger.debug('The group doesn\'t have any members')
