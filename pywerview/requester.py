@@ -240,6 +240,14 @@ class LDAPRequester():
                     self._logger.critical('TLS negociation failed, this error is mostly due to your host '
                                           'not supporting SHA1 as signing algorithm for certificates')
                 sys.exit(-1)
+            except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
+                # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
+                if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message']:
+                    self._logger.critical('Server requires Channel Binding Token, try again without --tls flag')
+                    sys.exit(-1)
+                else:
+                    self._logger.critical('Invalid Credentials')
+                    sys.exit(-1)
         except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
             # We need to try TLS
             self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
@@ -252,6 +260,15 @@ class LDAPRequester():
                 self._logger.critical('TLS negociation failed, this error is mostly due to your host '
                                       'not supporting SHA1 as signing algorithm for certificates')
                 sys.exit(-1)
+
+            except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
+                # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
+                if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message']:
+                    self._logger.critical('Server requires Channel Binding Token and LDAP Sining, pywerview will not work')
+                    sys.exit(-1)
+                else:
+                    self._logger.critical('Invalid Credentials')
+                    sys.exit(-1)
 
         self._ldap_connection = ldap_connection
 
