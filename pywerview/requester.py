@@ -248,6 +248,7 @@ class LDAPRequester():
                 else:
                     self._logger.critical('Invalid Credentials')
                     sys.exit(-1)
+
         except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
             # We need to try TLS
             self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
@@ -264,7 +265,7 @@ class LDAPRequester():
             except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
                 # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
                 if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message']:
-                    self._logger.critical('Server requires Channel Binding Token and LDAP Sining, pywerview will not work')
+                    self._logger.critical('Server requires Channel Binding Token and LDAP Signing, pywerview will not work')
                     sys.exit(-1)
                 else:
                     self._logger.critical('Invalid Credentials')
