@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2023
 
 import sys
 import logging
@@ -174,6 +174,7 @@ class LDAPRequester():
 
         # Call custom formatters for several AD attributes
         formatter = {'userAccountControl': fmt.format_useraccountcontrol,
+                'sAMAccountType': fmt.format_samaccounttype,
                 'trustType': fmt.format_trusttype,
                 'trustDirection': fmt.format_trustdirection,
                 'trustAttributes': fmt.format_trustattributes,
@@ -182,7 +183,8 @@ class LDAPRequester():
                 'msDS-LockoutDuration': format_ad_timedelta,
                 'msDS-LockoutObservationWindow': format_ad_timedelta,
                 'msDS-GroupMSAMembership': fmt.format_groupmsamembership,
-                'msDS-ManagedPassword': fmt.format_managedpassword}
+                'msDS-ManagedPassword': fmt.format_managedpassword,
+                'ms-Mcs-AdmPwdExpirationTime': format_ad_timestamp}
 
         if self._do_tls:
             ldap_scheme = 'ldaps'
@@ -291,6 +293,15 @@ class LDAPRequester():
                     self._logger.critical('TLS negociation failed, this error is mostly due to your host '
                                           'not supporting SHA1 as signing algorithm for certificates')
                 sys.exit(-1)
+            except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
+                # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
+                if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message']:
+                    self._logger.critical('Server requires Channel Binding Token, try again without --tls flag')
+                    sys.exit(-1)
+                else:
+                    self._logger.critical('Invalid Credentials')
+                    sys.exit(-1)
+
         except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
             # We need to try TLS
             self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
@@ -303,6 +314,15 @@ class LDAPRequester():
                 self._logger.critical('TLS negociation failed, this error is mostly due to your host '
                                       'not supporting SHA1 as signing algorithm for certificates')
                 sys.exit(-1)
+            
+            except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
+                # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
+                if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message']:
+                    self._logger.critical('Server requires Channel Binding Token and LDAP Signing, pywerview will not work')
+                    sys.exit(-1)
+                else:
+                    self._logger.critical('Invalid Credentials')
+                    sys.exit(-1)
 
         who_am_i = ldap_connection.extend.standard.who_am_i()
 
@@ -310,6 +330,7 @@ class LDAPRequester():
         if not who_am_i:
             self._logger.critical('Certificate authentication failed')
             sys.exit(-1)
+
         self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
         self._ldap_connection = ldap_connection
 

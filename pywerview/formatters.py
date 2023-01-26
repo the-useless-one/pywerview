@@ -13,11 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2023
 
 import logging
 import binascii
-from Cryptodome.Hash import MD4
+
+try:
+    from Cryptodome.Hash import MD4
+except ImportError:
+    from Crypto.Hash import MD4
+
 from impacket.examples.ntlmrelayx.attacks.ldapattack import MSDS_MANAGEDPASSWORD_BLOB
 from impacket.ldap.ldaptypes import SR_SECURITY_DESCRIPTOR
 
@@ -43,6 +48,20 @@ __uac_flags = {0x0000001: 'SCRIPT',
                0x0800000: 'PASSWORD_EXPIRED',
                0x1000000: 'TRUSTED_TO_AUTH_FOR_DELEGATION',
                0x4000000: 'PARTIAL_SECRETS_ACCOUNT'}
+
+__sat_flags = {0x00000000: 'DOMAIN_OBJECT',
+               0x10000000: 'GROUP_OBJECT',
+               0x10000001: 'NON_SECURITY_GROUP_OBJECT',
+               0x20000000: 'ALIAS_OBJECT',
+               0x20000001: 'NON_SECURITY_ALIAS_OBJECT',
+               # According to https://docs.microsoft.com/en-us/windows/win32/adschema/a-samaccounttype
+               # USER_OBJECT and NORMAL_USER_ACCOUNT are both 0x30000000
+               0x30000000: 'USER_OBJECT',
+               0x30000001: 'MACHINE_ACCOUNT',
+               0x30000002: 'TRUST_ACCOUNT',
+               0x40000000: 'APP_BASIC_GROUP',
+               0x40000001: 'APP_QUERY_GROUP',
+               0x7fffffff: 'ACCOUNT_TYPE_MAX'}
 
 __ace_flags = {0x1: 'object_inherit', 0x2: 'container_inherit',
                0x4: 'non_propagate_inherit', 0x8: 'inherit_only',
@@ -100,6 +119,9 @@ def __format_dict_lookup(raw_value, dictionary):
 
 def format_useraccountcontrol(raw_value):
     return __format_flag(raw_value, __uac_flags)
+
+def format_samaccounttype(raw_value):
+    return __sat_flags[int(raw_value)]
 
 def format_ace_access_mask(raw_value):
     try:

@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2023
 
 import logging
 import argparse
@@ -164,8 +164,8 @@ def main():
             help='Return the SACL instead of the DACL for the object (requires '\
             'a privileged account)')
     get_objectacl_parser.add_argument('--rights-filter', dest='rights_filter',
-            choices=['reset-password', 'write-members', 'all'], help='A specific set of rights to return '\
-                    '(reset-password, write-members, all)')
+            choices=['reset-password', 'write-members', 'allowed-to-authenticate', 'all'], help='A specific set of rights to return '\
+                    '(reset-password, write-members, allowed-to-authenticate , all)')
     get_objectacl_parser.add_argument('--resolve-sids', dest='resolve_sids',
             action='store_true', help='Resolve SIDs when querying an ACL')
     get_objectacl_parser.add_argument('--resolve-guids', action='store_true',
@@ -221,7 +221,7 @@ def main():
     get_netcomputer_parser = subparsers.add_parser('get-netcomputer', help='Queries informations about '\
         'domain computers', parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
     get_netcomputer_parser.add_argument('--computername', dest='queried_computername',
-            default='*', help='Computer name to query')
+            default=str(), help='Computer name to query')
     get_netcomputer_parser.add_argument('-os', '--operating-system', dest='queried_os',
             help='Return computers with a specific operating system (wildcards accepted)')
     get_netcomputer_parser.add_argument('-sp', '--service-pack', dest='queried_sp',
@@ -238,6 +238,10 @@ def main():
             help='Query only computers with unconstrained delegation')
     get_netcomputer_parser.add_argument('--laps-passwords', action='store_true', dest='laps_passwords',
             help='Query only computers for which the user can read LAPS passwords')
+    # See: https://www.trustedsec.com/blog/diving-into-pre-created-computer-accounts/
+    get_netcomputer_parser.add_argument('--pre-created', action='store_true', dest='pre_created',
+            help='Query only computers which are potentially vulnerable to "pre-created computer account" attack. '\
+                 'Caution: This option is prone to false positives and negatives.')
     get_netcomputer_parser.add_argument('--ping', action='store_true',
             help='Ping computers (will only return up computers)')
     get_netcomputer_parser.add_argument('--full-data', action='store_true',

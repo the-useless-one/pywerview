@@ -26,11 +26,12 @@ setup(name='pywerview',
     ]),
     install_requires=[
         'impacket>=0.9.22',
-        'bs4',
+        'beautifulsoup4',
         'lxml',
         'pyasn1',
         'ldap3>=2.8.1',
-        'gssapi'
+        'gssapi',
+        'pycryptodome',
     ],
     entry_points = {
         'console_scripts': ['pywerview=pywerview.cli.main:main'],

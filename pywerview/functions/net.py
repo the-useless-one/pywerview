@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2023
 
 from datetime import datetime, timedelta
 from impacket.dcerpc.v5.ndr import NULL
@@ -136,6 +136,7 @@ class NetRequester(LDAPRPCRequester):
 
         rights_to_guid = {'reset-password': '{00299570-246d-11d0-a768-00aa006e0529}',
                 'write-members': '{bf9679c0-0de6-11d0-a285-00aa003049e2}',
+                'allowed-to-authenticate':'{68b1d179-0d15-4d4f-ab71-46152e79a7bc}',
                 'all': '{00000000-0000-0000-0000-000000000000}'}
         guid_filter = rights_to_guid.get(rights_filter, None)
 
@@ -311,9 +312,9 @@ class NetRequester(LDAPRPCRequester):
             return self._ldap_search(group_search_filter, adobj.Group, attributes=attributes)
 
     @LDAPRPCRequester._ldap_connection_init
-    def get_netcomputer(self, queried_computername='*', queried_spn=str(),
-                        queried_os=str(), queried_sp=str(), queried_domain=str(),
-                        ads_path=str(), printers=False, unconstrained=False, laps_passwords=False,
+    def get_netcomputer(self, queried_computername=str(), queried_spn=str(),
+                        queried_os=str(), queried_sp=str(), queried_domain=str(), ads_path=str(), 
+                        printers=False, unconstrained=False, laps_passwords=False, pre_created=False,
                         ping=False, full_data=False, custom_filter=str(), attributes=[]):
 
         if unconstrained:
@@ -324,6 +325,9 @@ class NetRequester(LDAPRPCRequester):
 
         if laps_passwords:
             custom_filter += '(ms-mcs-AdmPwd=*)'
+
+        if pre_created:
+            custom_filter += '(userAccountControl:1.2.840.113556.1.4.803:=4128)'
 
         computer_search_filter = '(samAccountType=805306369){}'.format(custom_filter)
         for (attr_desc, attr_value) in (('servicePrincipalName', queried_spn),
@@ -336,7 +340,7 @@ class NetRequester(LDAPRPCRequester):
             attributes=list()
         else:
             if not attributes:
-                attributes=['dnsHostName']
+                attributes=['samaccountname', 'dnsHostName']
             if laps_passwords:
                 attributes.append('ms-mcs-AdmPwd')
 
@@ -552,8 +556,7 @@ class NetRequester(LDAPRPCRequester):
                             self._logger.warning('Member name = "{}" will be escaped'.format(member))
                             member = escape_filter_chars(member, encoding='utf-8')
                             dn_filter = '(distinguishedname={}){}'.format(member, custom_filter)
-                            members += self.get_netuser(custom_filter=dn_filter, queried_domain=self._queried_domain)
-                            members += self.get_netgroup(custom_filter=dn_filter, queried_domain=self._queried_domain, full_data=True)
+                            members += self.get_adobject(custom_filter=dn_filter, queried_domain=self._queried_domain)
                     # The group doesn't have any members
                     except AttributeError:
                         self._logger.debug('The group doesn\'t have any members')
@@ -571,7 +574,7 @@ class NetRequester(LDAPRPCRequester):
                     except IndexError:
                         self._logger.warning('Exception was raised while handling member_dn, falling back to empty string')
                         member_domain = str()
-                    is_group = (member.samaccounttype != 805306368)
+                    is_group = (member.samaccounttype == 'GROUP_OBJECT')
 
                     attributes = dict()
                     if queried_domain:
@@ -581,6 +584,11 @@ class NetRequester(LDAPRPCRequester):
                     attributes['groupname'] = group.name
                     attributes['membername'] = member.samaccountname
                     attributes['memberdomain'] = member_domain
+                    if is_group:
+                        attributes['useraccountcontrol'] = str()
+                        self._logger.debug('{} is a group, ignoring the useraccountcontrol'.format(member.samaccountname)) 
+                    else:
+                        attributes['useraccountcontrol'] = member.useraccountcontrol
                     attributes['isgroup'] = is_group
                     attributes['memberdn'] = member_dn
                     attributes['objectsid'] = member.objectsid

@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with PywerView.  If not, see <http://www.gnu.org/licenses/>.
 
-# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2022
+# Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2023
 
 from pywerview.functions.net import NetRequester
 from pywerview.functions.gpo import GPORequester
@@ -98,9 +98,9 @@ def get_netgroup(domain_controller, domain, user, password=str(),
 def get_netcomputer(domain_controller, domain, user, password=str(),
                     lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
                     user_cert=str(), user_key=str(),
-                    queried_computername='*', queried_spn=str(), queried_os=str(),
+                    queried_computername=str(), queried_spn=str(), queried_os=str(),
                     queried_sp=str(), queried_domain=str(), ads_path=str(),
-                    printers=False, unconstrained=False, laps_passwords=False,
+                    printers=False, unconstrained=False, laps_passwords=False, pre_created=False,
                     ping=False, full_data=False, custom_filter=str(), attributes=[]):
     requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash, do_kerberos, do_tls,
@@ -108,8 +108,9 @@ def get_netcomputer(domain_controller, domain, user, password=str(),
     return requester.get_netcomputer(queried_computername=queried_computername,
                                         queried_spn=queried_spn, queried_os=queried_os, queried_sp=queried_sp,
                                         queried_domain=queried_domain, ads_path=ads_path, printers=printers,
-                                        unconstrained=unconstrained, laps_passwords=laps_passwords, ping=ping,
-                                        full_data=full_data, custom_filter=custom_filter, attributes=attributes)
+                                        unconstrained=unconstrained, laps_passwords=laps_passwords, 
+                                        pre_created=pre_created, ping=ping, full_data=full_data, 
+                                        custom_filter=custom_filter, attributes=attributes)
 
 def get_netdomaincontroller(domain_controller, domain, user, password=str(),
                                  lmhash=str(), nthash=str(), do_kerberos=False,
