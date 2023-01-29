@@ -70,7 +70,7 @@ class NetRequester(LDAPRPCRequester):
             object_filter = '(&(name=*){})'.format(filter_objectclass)
 
         adserviceaccounts = self._ldap_search(object_filter, adobj.GMSAAccount, attributes=attributes)
-        sid_resolver = NetRequester(self._domain_controller, self._domain, self._user, self._password, self._lmhash, self._nthash)
+        sid_resolver = NetRequester(self._domain_controller, self._domain, self._user, self._password, self._lmhash, self._nthash, self._do_kerberos, self._do_tls)
 
         # In this loop, we resolve SID (if true) and we populate 'enabled' attribute
         for i, adserviceaccount in enumerate(adserviceaccounts):
