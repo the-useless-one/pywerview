@@ -278,7 +278,7 @@ class LDAPRequester():
                         ldap_connection.raise_exceptions = False
                         self._logger.debug('Sending StartTLS command')
                         if ldap_connection.start_tls():
-                            self._logger.debug('StartTLS succeded')
+                            self._logger.debug('StartTLS succeeded')
                             # Ok, back to normal
                             ldap_connection.raise_exceptions = True
                             ldap_connection.bind()
@@ -296,7 +296,8 @@ class LDAPRequester():
             except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
                 # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
                 if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message']:
-                    self._logger.critical('Server requires Channel Binding Token, try again without --tls flag')
+                    self._logger.critical('Server requires Channel Binding Token, try again without --tls flag '
+                                           'or use certificate authentication')
                     sys.exit(-1)
                 else:
                     self._logger.critical('Invalid Credentials')
@@ -314,7 +315,7 @@ class LDAPRequester():
                 self._logger.critical('TLS negociation failed, this error is mostly due to your host '
                                       'not supporting SHA1 as signing algorithm for certificates')
                 sys.exit(-1)
-            
+
             except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
                 # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
                 if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message']:
