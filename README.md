@@ -234,8 +234,11 @@ To recap:
 |           SPN in the ticket           | Can be used with LDAP functions | Can be used with SMB/RPC functions |
 | :-----------------------------------: | :-----------------------------: | :--------------------------------: |
 | `ldap/srv-ad.contoso.com@CONTOSO.COM` |              ✔️                  |                 ✔️                  |
-| `cifs/srv-ad.contoso.com@CONTOSO.COm` |              ✔️                  |                 ✔️                  |
+| `cifs/srv-ad.contoso.com@CONTOSO.COM` |              ✔️                  |                 ✔️                  |
 |       `ldap/srv-ad@CONTOSO.COM`       |              ❌                 |                 ✔️                  |
+
+*NOTE:* The same limitation exists for TGT in your cache credential file: `krbtgt/srv-ad.contoso.com@CONTOSO.COM` will work 
+but not `krbtgt/srv-ad.contoso@CONTOSO.COM`.
 
 ### LDAP SChannel authentication
 
@@ -297,7 +300,7 @@ description:
 enabled:                 True
 ```
 
-### JSON ouput
+### JSON output
 
 Pywerview can print results in json format by using the `--json` switch.
 
