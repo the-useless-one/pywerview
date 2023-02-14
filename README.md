@@ -238,7 +238,7 @@ To recap:
 |       `ldap/srv-ad@CONTOSO.COM`       |              ❌                 |                 ✔️                  |
 
 *NOTE:* The same limitation exists for TGT in your cache credential file: `krbtgt/srv-ad.contoso.com@CONTOSO.COM` will work 
-but not `krbtgt/srv-ad.contoso@CONTOSO.COM`.
+but not `krbtgt/srv-ad@CONTOSO.COM`.
 
 ### LDAP SChannel authentication
 
@@ -263,7 +263,7 @@ SChannel authentication is supported for a subset of the submodules. Functions t
 To authenticate via SChannel:
 
 1. Retrieve the certificate and the key with your favorite tool ([ntlmrelayx.py](https://github.com/fortra/impacket), [certipy](https://github.com/ly4k/Certipy),...)
-2. `pywerview` needs a certicate file and a key file, so you need to extract them from the `.pfx`.
+2. `pywerview` needs a certificate file and a key file, so you need to extract them from the `.pfx`.
 3. Use `--cert` and  `--key` as in the following example:
 
 ```console
