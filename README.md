@@ -64,6 +64,32 @@ Also, blah blah blah, don't use it for evil purposes.
 * gssapi (Which requires `libkrb5-dev`)
 * pycryptodomex (or pycryptodome)
 
+## SOME INSTALLATIONS ISSUES:
+
+Problem 1
+On some linux distros running -> pip3 install -r requirements.txt -> will sucks (For ubuntu or Debian for example).
+If u have any gssapi related issues (for example: subprocess.CalledProcessError: Command 'krb5-config --libs gssapi' returned non-zero exit status 127.) - try run -> apt install libkrb5-dev
+
+Problem 2 - krb5-config: command not found
+setup.py for gssapi uses the krb5-config command to find the GSSAPI library to link against (see here). Because system was installed using Heimdal instead of MIT Kerberos, the executable command has been renamed to krb5-config.mit so setup.py misses it sometimes. 
+
+$ krb5-config  --libs gssapi   # doesn't work 
+bash:  krb5-config : command not found
+Create a symlink to get it to work for the install: 
+$ sudo ln -s /usr/bin/krb5-config.mit /usr/bin/krb5-config
+$ krb5-config --libs gssapi  # does work
+-L/usr/lib/x86_64-linux-gnu/mit-krb5 -Wl,-z,relro -lgssapi_krb5 -lkrb5 -lk5crypto -lcom_err
+
+Problem 3 - libgssapi_krb5.so: cannot open shared object file: No such file or directory 
+setup.py is looking in /usr/lib for the gssapi library to link against. 
+In Debian Jesse, most libs are now kept in /usr/lib/x86_64-linux-gnu. Again, a symlink can fix this: 
+$ sudo ln -s /usr/lib/x86_64-linux-gnu/libgssapi_krb5.so.2 /usr/lib/libgssapi_krb5.so
+
+Problem 4 - error: unknown type name ‘gss_key_value_set_desc’ 
+The build fails because it does not recognize a symbol in the library. 
+The reason for this is that it was not able to get the right header file. 
+Just run: $ sudo apt-get  install libkrb5-dev 
+
 ## FUNCTIONALITIES
 
 If you like living on the bleeding edge, check out the
