@@ -123,6 +123,8 @@ def main():
             help='Domain to query')
     get_adobject_parser.add_argument('-a', '--ads-path',
             help='Additional ADS path')
+    get_adobject_parser.add_argument('--custom-filter', dest='custom_filter',
+            default=str(), help='Custom filter')
     get_adobject_parser.add_argument('--attributes', nargs='+', dest='attributes',
             default=[], help='Object attributes to return')
     get_adobject_parser.set_defaults(func=get_adobject)
@@ -170,6 +172,8 @@ def main():
             action='store_true', help='Resolve SIDs when querying an ACL')
     get_objectacl_parser.add_argument('--resolve-guids', action='store_true',
             help='Resolve GUIDs to their display names')
+    get_objectacl_parser.add_argument('--custom-filter', dest='custom_filter',
+            default=str(), help='Custom filter')
     get_objectacl_parser.set_defaults(func=get_objectacl)
 
     # Parser for the get-netuser command
@@ -215,6 +219,8 @@ def main():
             help='If set, returns full information on the groups, otherwise, just the samAccountName')
     get_netgroup_parser.add_argument('--admin-count', action='store_true',
             help='Query only users with adminCount=1')
+    get_netgroup_parser.add_argument('--custom-filter', dest='custom_filter',
+            default=str(), help='Custom filter')
     get_netgroup_parser.set_defaults(func=get_netgroup)
 
     # Parser for the get-netcomputer command
@@ -246,6 +252,8 @@ def main():
             help='Ping computers (will only return up computers)')
     get_netcomputer_parser.add_argument('--full-data', action='store_true',
             help='If set, returns full information on the groups, otherwise, just the dnsHostName')
+    get_netcomputer_parser.add_argument('--custom-filter', dest='custom_filter',
+            default=str(), help='Custom filter')
     get_netcomputer_parser.add_argument('--attributes', nargs='+', dest='attributes',
             default=[], help='Object attributes to return')
     get_netcomputer_parser.set_defaults(func=get_netcomputer)
@@ -434,6 +442,8 @@ def main():
         'Much faster than manual recursion, but doesn\'t reveal cross-domain groups')
     get_netgroupmember_parser.add_argument('--full-data', action='store_true',
             help='If set, returns full information on the members')
+    get_netgroupmember_parser.add_argument('--custom-filter', dest='custom_filter',
+            default=str(), help='Custom filter')
     get_netgroupmember_parser.set_defaults(func=get_netgroupmember)
 
     # Parser for the get-netsession command
