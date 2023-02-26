@@ -82,14 +82,20 @@ __access_mask = {0x1: 'create_child', 0x2: 'delete_child',
 __access_mask_generic = {0xf01ff: 'generic_all', 0x20094: 'generic_read',
                          0x20028: 'generic_write', 0x20004: 'generic_execute'}
 
-__trust_attrib = {0x1: 'non_transitive', 0x2: 'uplevel_only',
-                  0x4: 'filter_sids', 0x8: 'forest_transitive',
-                  0x10: 'cross_organization', 0x20: 'within_forest',
-                  0x40: 'treat_as_external',
-                  0x80: 'trust_uses_rc4_encryption',
-                  0x100: 'trust_uses_aes_keys',
-                  0X200: 'cross_organization_no_tgt_delegation',
-                  0x400: 'pim_trust'}
+# https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/e9a2d23c-c31e-4a6f-88a0-6646fdb51a3c
+__trust_attrib = {0x1: 'TRUST_ATTRIBUTE_NON_TRANSITIVE', 
+                  0x2: 'TRUST_ATTRIBUTE_UPLEVEL_ONLY',
+                  0x4: 'TRUST_ATTRIBUTE_QUARANTINED_DOMAIN', 
+                  0x8: 'TRUST_ATTRIBUTE_FOREST_TRANSITIVE',
+                  0x10: 'TRUST_ATTRIBUTE_CROSS_ORGANIZATION', 
+                  0x20: 'TRUST_ATTRIBUTE_WITHIN_FOREST',
+                  0x40: 'TRUST_ATTRIBUTE_TREAT_AS_EXTERNAL',
+                  0x80: 'TRUST_ATTRIBUTE_USES_RC4_ENCRYPTION',
+                  # TODO: x100 seems not documented ?
+                  0x100: 'TRUST_USES_AES_KEYS',
+                  0X200: 'TRUST_ATTRIBUTE_CROSS_ORGANIZATION_NO_TGT_DELEGATION',
+                  0x400: 'TRUST_ATTRIBUTE_PIM_TRUST',
+                  0x800: 'TRUST_ATTRIBUTE_CROSS_ORGANIZATION_ENABLE_TGT_DELEGATION'}
 
 __trust_direction = {0: 'disabled', 1: 'inbound',
                      2: 'outbound', 3: 'bidirectional'}

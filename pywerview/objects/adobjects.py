@@ -155,44 +155,6 @@ class Subnet(ADObject):
     pass
 
 class Trust(ADObject):
-
-    def __init__(self, attributes):
-        logger = logging.getLogger('pywerview_main_logger.Trust')
-        self._logger = logger
-        ADObject.__init__(self, attributes)
-        trust_attributes = self.trustattributes
-        trust_direction = self.trustdirection
-        # If the filter SIDs attribute is not manually set, we check if we're
-        # not in a use case where SIDs are implicitly filtered
-        # Based on https://github.com/vletoux/pingcastle/blob/master/Healthcheck/TrustAnalyzer.cs
-        if 'filter_sids' not in trust_attributes:
-            if not (trust_direction == 'disabled' or \
-                    trust_direction == 'inbound' or \
-                    'within_forest' in trust_attributes or \
-                    'pim_trust' in trust_attributes):
-                if 'forest_transitive' in trust_attributes and 'treat_as_external' not in trust_attributes:
-                    self._attributes_dict['trustattributes'].append('filter_sids')
-
-    # Pretty printing Trust object, we don't want to print all the attributes
-    # so we only print useful ones (trustattributes, trustdirection, trustpartner
-    # trusttype, whenchanged, whencreated)
-    def __str__(self):
-        s = str()
-        max_length = len('trustattributes')
-
-        for attr in self._attributes_dict:
-            self._logger.log(self._logger.ULTRA,'Trying to print : attribute name = {0} / value = {1}'.format(attr, self._attributes_dict[attr]))
-            if attr in ('trustpartner', 'trustdirection', 'trusttype', 'whenchanged', 'whencreated'):
-                attribute = self._attributes_dict[attr]
-            elif attr == 'trustattributes':
-                attribute = ', '.join(self._attributes_dict[attr])
-            else:
-                self._logger.debug('Ignoring : attribute name = {0}'.format(attr, self._attributes_dict[attr]))
-                continue
-            s += '{}: {}{}\n'.format(attr, ' ' * (max_length - len(attr)), attribute)
-
-        s = s[:-1]
-        return s
     pass
 
 class GPO(ADObject):

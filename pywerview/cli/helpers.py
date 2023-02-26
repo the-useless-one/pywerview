@@ -175,11 +175,11 @@ def get_netsubnet(domain_controller, domain, user, password=str(),
 
 def get_netdomaintrust(domain_controller, domain, user, password=str(),
                   lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False, queried_domain=str(),
-                  user_cert=str(), user_key=str()):
+                  user_cert=str(), user_key=str(), full_data=False):
     requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash, do_kerberos, do_tls,
                                  user_cert, user_key)
-    return requester.get_netdomaintrust(queried_domain=queried_domain)
+    return requester.get_netdomaintrust(queried_domain=queried_domain, full_data=full_data)
 
 def get_netgroupmember(domain_controller, domain, user, password=str(),
                        lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
