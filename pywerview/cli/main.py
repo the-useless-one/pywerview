@@ -335,6 +335,8 @@ def main():
         'trusts of the specified domain', parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
     get_netdomaintrust_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
+    get_netdomaintrust_parser.add_argument('--full-data', action='store_true',
+            help='If set, returns full information on the trusts, otherwise, just basic info')
     get_netdomaintrust_parser.set_defaults(func=get_netdomaintrust)
 
     # Parser for the get-netgpo command

@@ -616,10 +616,18 @@ class NetRequester(LDAPRPCRequester):
         return results
 
     @LDAPRPCRequester._ldap_connection_init
-    def get_netdomaintrust(self, queried_domain):
+    def get_netdomaintrust(self, queried_domain, full_data=False):
+
+        if full_data:
+            attributes=list()
+        else:
+            attributes=['trustpartner', 'trustdirection',
+                        'whencreated', 'whenchanged',
+                        'trusttype', 'trustattributes']
+
         trust_search_filter = '(&(objectClass=trustedDomain))'
 
-        return self._ldap_search(trust_search_filter, adobj.Trust)
+        return self._ldap_search(trust_search_filter, adobj.Trust, attributes=attributes)
 
     @LDAPRPCRequester._rpc_connection_init(r'\srvsvc')
     def get_netsession(self):
