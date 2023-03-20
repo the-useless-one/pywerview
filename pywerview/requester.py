@@ -375,9 +375,9 @@ class LDAPRequester():
             ads_path = kwargs.get('ads_path', None)
             ads_prefix = kwargs.get('ads_prefix', None)
             if (not instance._ldap_connection) or \
-               (queried_domain != instance._queried_domain) or \
-               (ads_path != instance._ads_path) or \
-               (ads_prefix != instance._ads_prefix):
+               (queried_domaine is not None and queried_domain != instance._queried_domain) or \
+               (ads_path is not None and ads_path != instance._ads_path) or \
+               (ads_prefix is not None and ads_prefix != instance._ads_prefix):
                 if instance._ldap_connection:
                     instance._ldap_connection.unbind()
                 instance._create_ldap_connection(queried_domain=queried_domain,
