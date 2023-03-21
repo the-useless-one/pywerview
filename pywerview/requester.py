@@ -41,7 +41,7 @@ from impacket.dcerpc.v5.rpcrt import DCERPCException
 import pywerview.formatters as fmt
 
 class LDAPRequester():
-    def __init__(self, domain_controller, domain=str(), user=(), password=str(),
+    def __init__(self, domain_controller, domain=str(), user=str(), password=str(),
                  lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
                  user_cert=str(), user_key=str()):
         self._domain_controller = domain_controller
@@ -51,7 +51,7 @@ class LDAPRequester():
         self._lmhash = lmhash
         self._nthash = nthash
         self._do_kerberos = do_kerberos
-        self._do_certificate = user_cert != str() and user_key != str()
+        self._do_certificate = user_cert and user_key
         self._user_cert = user_cert
         self._user_key = user_key
         self._do_tls = do_tls
