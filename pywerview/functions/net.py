@@ -525,14 +525,23 @@ class NetRequester(LDAPRPCRequester):
                     if _sid:
                         queried_sid = _sid
                     else:
-                        with pywerview.functions.misc.Misc(self._domain_controller,
-                                                           self._domain, self._user,
-                                                           self._password, self._lmhash,
-                                                           self._nthash, self._do_kerberos,
-                                                           self._do_tls,
-                                                           self._user_cert, self._user_key) as misc_requester:
-                            queried_sid = misc_requester.get_domainsid(queried_domain) + '-512'
+                        # Logic extract from pywerview.functions.Misc get_domainsid to save object creation
+                        # LDAP filter to extract DC
+                        domain_controller_filter = '(userAccountControl:1.2.840.113556.1.4.803:=8192)'
+                        domain_controllers = self.get_netcomputer(queried_domain=queried_domain, custom_filter=domain_controller_filter,
+                                                                attributes=['objectsid'])
+                        if domain_controllers:
+                            primary_dc = domain_controllers[0]
+                            domain_sid = primary_dc.objectsid
+
+                            # we need to retrieve the domain sid from the controller sid
+                            domain_sid = '-'.join(domain_sid.split('-')[:-1])
+                            queried_sid = domain_sid + '-512'
                             self._logger.debug('Found Domains Admins SID = {}'.format(queried_sid))
+                        else:
+                            self._logger.critical('We did not manage to retrieve domain controller, please specify a group name')
+                            return list()
+
                     groups = self.get_netgroup(queried_sid=queried_sid,
                                                queried_domain=self._queried_domain,
                                                full_data=True)
