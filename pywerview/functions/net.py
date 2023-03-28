@@ -70,8 +70,6 @@ class NetRequester(LDAPRPCRequester):
             object_filter = '(&(name=*){})'.format(filter_objectclass)
 
         adserviceaccounts = self._ldap_search(object_filter, adobj.GMSAAccount, attributes=attributes)
-        sid_resolver = NetRequester(self._domain_controller, self._domain, self._user, self._password, self._lmhash, 
-                                    self._nthash, self._do_kerberos, self._do_tls, self._user_cert, self._user_key)
 
         # In this loop, we resolve SID (if true) and we populate 'enabled' attribute
         for i, adserviceaccount in enumerate(adserviceaccounts):
@@ -79,7 +77,7 @@ class NetRequester(LDAPRPCRequester):
                 results = list()
                 for sid in getattr(adserviceaccount, 'msds-groupmsamembership'):
                     try:
-                        resolved_sid = sid_resolver.get_adobject(queried_sid=sid, queried_domain=self._queried_domain, 
+                        resolved_sid = self.get_adobject(queried_sid=sid, queried_domain=self._queried_domain, 
                                                                   attributes=['distinguishedname'])[0].distinguishedname
                     except IndexError:
                         self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
