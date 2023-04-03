@@ -512,7 +512,7 @@ class RPCRequester():
         self._rpc_connection = None
 
 class LDAPRPCRequester(LDAPRequester, RPCRequester):
-    def __init__(self, target_computer, domain=str(), user=(), password=str(),
+    def __init__(self, target_computer, domain=str(), user=str(), password=str(),
                  lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
                  user_cert=str(), user_key=str(), domain_controller=str()):
         # If no domain controller was given, we assume that the user wants to
