@@ -114,9 +114,9 @@ class NetRequester(LDAPRPCRequester):
             for o in self.get_adobject(ads_path='CN=Extended-Rights,CN=Configuration,{}'.format(base_dn),
                     attributes=['name', 'rightsGuid'], custom_filter='(objectClass=controlAccessRight)'):
                         guid_map['{{{}}}'.format(o.rightsguid.lower())] = o.name
+            self._base_dn = base_dn
 
         attributes = ['distinguishedname', 'objectsid', 'ntsecuritydescriptor']
-        self._base_dn = base_dn
 
         if sacl:
             controls = list()
