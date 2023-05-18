@@ -22,6 +22,7 @@ import ntpath
 import ldap3
 import os
 import tempfile
+import ssl
 
 from ldap3.protocol.formatters.formatters import *
 
@@ -40,8 +41,9 @@ from impacket.dcerpc.v5.rpcrt import DCERPCException
 import pywerview.formatters as fmt
 
 class LDAPRequester():
-    def __init__(self, domain_controller, domain=str(), user=(), password=str(),
-                 lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False):
+    def __init__(self, domain_controller, domain=str(), user=str(), password=str(),
+                 lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
+                 user_cert=str(), user_key=str()):
         self._domain_controller = domain_controller
         self._domain = domain
         self._user = user
@@ -49,6 +51,9 @@ class LDAPRequester():
         self._lmhash = lmhash
         self._nthash = nthash
         self._do_kerberos = do_kerberos
+        self._do_certificate = user_cert and user_key
+        self._user_cert = user_cert
+        self._user_key = user_key
         self._do_tls = do_tls
         self._queried_domain = None
         self._ads_path = None
@@ -102,7 +107,10 @@ class LDAPRequester():
     def _create_ldap_connection(self, queried_domain=str(), ads_path=str(),
                                 ads_prefix=str()):
         if not self._domain:
-            if self._do_kerberos:
+            if self._do_certificate:
+                self._logger.critical('-w with the FQDN must be used when authenticating with certificates')
+                sys.exit(-1)
+            elif self._do_kerberos:
                 ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
                 self._domain = ccache.principal.realm['data'].decode('utf-8')
             else:
@@ -113,7 +121,12 @@ class LDAPRequester():
                     sys.exit(-1)
 
         if not queried_domain:
-            if self._do_kerberos:
+            if self._do_certificate:
+                # TODO: CHECK!
+                # Change this message
+                self._logger.warning('Cross domain query with certificate is not yet supported, so domain=queried domain')
+                queried_domain = self._domain
+            elif self._do_kerberos:
                 ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
                 queried_domain = ccache.principal.realm['data'].decode('utf-8')
             else:
@@ -122,6 +135,13 @@ class LDAPRequester():
                 except SessionError as e:
                     self._logger.critical(e)
                     sys.exit(-1)
+        else:
+            if self._do_certificate:
+                # TODO: CHECK!
+                # Change this message
+                self._logger.warning('Cross domain query with certificate is not yet supported, so domain=queried domain')
+                queried_domain = self._domain
+
         self._queried_domain = queried_domain
 
         base_dn = str()
@@ -144,9 +164,11 @@ class LDAPRequester():
         self._base_dn = base_dn
 
         # Format the username and the domain
-        # ldap3 seems not compatible with USER@DOMAIN format
+        # ldap3 seems not compatible with USER@DOMAIN format with NTLM auth
         if self._do_kerberos:
             user = '{}@{}'.format(self._user, self._domain.upper())
+        elif self._do_certificate:
+            user = None
         else:
             user = '{}\\{}'.format(self._domain, self._user)
 
@@ -218,6 +240,21 @@ class LDAPRequester():
             ldap_connection_kwargs['cred_store'] = cred_store
             self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
                    '/ Kerberos auth'.format(self._domain_controller, user))
+
+        elif self._do_certificate:
+            tls_mode = 'Implicit'
+            self._logger.debug('LDAPS authentication with certificate')
+            tls = ldap3.Tls(local_private_key_file=self._user_key, local_certificate_file=self._user_cert, validate=ssl.CERT_NONE)
+            ldap_server.tls = tls
+            # Explicit TLS, setting up StartTLS
+            if not self._do_tls:
+                tls_mode = 'Explicit'
+                self._logger.warning('Using certificate authentication but --tls not provided, setting up TLS with StartTLS')
+                ldap_connection_kwargs['authentication'] = ldap3.SASL
+                ldap_connection_kwargs['sasl_mechanism'] = ldap3.EXTERNAL
+            self._logger.debug('LDAP binding parameters: server = {0} / cert = {1} '
+                '/ key = {2} / {3} TLS / Certificate auth'.format(self._domain_controller, self._user_cert, self._user_key, tls_mode))
+
         else:
             self._logger.debug('LDAP authentication with NTLM')
             ldap_connection_kwargs['authentication'] = ldap3.NTLM
@@ -233,7 +270,23 @@ class LDAPRequester():
         try:
             ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
             try:
-                ldap_connection.bind()
+                if self._do_certificate:
+                    ldap_connection.open()
+                    if not self._do_tls:
+                        # raise_exceptions = True raises an exception (oh!) during StartTLS and
+                        # I don't know why, so we disable it for a moment
+                        ldap_connection.raise_exceptions = False
+                        self._logger.debug('Sending StartTLS command')
+                        if ldap_connection.start_tls():
+                            self._logger.debug('StartTLS succeeded')
+                            # Ok, back to normal
+                            ldap_connection.raise_exceptions = True
+                            ldap_connection.bind()
+                        else:
+                            self._logger.critical('StartTLS failed, exiting')
+                            sys.exit(-1)
+                else:
+                    ldap_connection.bind()
             except ldap3.core.exceptions.LDAPSocketOpenError as e:
                 self._logger.critical(e)
                 if self._do_tls:
@@ -243,7 +296,8 @@ class LDAPRequester():
             except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
                 # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
                 if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message']:
-                    self._logger.critical('Server requires Channel Binding Token, try again without --tls flag')
+                    self._logger.critical('Server requires Channel Binding Token, try again without --tls flag '
+                                           'or use certificate authentication')
                     sys.exit(-1)
                 else:
                     self._logger.critical('Invalid Credentials')
@@ -271,6 +325,14 @@ class LDAPRequester():
                     self._logger.critical('Invalid Credentials')
                     sys.exit(-1)
 
+        who_am_i = ldap_connection.extend.standard.who_am_i()
+
+        # Only failed here when using certificate authentication
+        if not who_am_i:
+            self._logger.critical('Certificate authentication failed')
+            sys.exit(-1)
+
+        self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
         self._ldap_connection = ldap_connection
 
     def _ldap_search(self, search_filter, class_result, attributes=list(), controls=list()):
@@ -313,9 +375,9 @@ class LDAPRequester():
             ads_path = kwargs.get('ads_path', None)
             ads_prefix = kwargs.get('ads_prefix', None)
             if (not instance._ldap_connection) or \
-               (queried_domain != instance._queried_domain) or \
-               (ads_path != instance._ads_path) or \
-               (ads_prefix != instance._ads_prefix):
+               (queried_domain and queried_domain != instance._queried_domain) or \
+               (ads_path and ads_path != instance._ads_path) or \
+               (ads_prefix and ads_prefix != instance._ads_prefix):
                 if instance._ldap_connection:
                     instance._ldap_connection.unbind()
                 instance._create_ldap_connection(queried_domain=queried_domain,
@@ -450,17 +512,21 @@ class RPCRequester():
         self._rpc_connection = None
 
 class LDAPRPCRequester(LDAPRequester, RPCRequester):
-    def __init__(self, target_computer, domain=str(), user=(), password=str(),
+    def __init__(self, target_computer, domain=str(), user=str(), password=str(),
                  lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
-                 domain_controller=str()):
+                 user_cert=str(), user_key=str(), domain_controller=str()):
         # If no domain controller was given, we assume that the user wants to
         # target a domain controller to perform LDAP requests against
         if not domain_controller:
             domain_controller = target_computer
+
         LDAPRequester.__init__(self, domain_controller, domain, user, password,
-                               lmhash, nthash, do_kerberos, do_tls)
-        RPCRequester.__init__(self, target_computer, domain, user, password,
-                               lmhash, nthash, do_kerberos)
+                               lmhash, nthash, do_kerberos, do_tls,
+                               user_cert, user_key)
+
+        if user_cert is not None and user_key is not None:
+            RPCRequester.__init__(self, target_computer, domain, user, password,
+                                  lmhash, nthash, do_kerberos)
 
         logger = logging.getLogger('pywerview_main_logger.LDAPRPCRequester')
         self._logger = logger
@@ -470,8 +536,11 @@ class LDAPRPCRequester(LDAPRequester, RPCRequester):
             LDAPRequester.__enter__(self)
         except (socket.error, IndexError):
             pass
-        # This should work every time
-        RPCRequester.__enter__(self)
+
+        try:
+            RPCRequester.__enter__(self)
+        except (AttributeError):
+            pass
 
         return self
 

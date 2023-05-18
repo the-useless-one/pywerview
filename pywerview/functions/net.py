@@ -70,7 +70,6 @@ class NetRequester(LDAPRPCRequester):
             object_filter = '(&(name=*){})'.format(filter_objectclass)
 
         adserviceaccounts = self._ldap_search(object_filter, adobj.GMSAAccount, attributes=attributes)
-        sid_resolver = NetRequester(self._domain_controller, self._domain, self._user, self._password, self._lmhash, self._nthash, self._do_kerberos, self._do_tls)
 
         # In this loop, we resolve SID (if true) and we populate 'enabled' attribute
         for i, adserviceaccount in enumerate(adserviceaccounts):
@@ -78,7 +77,7 @@ class NetRequester(LDAPRPCRequester):
                 results = list()
                 for sid in getattr(adserviceaccount, 'msds-groupmsamembership'):
                     try:
-                        resolved_sid = sid_resolver.get_adobject(queried_sid=sid, queried_domain=self._queried_domain, 
+                        resolved_sid = self.get_adobject(queried_sid=sid, queried_domain=self._queried_domain, 
                                                                   attributes=['distinguishedname'])[0].distinguishedname
                     except IndexError:
                         self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
@@ -108,17 +107,17 @@ class NetRequester(LDAPRPCRequester):
             # Dirty fix to get base DN even if custom ADS path was given
             base_dn = ','.join(self._base_dn.split(',')[-2:])
             guid_map = {'{00000000-0000-0000-0000-000000000000}': 'All'}
-            with NetRequester(self._domain_controller, self._domain, self._user, self._password,
-                  self._lmhash, self._nthash, self._do_kerberos, self._do_tls) as net_requester:
-                for o in net_requester.get_adobject(ads_path='CN=Schema,CN=Configuration,{}'.format(base_dn),
-                        attributes=['name', 'schemaIDGUID'], custom_filter='(schemaIDGUID=*)'):
-                    guid_map['{{{}}}'.format(o.schemaidguid)] = o.name
+            for o in self.get_adobject(ads_path='CN=Schema,CN=Configuration,{}'.format(base_dn),
+                    attributes=['name', 'schemaIDGUID'], custom_filter='(schemaIDGUID=*)'):
+                        guid_map['{{{}}}'.format(o.schemaidguid)] = o.name
 
-                for o in net_requester.get_adobject(ads_path='CN=Extended-Rights,CN=Configuration,{}'.format(base_dn),
-                        attributes=['name', 'rightsGuid'], custom_filter='(objectClass=controlAccessRight)'):
-                    guid_map['{{{}}}'.format(o.rightsguid.lower())] = o.name
+            for o in self.get_adobject(ads_path='CN=Extended-Rights,CN=Configuration,{}'.format(base_dn),
+                    attributes=['name', 'rightsGuid'], custom_filter='(objectClass=controlAccessRight)'):
+                        guid_map['{{{}}}'.format(o.rightsguid.lower())] = o.name
+            self._base_dn = base_dn
 
         attributes = ['distinguishedname', 'objectsid', 'ntsecuritydescriptor']
+
         if sacl:
             controls = list()
             acl_type = 'Sacl'
@@ -141,12 +140,7 @@ class NetRequester(LDAPRPCRequester):
         guid_filter = rights_to_guid.get(rights_filter, None)
 
         if resolve_sids:
-            sid_resolver = NetRequester(self._domain_controller, self._domain,
-                    self._user, self._password, self._lmhash, self._nthash,
-                    self._do_kerberos, self._do_tls)
             sid_mapping = adobj.ADObject._well_known_sids.copy()
-        else:
-            sid_resolver = None
 
         for security_descriptor in security_descriptors:
             sd = SR_SECURITY_DESCRIPTOR()
@@ -172,14 +166,14 @@ class NetRequester(LDAPRPCRequester):
                 attributes['activedirectoryrights'] = fmt.format_ace_access_mask(ace['Ace']['Mask']['Mask'])
                 attributes['isinherited'] = bool(ace['AceFlags'] & 0x10)
                 attributes['securityidentifier'] = format_sid(ace['Ace']['Sid'].getData())
-                if sid_resolver:
+                if resolve_sids:
                     converted_sid = attributes['securityidentifier']
                     try:
                         resolved_sid = sid_mapping[converted_sid]
                     except KeyError:
                         try:
-                            resolved_sid = sid_resolver.get_adobject(queried_sid=converted_sid,
-                                    queried_domain=self._queried_domain, attributes=['distinguishedname'])[0]
+                            resolved_sid = self.get_adobject(queried_sid=converted_sid,
+                                    queried_domain=self._queried_domain, ads_path=self._base_dn, attributes=['distinguishedname'])[0]
                             resolved_sid = resolved_sid.distinguishedname
                         except IndexError:
                             self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(converted_sid))
@@ -525,13 +519,23 @@ class NetRequester(LDAPRPCRequester):
                     if _sid:
                         queried_sid = _sid
                     else:
-                        with pywerview.functions.misc.Misc(self._domain_controller,
-                                                           self._domain, self._user,
-                                                           self._password, self._lmhash,
-                                                           self._nthash, self._do_kerberos,
-                                                           self._do_tls) as misc_requester:
-                            queried_sid = misc_requester.get_domainsid(queried_domain) + '-512'
+                        # Logic extract from pywerview.functions.Misc get_domainsid to save object creation
+                        # LDAP filter to extract DC
+                        domain_controller_filter = '(userAccountControl:1.2.840.113556.1.4.803:=8192)'
+                        domain_controllers = self.get_netcomputer(queried_domain=queried_domain, custom_filter=domain_controller_filter,
+                                                                attributes=['objectsid'])
+                        if domain_controllers:
+                            primary_dc = domain_controllers[0]
+                            domain_sid = primary_dc.objectsid
+
+                            # we need to retrieve the domain sid from the controller sid
+                            domain_sid = '-'.join(domain_sid.split('-')[:-1])
+                            queried_sid = domain_sid + '-512'
                             self._logger.debug('Found Domains Admins SID = {}'.format(queried_sid))
+                        else:
+                            self._logger.critical('We did not manage to retrieve domain controller, please specify a group name')
+                            return list()
+
                     groups = self.get_netgroup(queried_sid=queried_sid,
                                                queried_domain=self._queried_domain,
                                                full_data=True)
@@ -613,10 +617,18 @@ class NetRequester(LDAPRPCRequester):
         return results
 
     @LDAPRPCRequester._ldap_connection_init
-    def get_netdomaintrust(self, queried_domain):
+    def get_netdomaintrust(self, queried_domain, full_data=False):
+
+        if full_data:
+            attributes=list()
+        else:
+            attributes=['trustpartner', 'trustdirection',
+                        'whencreated', 'whenchanged',
+                        'trusttype', 'trustattributes']
+
         trust_search_filter = '(&(objectClass=trustedDomain))'
 
-        return self._ldap_search(trust_search_filter, adobj.Trust)
+        return self._ldap_search(trust_search_filter, adobj.Trust, attributes=attributes)
 
     @LDAPRPCRequester._rpc_connection_init(r'\srvsvc')
     def get_netsession(self):
