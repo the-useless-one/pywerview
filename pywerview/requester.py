@@ -60,7 +60,7 @@ class LDAPRequester():
         self._ads_prefix = None
         self._ldap_connection = None
         self._base_dn = None
-        
+
         logger = logging.getLogger('pywerview_main_logger.LDAPRequester')
         self._logger = logger
 
@@ -237,7 +237,7 @@ class LDAPRequester():
             self._logger.warning('Using certificate authentication but --tls not provided, setting up TLS with StartTLS')
             ldap_connection_kwargs['authentication'] = ldap3.SASL
             ldap_connection_kwargs['sasl_mechanism'] = ldap3.EXTERNAL
-        
+
         self._logger.debug('LDAP binding parameters: server = {0} / cert = {1} '
             '/ key = {2} / {3} TLS / SChannel auth'.format(self._domain_controller, self._user_cert, self._user_key, tls_mode))
 
@@ -255,7 +255,7 @@ class LDAPRequester():
                     self._logger.critical('StartTLS failed, exiting')
                     sys.exit(-1)
         except Exception as e:
-            # I don't really understand exception when using SCHannel authentication, but if you see this message
+            # I don't really understand exception when using SChannel authentication, but if you see this message
             # your cert and key are probably not valid
             self._logger.critical('Exception during SChannel authentication : {}'.format(e))
             sys.exit(-1)
