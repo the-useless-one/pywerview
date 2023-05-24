@@ -109,7 +109,7 @@ class NetRequester(LDAPRPCRequester):
             guid_map = {'{00000000-0000-0000-0000-000000000000}': 'All'}
             for o in self.get_adobject(ads_path='CN=Schema,CN=Configuration,{}'.format(base_dn),
                     attributes=['name', 'schemaIDGUID'], custom_filter='(schemaIDGUID=*)'):
-                        guid_map['{{{}}}'.format(o.schemaidguid)] = o.name
+                        guid_map['{}'.format(format_uuid_le(o.schemaidguid))] = o.name
 
             for o in self.get_adobject(ads_path='CN=Extended-Rights,CN=Configuration,{}'.format(base_dn),
                     attributes=['name', 'rightsGuid'], custom_filter='(objectClass=controlAccessRight)'):
