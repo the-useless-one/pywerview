@@ -52,6 +52,7 @@ class NetRequester(LDAPRPCRequester):
     def get_adserviceaccount(self, queried_domain=str(), queried_sid=str(),
                      queried_name=str(), queried_sam_account_name=str(),
                      ads_path=str(), resolve_sids=False):
+        # First, searching for gMSAs
         filter_objectclass = '(ObjectClass=msDS-GroupManagedServiceAccount)'
         attributes = ['samaccountname', 'distinguishedname', 'objectsid', 'description',
                       'msds-managedpassword', 'msds-groupmsamembership', 'useraccountcontrol']
@@ -71,6 +72,21 @@ class NetRequester(LDAPRPCRequester):
 
         adserviceaccounts = self._ldap_search(object_filter, adobj.GMSAAccount, attributes=attributes)
 
+        # Now searching for sMSAs
+        filter_objectclass = '(ObjectClass=msDS-ManagedServiceAccount)'
+        attributes = ['samaccountname', 'distinguishedname', 'objectsid', 'description',
+                      'msds-hostserviceaccountbl', 'useraccountcontrol']
+        for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
+                                      ('samAccountName', escape_filter_chars(queried_sam_account_name))):
+            if attr_value:
+                object_filter = '(&({}={}){})'.format(attr_desc, attr_value, filter_objectclass)
+                break
+        else:
+            object_filter = '(&(name=*){})'.format(filter_objectclass)
+
+        smsas = self._ldap_search(object_filter, adobj.GMSAAccount, attributes=attributes)
+
+
         # In this loop, we resolve SID (if true) and we populate 'enabled' attribute
         for i, adserviceaccount in enumerate(adserviceaccounts):
             if resolve_sids:
@@ -86,6 +102,9 @@ class NetRequester(LDAPRPCRequester):
                 adserviceaccounts[i].add_attributes({'msds-groupmsamembership': results})
             adserviceaccounts[i].add_attributes({'Enabled': 'ACCOUNTDISABLE' not in adserviceaccount.useraccountcontrol})
             adserviceaccounts[i]._attributes_dict.pop('useraccountcontrol')
+
+        # Finally, adding the sMSAs to the gMSA list
+        adserviceaccounts += smsas
         return adserviceaccounts
 
     @LDAPRPCRequester._ldap_connection_init
