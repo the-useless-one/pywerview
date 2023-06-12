@@ -304,6 +304,18 @@ enabled:                 True
 
 Pywerview can print results in json format by using the `--json` switch.
 
+### The case of LDAP Signing and LDAP Channel Binding
+
+If you want to use pywerview against DCs that implment LDAP Signing and/or LDAP Channel Binding,
+you need to install a forked version of the `ldap3` library. You can find this special version 
+[here](https://github.com/ThePirateWhoSmellsOfSunflowers/ldap3/tree/tls_cb_and_seal_for_ntlm). 
+This version adds [this PR](https://github.com/cannatag/ldap3/pull/1087) by 
+[@ThePirateWhoSmellsOfSunflowers](https://github.com/ThePirateWhoSmellsOfSunflowers) 
+and [this one](https://github.com/cannatag/ldap3/pull/1042) by [@CravateRouge](https://github.com/CravateRouge).
+
+`pip install` this branch within your pywerview virtual env. You can check if your pywerview 
+installation uses the fork by enabling debug logging (`-l DEBUG`).
+
 ## TODO
 
 * Many, many more PowerView functionalities to implement. I'll now focus on

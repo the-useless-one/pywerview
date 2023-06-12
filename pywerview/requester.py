@@ -64,6 +64,211 @@ class LDAPRequester():
         logger = logging.getLogger('pywerview_main_logger.LDAPRequester')
         self._logger = logger
 
+        # We check here if the ldap3 install supports NTLM and Kerberos encryption
+        # along with TLS channel binding
+        # https://github.com/cannatag/ldap3/pull/1087
+        # https://github.com/cannatag/ldap3/pull/1042
+        try:
+            if ldap3.SIGN and ldap3.ENCRYPT:
+                self._sign_and_seal_supported = True
+                self._logger.debug('LDAP sign and seal are supported')
+        except AttributeError:
+            self._sign_and_seal_supported = False
+            self._logger.debug('LDAP sign and seal are not supported')
+
+        try:
+            if ldap3.TLS_CHANNEL_BINDING:
+                self._tls_channel_binding_supported = True
+                self._logger.debug('TLS channel binding is supported')
+        except AttributeError:
+            self._tls_channel_binding_supported = False
+            self._logger.debug('TLS channel binding is not supported')
+
+    def _do_ntlm_auth(self, ldap_scheme, formatter, seal_and_sign=False, tls_channel_binding=False):
+        self._logger.debug('LDAP authentication with NTLM: ldap_scheme = {0} / seal_and_sign = {1} / tls_channel_binding = {2}'.format(
+                            ldap_scheme, seal_and_sign, tls_channel_binding))
+        ldap_server = ldap3.Server('{}://{}'.format(ldap_scheme, self._domain_controller), formatter=formatter)
+        user = '{}\\{}'.format(self._domain, self._user)
+        ldap_connection_kwargs = {'user': user, 'raise_exceptions': True, 'authentication': ldap3.NTLM}
+
+        if self._lmhash and self._nthash:
+            ldap_connection_kwargs['password'] = '{}:{}'.format(self._lmhash, self._nthash)
+            self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
+               '/ hash = {2}'.format(self._domain_controller, user, ldap_connection_kwargs['password']))
+        else:
+            ldap_connection_kwargs['password'] = self._password
+            self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
+               '/ password = {2}'.format(self._domain_controller, user, ldap_connection_kwargs['password']))
+
+        if seal_and_sign:
+            ldap_connection_kwargs['session_security'] = ldap3.ENCRYPT
+        elif tls_channel_binding:
+            ldap_connection_kwargs['channel_binding'] = ldap3.TLS_CHANNEL_BINDING
+
+        try:
+            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
+            ldap_connection.bind()
+        except ldap3.core.exceptions.LDAPSocketOpenError as e:
+                self._logger.critical(e)
+                if self._do_tls:
+                    self._logger.critical('TLS negociation failed, this error is mostly due to your host '
+                                          'not supporting SHA1 as signing algorithm for certificates')
+                sys.exit(-1)
+        except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
+                self._logger.warning('Server returns LDAPInvalidCredentialsResult')
+                # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
+                if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message'] and not self._tls_channel_binding_supported:
+                    self._logger.critical('Server requires Channel Binding Token and your ldap3 install does not support it. '
+                                          'Please install https://github.com/cannatag/ldap3/pull/1087 or try another authentication method')
+                    sys.exit(-1)
+                elif self._tls_channel_binding_supported == True:
+                    self._logger.warning('Falling back to TLS with channel binding')
+                    self._do_ntlm_auth(ldap_scheme, formatter, tls_channel_binding=True)
+                    return
+                else:
+                    self._logger.critical('Invalid Credentials')
+                    sys.exit(-1)
+
+        except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
+            self._logger.warning('Server returns LDAPStrongerAuthRequiredResult')
+            if not self._sign_and_seal_supported:
+                self._logger.warning('Sealing not available, falling back to LDAPS')
+                self._do_ntlm_auth('ldaps', formatter)
+                return
+            else:
+                self._logger.warning('Falling back to NTLM sealing')
+                self._do_ntlm_auth(ldap_scheme, formatter, seal_and_sign=True)
+                return
+
+        who_am_i = ldap_connection.extend.standard.who_am_i()
+        self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
+        self._ldap_connection = ldap_connection
+
+    def _do_kerberos_auth(self, ldap_scheme, formatter, seal_and_sign=False):
+        self._logger.debug('LDAP authentication with Kerberos: ldap_scheme = {0} / seal_and_sign = {1}'.format(
+                            ldap_scheme, seal_and_sign))
+        ldap_server = ldap3.Server('{}://{}'.format(ldap_scheme, self._domain_controller), formatter=formatter)
+        user = '{}@{}'.format(self._user, self._domain.upper())
+        ldap_connection_kwargs = {'user': user, 'raise_exceptions': True, 
+                                  'authentication': ldap3.SASL,
+                                  'sasl_mechanism': ldap3.KERBEROS}
+
+        if seal_and_sign:
+            ldap_connection_kwargs['session_security'] = ldap3.ENCRYPT
+
+        # Verifying if we have the correct TGS/TGT to interrogate the LDAP server
+        ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
+        principal = 'ldap/{}@{}'.format(self._domain_controller.lower(), self._queried_domain.upper())
+
+        # We look for the TGS with the right SPN
+        creds = ccache.getCredential(principal, anySPN=False)
+        if creds:
+            self._logger.debug('TGS found in KRB5CCNAME file')
+            if creds['server'].prettyPrint().lower() != creds['server'].prettyPrint():
+                self._logger.debug('SPN not in lowercase, patching SPN')
+                new_creds = self._patch_spn(creds, principal)
+                # We build a new CCache with the new ticket
+                ccache.credentials.append(new_creds)
+                temp_ccache = tempfile.NamedTemporaryFile()
+                ccache.saveFile(temp_ccache.name)
+                cred_store = {'ccache': 'FILE:{}'.format(temp_ccache.name)}
+            else:
+                cred_store = dict()
+        else:
+            self._logger.debug('TGS not found in KRB5CCNAME, looking for '
+                    'TGS with alternative SPN')
+            # If we don't find it, we search for any SPN
+            creds = ccache.getCredential(principal, anySPN=True)
+            if creds:
+                # If we find one, we build a custom TGS
+                self._logger.debug('Alternative TGS found, patching SPN')
+                new_creds = self._patch_spn(creds, principal)
+                # We build a new CCache with the new ticket
+                ccache.credentials.append(new_creds)
+                temp_ccache = tempfile.NamedTemporaryFile()
+                ccache.saveFile(temp_ccache.name)
+                cred_store = {'ccache': 'FILE:{}'.format(temp_ccache.name)}
+            else:
+                # If we don't find any, we hope for the best (TGT in cache)
+                self._logger.debug('Alternative TGS not found, using KRB5CCNAME as is '
+                        'while hoping it contains a TGT')
+                cred_store = dict()
+        ldap_connection_kwargs['cred_store'] = cred_store
+        self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
+               '/ Kerberos auth'.format(self._domain_controller, user))
+
+        try:
+            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
+            ldap_connection.bind()
+        except ldap3.core.exceptions.LDAPSocketOpenError as e:
+                self._logger.critical(e)
+                if self._do_tls:
+                    self._logger.critical('TLS negociation failed, this error is mostly due to your host '
+                                          'not supporting SHA1 as signing algorithm for certificates')
+                sys.exit(-1)
+
+        except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
+            self._logger.warning('Server returns LDAPStrongerAuthRequiredResult')
+            if not self._sign_and_seal_supported:
+                self._logger.warning('Sealing not available, falling back to LDAPS')
+                self._do_kerberos_auth('ldaps', formatter)
+                return
+            else:
+                self._logger.warning('Falling back to Kerberos sealing')
+                self._do_kerberos_auth(ldap_scheme, formatter, seal_and_sign=True)
+                return
+
+        who_am_i = ldap_connection.extend.standard.who_am_i()
+        self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
+        self._ldap_connection = ldap_connection
+
+    def _do_schannel_auth(self, ldap_scheme, formatter):
+        self._logger.debug('LDAP authentication with SChannel: ldap_scheme = {0}'.format(ldap_scheme))
+        ldap_server = ldap3.Server('{}://{}'.format(ldap_scheme, self._domain_controller), formatter=formatter)
+        user = None
+        tls_mode = 'Implicit'
+        tls = ldap3.Tls(local_private_key_file=self._user_key, local_certificate_file=self._user_cert, validate=ssl.CERT_NONE)
+        ldap_server.tls = tls
+        ldap_connection_kwargs = {'user': user, 'raise_exceptions': True}
+
+        # Explicit TLS, setting up StartTLS
+        if not self._do_tls:
+            tls_mode = 'Explicit'
+            self._logger.warning('Using certificate authentication but --tls not provided, setting up TLS with StartTLS')
+            ldap_connection_kwargs['authentication'] = ldap3.SASL
+            ldap_connection_kwargs['sasl_mechanism'] = ldap3.EXTERNAL
+
+        self._logger.debug('LDAP binding parameters: server = {0} / cert = {1} '
+            '/ key = {2} / {3} TLS / SChannel auth'.format(self._domain_controller, self._user_cert, self._user_key, tls_mode))
+
+        try:
+            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
+            ldap_connection.open()
+            ldap_connection.raise_exceptions = False
+            if not self._do_tls:
+                self._logger.debug('Sending StartTLS command')
+                if ldap_connection.start_tls():
+                    self._logger.debug('StartTLS succeeded')
+                    ldap_connection.raise_exceptions = True
+                    ldap_connection.bind()
+                else:
+                    self._logger.critical('StartTLS failed, exiting')
+                    sys.exit(-1)
+        except Exception as e:
+            # I don't really understand exception when using SChannel authentication, but if you see this message
+            # your cert and key are probably not valid
+            self._logger.critical('Exception during SChannel authentication: {}'.format(e))
+            sys.exit(-1)
+
+        who_am_i = ldap_connection.extend.standard.who_am_i()
+
+        if not who_am_i:
+            self._logger.critical('Certificate authentication failed')
+            sys.exit(-1)
+
+        self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
+        self._ldap_connection = ldap_connection
+
     def _get_netfqdn(self):
         try:
             smb = SMBConnection(self._domain_controller, self._domain_controller)
@@ -71,7 +276,7 @@ class LDAPRequester():
             self._logger.warning('Socket error when opening the SMB connection')
             return str()
 
-        self._logger.debug('SMB loging parameters : user = {0}  / password = {1} / domain = {2} '
+        self._logger.debug('SMB loging parameters: user = {0}  / password = {1} / domain = {2} '
                            '/ LM hash = {3} / NT hash = {4}'.format(self._user, self._password,
                                                                     self._domain, self._lmhash,
                                                                     self._nthash))
@@ -149,7 +354,6 @@ class LDAPRequester():
         if ads_prefix:
             self._ads_prefix = ads_prefix
             base_dn = '{},'.format(self._ads_prefix)
-
         if ads_path:
             # TODO: manage ADS path starting with 'GC://'
             if ads_path.upper().startswith('LDAP://'):
@@ -191,149 +395,13 @@ class LDAPRequester():
             self._logger.debug('LDAPS connection forced')
         else:
             ldap_scheme = 'ldap'
-        ldap_server = ldap3.Server('{}://{}'.format(ldap_scheme, self._domain_controller), formatter=formatter)
-        ldap_connection_kwargs = {'user': user, 'raise_exceptions': True}
 
-        # We build the authentication arguments depending on auth mode
         if self._do_kerberos:
-            self._logger.debug('LDAP authentication with Keberos')
-            ldap_connection_kwargs['authentication'] = ldap3.SASL
-            ldap_connection_kwargs['sasl_mechanism'] = ldap3.KERBEROS
-
-            # Verifying if we have the correct TGS/TGT to interrogate the LDAP server
-            ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
-            principal = 'ldap/{}@{}'.format(self._domain_controller.lower(), self._queried_domain.upper())
-
-            # We look for the TGS with the right SPN
-            creds = ccache.getCredential(principal, anySPN=False)
-            if creds:
-                self._logger.debug('TGS found in KRB5CCNAME file')
-                if creds['server'].prettyPrint().lower() != creds['server'].prettyPrint():
-                    self._logger.debug('SPN not in lowercase, patching SPN')
-                    new_creds = self._patch_spn(creds, principal)
-                    # We build a new CCache with the new ticket
-                    ccache.credentials.append(new_creds)
-                    temp_ccache = tempfile.NamedTemporaryFile()
-                    ccache.saveFile(temp_ccache.name)
-                    cred_store = {'ccache': 'FILE:{}'.format(temp_ccache.name)}
-                else:
-                    cred_store = dict()
-            else:
-                self._logger.debug('TGS not found in KRB5CCNAME, looking for '
-                        'TGS with alternative SPN')
-                # If we don't find it, we search for any SPN
-                creds = ccache.getCredential(principal, anySPN=True)
-                if creds:
-                    # If we find one, we build a custom TGS
-                    self._logger.debug('Alternative TGS found, patching SPN')
-                    new_creds = self._patch_spn(creds, principal)
-                    # We build a new CCache with the new ticket
-                    ccache.credentials.append(new_creds)
-                    temp_ccache = tempfile.NamedTemporaryFile()
-                    ccache.saveFile(temp_ccache.name)
-                    cred_store = {'ccache': 'FILE:{}'.format(temp_ccache.name)}
-                else:
-                    # If we don't find any, we hope for the best (TGT in cache)
-                    self._logger.debug('Alternative TGS not found, using KRB5CCNAME as is '
-                            'while hoping it contains a TGT')
-                    cred_store = dict()
-            ldap_connection_kwargs['cred_store'] = cred_store
-            self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
-                   '/ Kerberos auth'.format(self._domain_controller, user))
-
+            self._do_kerberos_auth(ldap_scheme, formatter)
         elif self._do_certificate:
-            tls_mode = 'Implicit'
-            self._logger.debug('LDAPS authentication with certificate')
-            tls = ldap3.Tls(local_private_key_file=self._user_key, local_certificate_file=self._user_cert, validate=ssl.CERT_NONE)
-            ldap_server.tls = tls
-            # Explicit TLS, setting up StartTLS
-            if not self._do_tls:
-                tls_mode = 'Explicit'
-                self._logger.warning('Using certificate authentication but --tls not provided, setting up TLS with StartTLS')
-                ldap_connection_kwargs['authentication'] = ldap3.SASL
-                ldap_connection_kwargs['sasl_mechanism'] = ldap3.EXTERNAL
-            self._logger.debug('LDAP binding parameters: server = {0} / cert = {1} '
-                '/ key = {2} / {3} TLS / Certificate auth'.format(self._domain_controller, self._user_cert, self._user_key, tls_mode))
-
+            self._do_schannel_auth(ldap_scheme, formatter)
         else:
-            self._logger.debug('LDAP authentication with NTLM')
-            ldap_connection_kwargs['authentication'] = ldap3.NTLM
-            if self._lmhash and self._nthash:
-                ldap_connection_kwargs['password'] = '{}:{}'.format(self._lmhash, self._nthash)
-                self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
-                   '/ hash = {2}'.format(self._domain_controller, user, ldap_connection_kwargs['password']))
-            else:
-                ldap_connection_kwargs['password'] = self._password
-                self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
-                   '/ password = {2}'.format(self._domain_controller, user, ldap_connection_kwargs['password']))
-
-        try:
-            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
-            try:
-                if self._do_certificate:
-                    ldap_connection.open()
-                    if not self._do_tls:
-                        # raise_exceptions = True raises an exception (oh!) during StartTLS and
-                        # I don't know why, so we disable it for a moment
-                        ldap_connection.raise_exceptions = False
-                        self._logger.debug('Sending StartTLS command')
-                        if ldap_connection.start_tls():
-                            self._logger.debug('StartTLS succeeded')
-                            # Ok, back to normal
-                            ldap_connection.raise_exceptions = True
-                            ldap_connection.bind()
-                        else:
-                            self._logger.critical('StartTLS failed, exiting')
-                            sys.exit(-1)
-                else:
-                    ldap_connection.bind()
-            except ldap3.core.exceptions.LDAPSocketOpenError as e:
-                self._logger.critical(e)
-                if self._do_tls:
-                    self._logger.critical('TLS negociation failed, this error is mostly due to your host '
-                                          'not supporting SHA1 as signing algorithm for certificates')
-                sys.exit(-1)
-            except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
-                # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
-                if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message']:
-                    self._logger.critical('Server requires Channel Binding Token, try again without --tls flag '
-                                           'or use certificate authentication')
-                    sys.exit(-1)
-                else:
-                    self._logger.critical('Invalid Credentials')
-                    sys.exit(-1)
-
-        except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
-            # We need to try TLS
-            self._logger.warning('Server returns LDAPStrongerAuthRequiredResult, falling back to LDAPS')
-            ldap_server = ldap3.Server('ldaps://{}'.format(self._domain_controller), formatter=formatter)
-            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
-            try:
-                ldap_connection.bind()
-            except ldap3.core.exceptions.LDAPSocketOpenError as e:
-                self._logger.critical(e)
-                self._logger.critical('TLS negociation failed, this error is mostly due to your host '
-                                      'not supporting SHA1 as signing algorithm for certificates')
-                sys.exit(-1)
-
-            except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
-                # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
-                if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message']:
-                    self._logger.critical('Server requires Channel Binding Token and LDAP Signing, pywerview will not work')
-                    sys.exit(-1)
-                else:
-                    self._logger.critical('Invalid Credentials')
-                    sys.exit(-1)
-
-        who_am_i = ldap_connection.extend.standard.who_am_i()
-
-        # Only failed here when using certificate authentication
-        if not who_am_i:
-            self._logger.critical('Certificate authentication failed')
-            sys.exit(-1)
-
-        self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
-        self._ldap_connection = ldap_connection
+            self._do_ntlm_auth(ldap_scheme, formatter)
 
     def _ldap_search(self, search_filter, class_result, attributes=list(), controls=list()):
         results = list()
