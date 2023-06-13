@@ -149,7 +149,7 @@ def main():
     get_netgmsa_parser.set_defaults(func=get_netgmsa)
 
     # Parser for the get-netsmsa command
-    get_netsmsa_parser = subparsers.add_parser('get-adserviceaccount', help='Returns a list of all the '\
+    get_netsmsa_parser = subparsers.add_parser('get-netsmsa', help='Returns a list of all the '\
         'sMSA of the specified domain.',
         parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
     get_netsmsa_parser.add_argument('--sid', dest='queried_sid',
