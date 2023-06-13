@@ -146,7 +146,7 @@ def main():
             help='Additional ADS path')
     get_netgmsa_parser.add_argument('--resolve-sids', dest='resolve_sids',
             action='store_true', help='Resolve SIDs when querying PrincipalsAllowedToRetrieveManagedPassword')
-    get_netgmsa_parser.set_defaults(func=get_adserviceaccount)
+    get_netgmsa_parser.set_defaults(func=get_netgmsa)
 
     # Parser for the get-netsmsa command
     get_netsmsa_parser = subparsers.add_parser('get-adserviceaccount', help='Returns a list of all the '\
@@ -162,7 +162,7 @@ def main():
             help='Domain to query')
     get_netsmsa_parser.add_argument('-a', '--ads-path',
             help='Additional ADS path')
-    get_netsmsa_parser.set_defaults(func=get_adserviceaccount)
+    get_netsmsa_parser.set_defaults(func=get_netsmsa)
     
     # Parser for the get-objectacl command
     get_objectacl_parser = subparsers.add_parser('get-objectacl', help='Takes a domain SID, '\
