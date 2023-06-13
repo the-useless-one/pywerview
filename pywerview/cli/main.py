@@ -129,24 +129,40 @@ def main():
             default=[], help='Object attributes to return')
     get_adobject_parser.set_defaults(func=get_adobject)
 
-    # Parser for the get-adserviceaccount command
-    get_adserviceaccount_parser = subparsers.add_parser('get-adserviceaccount', help='Returns a list of all the '\
+    # Parser for the get-netgmsa command
+    get_netgmsa_parser = subparsers.add_parser('get-netgmsa', help='Returns a list of all the '\
         'gMSA of the specified domain. To retrieve passwords, you need a privileged account and '\
         'a TLS connection to the LDAP server (use the --tls switch).',
         parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
-    get_adserviceaccount_parser.add_argument('--sid', dest='queried_sid',
+    get_netgmsa_parser.add_argument('--sid', dest='queried_sid',
             help='SID to query (wildcards accepted)')
-    get_adserviceaccount_parser.add_argument('--sam-account-name', dest='queried_sam_account_name',
+    get_netgmsa_parser.add_argument('--sam-account-name', dest='queried_sam_account_name',
             help='samAccountName to query (wildcards accepted)')
-    get_adserviceaccount_parser.add_argument('--name', dest='queried_name',
+    get_netgmsa_parser.add_argument('--name', dest='queried_name',
             help='Name to query (wildcards accepted)')
-    get_adserviceaccount_parser.add_argument('-d', '--domain', dest='queried_domain',
+    get_netgmsa_parser.add_argument('-d', '--domain', dest='queried_domain',
             help='Domain to query')
-    get_adserviceaccount_parser.add_argument('-a', '--ads-path',
+    get_netgmsa_parser.add_argument('-a', '--ads-path',
             help='Additional ADS path')
-    get_adserviceaccount_parser.add_argument('--resolve-sids', dest='resolve_sids',
+    get_netgmsa_parser.add_argument('--resolve-sids', dest='resolve_sids',
             action='store_true', help='Resolve SIDs when querying PrincipalsAllowedToRetrieveManagedPassword')
-    get_adserviceaccount_parser.set_defaults(func=get_adserviceaccount)
+    get_netgmsa_parser.set_defaults(func=get_adserviceaccount)
+
+    # Parser for the get-netsmsa command
+    get_netsmsa_parser = subparsers.add_parser('get-adserviceaccount', help='Returns a list of all the '\
+        'sMSA of the specified domain.',
+        parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
+    get_netsmsa_parser.add_argument('--sid', dest='queried_sid',
+            help='SID to query (wildcards accepted)')
+    get_netsmsa_parser.add_argument('--sam-account-name', dest='queried_sam_account_name',
+            help='samAccountName to query (wildcards accepted)')
+    get_netsmsa_parser.add_argument('--name', dest='queried_name',
+            help='Name to query (wildcards accepted)')
+    get_netsmsa_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_netsmsa_parser.add_argument('-a', '--ads-path',
+            help='Additional ADS path')
+    get_netsmsa_parser.set_defaults(func=get_adserviceaccount)
     
     # Parser for the get-objectacl command
     get_objectacl_parser = subparsers.add_parser('get-objectacl', help='Takes a domain SID, '\
