@@ -49,7 +49,7 @@ class NetRequester(LDAPRPCRequester):
         return self._ldap_search(object_filter, adobj.ADObject, attributes=attributes)
 
     @LDAPRPCRequester._ldap_connection_init
-    def get_adserviceaccount(self, queried_domain=str(), queried_sid=str(),
+    def get_netgmsa(self, queried_domain=str(), queried_sid=str(),
                      queried_name=str(), queried_sam_account_name=str(),
                      ads_path=str(), resolve_sids=False):
         filter_objectclass = '(ObjectClass=msDS-GroupManagedServiceAccount)'
@@ -69,10 +69,10 @@ class NetRequester(LDAPRPCRequester):
         else:
             object_filter = '(&(name=*){})'.format(filter_objectclass)
 
-        adserviceaccounts = self._ldap_search(object_filter, adobj.GMSAAccount, attributes=attributes)
+        gmsa = self._ldap_search(object_filter, adobj.GMSAAccount, attributes=attributes)
 
         # In this loop, we resolve SID (if true) and we populate 'enabled' attribute
-        for i, adserviceaccount in enumerate(adserviceaccounts):
+        for i, adserviceaccount in enumerate(gmsa):
             if resolve_sids:
                 results = list()
                 for sid in getattr(adserviceaccount, 'msds-groupmsamembership'):
@@ -83,10 +83,36 @@ class NetRequester(LDAPRPCRequester):
                         self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
                         resolved_sid = sid
                     results.append(resolved_sid)
-                adserviceaccounts[i].add_attributes({'msds-groupmsamembership': results})
-            adserviceaccounts[i].add_attributes({'Enabled': 'ACCOUNTDISABLE' not in adserviceaccount.useraccountcontrol})
-            adserviceaccounts[i]._attributes_dict.pop('useraccountcontrol')
-        return adserviceaccounts
+                gmsa[i].add_attributes({'msds-groupmsamembership': results})
+            gmsa[i].add_attributes({'Enabled': 'ACCOUNTDISABLE' not in adserviceaccount.useraccountcontrol})
+            gmsa[i]._attributes_dict.pop('useraccountcontrol')
+
+        return gmsa
+
+    @LDAPRPCRequester._ldap_connection_init
+    def get_netsmsa(self, queried_domain=str(), queried_sid=str(),
+                     queried_name=str(), queried_sam_account_name=str(),
+                     ads_path=str()):
+
+        filter_objectclass = '(ObjectClass=msDS-ManagedServiceAccount)'
+        attributes = ['samaccountname', 'distinguishedname', 'objectsid', 'description',
+                      'msds-hostserviceaccountbl', 'useraccountcontrol']
+        for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
+                                      ('samAccountName', escape_filter_chars(queried_sam_account_name))):
+            if attr_value:
+                object_filter = '(&({}={}){})'.format(attr_desc, attr_value, filter_objectclass)
+                break
+        else:
+            object_filter = '(&(name=*){})'.format(filter_objectclass)
+
+        smsas = self._ldap_search(object_filter, adobj.SMSAAccount, attributes=attributes)
+
+        # In this loop, we populate 'enabled' attribute
+        for i, adserviceaccount in enumerate(smsas):
+            smsas[i].add_attributes({'Enabled': 'ACCOUNTDISABLE' not in adserviceaccount.useraccountcontrol})
+            smsas[i]._attributes_dict.pop('useraccountcontrol')
+
+        return smsas
 
     @LDAPRPCRequester._ldap_connection_init
     def get_objectacl(self, queried_domain=str(), queried_sid=str(),

@@ -185,3 +185,5 @@ class GPOLocation(ADObject):
 class GMSAAccount(ADObject):
     pass
 
+class SMSAAccount(ADObject):
+    pass
