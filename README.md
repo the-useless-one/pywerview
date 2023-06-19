@@ -316,6 +316,9 @@ and [this one](https://github.com/cannatag/ldap3/pull/1042) by [@CravateRouge](h
 `pip install` this branch within your pywerview virtual env. You can check if your pywerview 
 installation uses the fork by enabling debug logging (`-l DEBUG`).
 
+pywerview falls back to [simple authentication](https://datatracker.ietf.org/doc/html/rfc2251#autoid-26) if the custom branch is 
+not installed.
+
 ## TODO
 
 * Many, many more PowerView functionalities to implement. I'll now focus on

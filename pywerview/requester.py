@@ -68,6 +68,8 @@ class LDAPRequester():
         # along with TLS channel binding
         # https://github.com/cannatag/ldap3/pull/1087
         # https://github.com/cannatag/ldap3/pull/1042
+        # You can also install this branch:
+        # https://github.com/ThePirateWhoSmellsOfSunflowers/ldap3/tree/tls_cb_and_seal_for_ntlm
         try:
             if ldap3.SIGN and ldap3.ENCRYPT:
                 self._sign_and_seal_supported = True
@@ -124,7 +126,8 @@ class LDAPRequester():
                                                   'or use a password, not a hash, to authenticate.')
                             sys.exit(-1)
                         else:
-                            self._logger.debug('Password authentication detected, falling back to SIMPLE authentication')
+                            self._logger.debug('Server requires Channel Binding Token but you are using password authentication,
+                                               ' falling back to SIMPLE authentication, hoping LDAPS port is open')
                             self._do_simple_auth('ldaps', formatter)
                             return
                 elif self._tls_channel_binding_supported == True:
