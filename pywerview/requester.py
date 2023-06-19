@@ -126,7 +126,7 @@ class LDAPRequester():
                                                   'or use a password, not a hash, to authenticate.')
                             sys.exit(-1)
                         else:
-                            self._logger.debug('Server requires Channel Binding Token but you are using password authentication,
+                            self._logger.debug('Server requires Channel Binding Token but you are using password authentication,'
                                                ' falling back to SIMPLE authentication, hoping LDAPS port is open')
                             self._do_simple_auth('ldaps', formatter)
                             return
