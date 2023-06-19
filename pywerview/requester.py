@@ -118,9 +118,15 @@ class LDAPRequester():
                 self._logger.warning('Server returns LDAPInvalidCredentialsResult')
                 # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
                 if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message'] and not self._tls_channel_binding_supported:
-                    self._logger.critical('Server requires Channel Binding Token and your ldap3 install does not support it. '
-                                          'Please install https://github.com/cannatag/ldap3/pull/1087 or try another authentication method')
-                    sys.exit(-1)
+                        if self._lmhash and self._nthash:
+                            self._logger.critical('Server requires Channel Binding Token and your ldap3 install does not support it. '
+                                                  'Please install https://github.com/cannatag/ldap3/pull/1087, try another authentication method, '
+                                                  'or use a password, not a hash, to authenticate.')
+                            sys.exit(-1)
+                        else:
+                            self._logger.debug('Password authentication detected, falling back to SIMPLE authentication')
+                            self._do_simple_auth('ldaps', formatter)
+                            return
                 elif self._tls_channel_binding_supported == True:
                     self._logger.warning('Falling back to TLS with channel binding')
                     self._do_ntlm_auth(ldap_scheme, formatter, tls_channel_binding=True)
@@ -266,6 +272,33 @@ class LDAPRequester():
             self._logger.critical('Certificate authentication failed')
             sys.exit(-1)
 
+        self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
+        self._ldap_connection = ldap_connection
+
+    def _do_simple_auth(self, ldap_scheme, formatter):
+        self._logger.debug('LDAP authentication with SIMPLE: ldap_scheme = {0}'.format(ldap_scheme))
+        ldap_server = ldap3.Server('{}://{}'.format(ldap_scheme, self._domain_controller), formatter=formatter)
+        user = '{}@{}'.format(self._user, self._domain)
+        ldap_connection_kwargs = {'user': user, 'raise_exceptions': True, 'authentication': ldap3.SIMPLE}
+
+        ldap_connection_kwargs['password'] = self._password
+        self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
+            '/ password = {2}'.format(self._domain_controller, user, ldap_connection_kwargs['password']))
+
+        try:
+            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
+            ldap_connection.bind()
+        except ldap3.core.exceptions.LDAPSocketOpenError as e:
+                self._logger.critical(e)
+                if self._do_tls:
+                    self._logger.critical('TLS negociation failed, this error is mostly due to your host '
+                                          'not supporting SHA1 as signing algorithm for certificates')
+                sys.exit(-1)
+        except ldap3.core.exceptions.LDAPInvalidCredentialsResult as e:
+            self._logger.critical('Invalid Credentials')
+            sys.exit(-1)
+
+        who_am_i = ldap_connection.extend.standard.who_am_i()
         self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
         self._ldap_connection = ldap_connection
 
