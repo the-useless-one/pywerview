@@ -597,6 +597,8 @@ def main():
             args.lmhash, args.nthash = 'aad3b435b51404eeaad3b435b51404ee', args.hashes
         finally:
             args.password = str()
+            if args.lmhash == str():
+                args.lmhash = 'aad3b435b51404eeaad3b435b51404ee'
     else:
         args.lmhash = args.nthash = str()
 
