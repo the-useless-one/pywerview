@@ -561,6 +561,9 @@ class RPCRequester():
             self._rpc_connection = dce
 
     def _create_wmi_connection(self, namespace='root\\cimv2', rpc_auth_level=None):
+        self._namespace = namespace
+        self._rpc_auth_level = rpc_auth_level
+
         try:
             self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
                                         self._domain, self._lmhash, self._nthash, doKerberos=self._do_kerberos)
@@ -572,11 +575,11 @@ class RPCRequester():
             i_interface = self._dcom.CoCreateInstanceEx(wmi.CLSID_WbemLevel1Login,
                                                         wmi.IID_IWbemLevel1Login)
             i_wbem_level1_login = wmi.IWbemLevel1Login(i_interface)
-            self._wmi_connection = i_wbem_level1_login.NTLMLogin(ntpath.join('\\\\{}\\'.format(self._target_computer), namespace),
+            self._wmi_connection = i_wbem_level1_login.NTLMLogin(ntpath.join('\\\\{}\\'.format(self._target_computer), self._namespace),
                                                                  NULL, NULL)
-            if rpc_auth_level == 'privacy':
+            if self._rpc_auth_level == 'privacy':
                 self._wmi_connection.get_dce_rpc().set_auth_level(RPC_C_AUTHN_LEVEL_PKT_PRIVACY)
-            elif rpc_auth_level == 'integrity':
+            elif self._rpc_auth_level == 'integrity':
                 self._wmi_connection.get_dce_rpc().set_auth_level(RPC_C_AUTHN_LEVEL_PKT_INTEGRITY)
 
     @staticmethod
@@ -595,11 +598,12 @@ class RPCRequester():
         return decorator
 
     @staticmethod
-    def _wmi_connection_init():
+    def _wmi_connection_init(namespace='root\\cimv2', rpc_auth_level=None):
         def decorator(f):
             def wrapper(*args, **kwargs):
                 instance = args[0]
-                if not instance._wmi_connection:
+                if (not instance._wmi_connection) or (namespace != instance._namespace) \
+                        or (rpc_auth_level != instance._rpc_auth_level):
                     instance._create_wmi_connection()
                 if instance._dcom is None:
                     return None
