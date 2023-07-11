@@ -31,7 +31,7 @@ from impacket.smbconnection import SessionError
 from impacket.krb5.ccache import CCache, Credential, CountedOctetString
 from impacket.krb5 import constants
 from impacket.krb5.types import Principal
-from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY
+from impacket.dcerpc.v5.rpcrt import RPC_C_AUTHN_LEVEL_PKT_PRIVACY, RPC_C_AUTHN_LEVEL_PKT_INTEGRITY
 from impacket.dcerpc.v5 import transport, wkst, srvs, samr, scmr, drsuapi, epm
 from impacket.dcerpc.v5.dcom import wmi
 from impacket.dcerpc.v5.dtypes import NULL
@@ -560,7 +560,7 @@ class RPCRequester():
             dce.bind(binding_strings[self._pipe[1:]])
             self._rpc_connection = dce
 
-    def _create_wmi_connection(self, namespace='root\\cimv2'):
+    def _create_wmi_connection(self, namespace='root\\cimv2', rpc_auth_level=None):
         try:
             self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
                                         self._domain, self._lmhash, self._nthash, doKerberos=self._do_kerberos)
@@ -574,6 +574,10 @@ class RPCRequester():
             i_wbem_level1_login = wmi.IWbemLevel1Login(i_interface)
             self._wmi_connection = i_wbem_level1_login.NTLMLogin(ntpath.join('\\\\{}\\'.format(self._target_computer), namespace),
                                                                  NULL, NULL)
+            if rpc_auth_level == 'privacy':
+                self._wmi_connection.get_dce_rpc().set_auth_level(RPC_C_AUTHN_LEVEL_PKT_PRIVACY)
+            elif rpc_auth_level == 'integrity':
+                self._wmi_connection.get_dce_rpc().set_auth_level(RPC_C_AUTHN_LEVEL_PKT_INTEGRITY)
 
     @staticmethod
     def _rpc_connection_init(pipe=r'\srvsvc'):
