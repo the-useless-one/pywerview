@@ -173,7 +173,9 @@ class LDAPRequester():
         creds = ccache.getCredential(principal, anySPN=False)
         if creds:
             self._logger.debug('TGS found in KRB5CCNAME file')
-            if creds['server'].prettyPrint().lower() != creds['server'].prettyPrint():
+            creds_server_lower = creds['server'].prettyPrint().lower().decode('utf-8')
+            creds_server = creds['server'].prettyPrint().decode('utf-8')
+            if creds_server_lower.split('@')[0] != creds_server.split('@')[0]:
                 self._logger.debug('SPN not in lowercase, patching SPN')
                 new_creds = self._patch_spn(creds, principal)
                 # We build a new CCache with the new ticket
@@ -182,6 +184,7 @@ class LDAPRequester():
                 ccache.saveFile(temp_ccache.name)
                 cred_store = {'ccache': 'FILE:{}'.format(temp_ccache.name)}
             else:
+                self._logger.debug('SPN is good, no patching needed')
                 cred_store = dict()
         else:
             self._logger.debug('TGS not found in KRB5CCNAME, looking for '
