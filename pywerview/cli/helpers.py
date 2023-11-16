@@ -36,6 +36,20 @@ def get_adobject(domain_controller, domain, user, password=str(),
                     queried_sam_account_name=queried_sam_account_name,
                     ads_path=ads_path, attributes=attributes, custom_filter=custom_filter)
 
+def get_objectowner(domain_controller, domain, user, password=str(),
+                lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
+                user_cert=str(), user_key=str(),
+                queried_domain=str(), queried_sid=str(), queried_name=str(),
+                queried_sam_account_name=str(), ads_path=str(),
+                custom_filter=str(), resolve_sids=False):
+    requester = NetRequester(domain_controller, domain, user, password,
+                                 lmhash, nthash, do_kerberos, do_tls,
+                                 user_cert, user_key)
+    return requester.get_objectowner(queried_domain=queried_domain,
+                    queried_sid=queried_sid, queried_name=queried_name,
+                    queried_sam_account_name=queried_sam_account_name,
+                    ads_path=ads_path, resolve_sids=resolve_sids, custom_filter=custom_filter)
+
 def get_netgmsa(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
                 user_cert=str(), user_key=str(),

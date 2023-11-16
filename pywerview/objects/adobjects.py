@@ -31,7 +31,8 @@ class ADObject:
                         'S-1-5-11': 'Authenticated Users', 'S-1-5-12': 'Restricted Code', 'S-1-5-13': 'Terminal Server Users',
                         'S-1-5-14': 'Remote Interactive Logon', 'S-1-5-17': 'This Organization', 'S-1-5-18': 'Local System',
                         'S-1-5-19': 'NT Authority', 'S-1-5-1': 'Dialup', 'S-1-5-20': 'NT Authority',
-                        'S-1-5-2': 'Network', 'S-1-5-32-546': 'Guests', 'S-1-5-32-547': 'Power Users',
+                        'S-1-5-2': 'Network', 'S-1-5-32-544': 'Administrators' ,'S-1-5-32-546': 'Guests', 
+                        'S-1-5-32-547': 'Power Users',
                         'S-1-5-32-551': 'Backup Operators', 'S-1-5-32-555': 'Builtin\\Remote Desktop Users',
                         'S-1-5-32-556': 'Builtin\\Network Configuration Operators',
                         'S-1-5-32-557': 'Builtin\\Incoming Forest Trust Builders',
@@ -186,4 +187,7 @@ class GMSAAccount(ADObject):
     pass
 
 class SMSAAccount(ADObject):
+    pass
+
+class ObjectOwner(ADObject):
     pass

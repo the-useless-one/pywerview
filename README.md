@@ -73,19 +73,20 @@ Here's the list of available commands:
 
     $ ./pywerview.py --help
     usage: pywerview.py [-h]
-                        {get-adobject,get-netgmsa,get-netsmsa,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
+                        {get-adobject,get-objectowner,get-netgmsa,get-netsmsa,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
                         ...
 
     Rewriting of some PowerView's functionalities in Python
 
-    optional arguments:
+    options:
       -h, --help            show this help message and exit
 
     Subcommands:
       Available subcommands
 
-      {get-adobject,get-netgmsa,get-netsmsa,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
+      {get-adobject,get-objectowner,get-netgmsa,get-netsmsa,get-objectacl,get-netuser,get-netgroup,get-netcomputer,get-netdomaincontroller,get-netfileserver,get-dfsshare,get-netou,get-netsite,get-netsubnet,get-netdomaintrust,get-netgpo,get-netpso,get-domainpolicy,get-gpttmpl,get-netgpogroup,find-gpocomputeradmin,find-gpolocation,get-netgroupmember,get-netsession,get-localdisks,get-netdomain,get-netshare,get-netloggedon,get-netlocalgroup,invoke-checklocaladminaccess,get-netprocess,get-userevent,invoke-userhunter,invoke-processhunter,invoke-eventhunter}
         get-adobject        Takes a domain SID, samAccountName or name, and return the associated object
+        get-objectowner     Takes a domain SID, samAccountName or name, and return the associated object owner
         get-netgmsa         Returns a list of all the gMSA of the specified domain. To retrieve passwords, you need a privileged account and a TLS connection to the LDAP server (use the --tls switch).
         get-netsmsa         Returns a list of all the sMSA of the specified domain.
         get-objectacl       Takes a domain SID, samAccountName or name, and return the ACL of the associated object
@@ -231,6 +232,7 @@ but not `krbtgt/srv-ad@CONTOSO.COM`.
 SChannel authentication is supported for a subset of the submodules. Functions that support SChannel authentication are:
 
 * get-adobject
+* get-objectowner
 * get-adserviceaccount
 * get-objectacl
 * get-netuser

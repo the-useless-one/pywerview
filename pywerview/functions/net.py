@@ -47,6 +47,46 @@ class NetRequester(LDAPRPCRequester):
             object_filter = '(&(name=*){})'.format(custom_filter)
 
         return self._ldap_search(object_filter, adobj.ADObject, attributes=attributes)
+ 
+    @LDAPRPCRequester._ldap_connection_init
+    def get_objectowner(self, queried_domain=str(), queried_sid=str(),
+                     queried_name=str(), queried_sam_account_name=str(),
+                     ads_path=str(), custom_filter=str(), resolve_sids=False):
+        for attr_desc, attr_value in (('objectSid', queried_sid), ('name', escape_filter_chars(queried_name)),
+                                      ('samAccountName', escape_filter_chars(queried_sam_account_name))):
+            if attr_value:
+                object_filter = '(&({}={}){})'.format(attr_desc, attr_value, custom_filter)
+                break
+        else:
+            object_filter = '(&(name=*){})'.format(custom_filter)
+
+        attributes = ['ntsecuritydescriptor','distinguishedname']
+
+        objectowners_raw = self._ldap_search(object_filter, adobj.ADObject, attributes=attributes)
+        objectowners = list()
+        for objectowner in objectowners_raw:
+            result = adobj.ObjectOwner(list())
+            sd = SR_SECURITY_DESCRIPTOR()
+            sd.fromString(objectowner.ntsecuritydescriptor)
+            sid = format_sid(sd['OwnerSid'].getData())
+            if resolve_sids:
+                sid_mapping = adobj.ADObject._well_known_sids.copy()
+                try:
+                    resolved_sid = sid_mapping[sid]
+                except KeyError:
+                    self._logger.warning('SID ({}) is not a well known SID'.format(sid))
+                    try:
+                        resolved_sid = self.get_adobject(queried_sid=sid, queried_domain=self._queried_domain,
+                                                        attributes=['distinguishedname'])[0].distinguishedname
+                    except IndexError:
+                        self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
+                        resolved_sid = sid
+            else:
+                resolved_sid = sid
+            result.add_attributes({'distinguishedname': objectowner.distinguishedname})
+            result.add_attributes({'objectowner': resolved_sid})
+            objectowners.append(result)
+        return objectowners
 
     @LDAPRPCRequester._ldap_connection_init
     def get_netgmsa(self, queried_domain=str(), queried_sid=str(),

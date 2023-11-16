@@ -129,6 +129,26 @@ def main():
             default=[], help='Object attributes to return')
     get_adobject_parser.set_defaults(func=get_adobject)
 
+    # Parser for the get-objectowner command
+    get_objectowner_parser = subparsers.add_parser('get-objectowner', help='Takes a domain SID, '\
+        'samAccountName or name, and return the associated object owner',
+        parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
+    get_objectowner_parser.add_argument('--sid', dest='queried_sid',
+            help='SID to query (wildcards accepted)')
+    get_objectowner_parser.add_argument('--sam-account-name', dest='queried_sam_account_name',
+            help='samAccountName to query (wildcards accepted)')
+    get_objectowner_parser.add_argument('--name', dest='queried_name',
+            help='Name to query (wildcards accepted)')
+    get_objectowner_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_objectowner_parser.add_argument('-a', '--ads-path',
+            help='Additional ADS path')
+    get_objectowner_parser.add_argument('--custom-filter', dest='custom_filter',
+            default=str(), help='Custom filter')
+    get_objectowner_parser.add_argument('--resolve-sids', dest='resolve_sids',
+            action='store_true', help='Resolve SIDs')
+    get_objectowner_parser.set_defaults(func=get_objectowner)
+
     # Parser for the get-netgmsa command
     get_netgmsa_parser = subparsers.add_parser('get-netgmsa', help='Returns a list of all the '\
         'gMSA of the specified domain. To retrieve passwords, you need a privileged account and '\
