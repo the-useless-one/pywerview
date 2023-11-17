@@ -73,6 +73,9 @@ class Hunter(NetRequester):
                         queried_domain=target_domain, unconstrained=unconstrained,
                         ads_path=queried_computeradspath, custom_filter=queried_computerfilter)]
 
+        # Hack to remove empty arrays from the list
+        self._target_computers = [x for x in self._target_computers if x]
+
         # TODO: automatically convert server names to IP address (DNS, LLMNR, NBT-NS, etc.)
         self._target_computers = list(set(self._target_computers))
         random.shuffle(self._target_computers)
@@ -129,6 +132,8 @@ class Hunter(NetRequester):
                                                               queried_groupname=queried_groupname,
                                                               recurse=True)
 
+        # Hack to remove empty arrays from the list
+        self._target_users = [x for x in self._target_users if x]
         self._target_users = list(set(self._target_users))
 
         if (not show_all) and (not foreign_users) and (not self._target_users):
