@@ -51,8 +51,8 @@ class Hunter(NetRequester):
             self._target_computers = queried_computername
 
         if not self._target_computers:
-            self._logger.debug('Computer file provided: {}'.format(queried_computerfile.name))
             if queried_computerfile:
+                self._logger.debug('Computer file provided: {}'.format(queried_computerfile.name))
                 with queried_computerfile as _:
                     self._target_computers = [x.rstrip('\n') for x in queried_computerfile.readlines()]
 
