@@ -246,12 +246,18 @@ class ProcessHunter(Hunter):
             queried_userfile=None, threads=1, stop_on_success=False, queried_domain=str(),
             show_all=False):
 
+        self._logger.debug('Building target domain')
+
         self._build_target_domains(queried_domain)
+
+        self._logger.debug('Building target computers')
 
         self._build_target_computers(queried_computername=queried_computername,
                                      queried_computerfile=queried_computerfile,
                                      queried_computerfilter=queried_computerfilter,
                                      queried_computeradspath=queried_computeradspath)
+
+        self._logger.debug('Building target users')
 
         self._build_target_users(queried_groupname=queried_groupname,
                                  target_server=target_server,
@@ -260,6 +266,8 @@ class ProcessHunter(Hunter):
                                  queried_useradspath=queried_useradspath,
                                  queried_userfile=queried_userfile,
                                  show_all=show_all)
+
+        self._logger.debug('Launching workers ({} threads)...'.format(threads))
 
         self._build_workers(threads, ProcessHunterWorker, (queried_processname,
                                                            self._target_users))
@@ -274,12 +282,18 @@ class EventHunter(Hunter):
                            queried_userfile=None, threads=1, queried_domain=str(),
                            search_days=3):
 
+        self._logger.debug('Building target domain')
+
         self._build_target_domains(queried_domain)
+
+        self._logger.debug('Building target computers')
 
         self._build_target_computers(queried_computername=queried_computername,
                                      queried_computerfile=queried_computerfile,
                                      queried_computerfilter=queried_computerfilter,
                                      queried_computeradspath=queried_computeradspath)
+
+        self._logger.debug('Building target users')
 
         self._build_target_users(queried_groupname=queried_groupname,
                                  target_server=target_server,
@@ -287,6 +301,8 @@ class EventHunter(Hunter):
                                  queried_userfilter=queried_userfilter,
                                  queried_useradspath=queried_useradspath,
                                  queried_userfile=queried_userfile)
+
+        self._logger.debug('Launching workers ({} threads)...'.format(threads))
 
         self._build_workers(threads, EventHunterWorker, (search_days,
                                                          self._target_users))

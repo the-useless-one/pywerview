@@ -65,7 +65,7 @@ class UserHunterWorker(HunterWorker):
         results = list()
         # First, we get every distant session on the target computer
         distant_sessions = list()
-        self._logger.debug('Start hunting on {}'.format(target_computer))
+        self._logger.debug('Start hunting user on {}'.format(target_computer))
         net_requester =  NetRequester(target_computer, self._domain, self._user, self._password,
                           self._lmhash, self._nthash, self._do_kerberos, self._do_tls)
         try:
@@ -76,7 +76,7 @@ class UserHunterWorker(HunterWorker):
                 self._logger.log(self._logger.ULTRA, 'Calling get_netloggedon on {}'.format(target_computer))
                 distant_sessions += net_requester.get_netloggedon()
         except TypeError:
-            self._logger.warning('Error when retrieving sessions, skipping this host...')
+            self._logger.warning('Error when retrieving sessions, skipping {}...'.format(target_computer))
             return results
 
 
@@ -142,21 +142,32 @@ class ProcessHunterWorker(HunterWorker):
     def _hunt(self, target_computer):
         results = list()
 
+        self._logger.debug('Start hunting process on {}'.format(target_computer))
+
         distant_processes = list()
-        with NetRequester(target_computer, self._domain, self._user, self._password,
-                          self._lmhash, self._nthash, self._do_kerberos, self._do_tls) as net_requester:
-            distant_processes = net_requester.get_netprocess()
+        net_requester = NetRequester(target_computer, self._domain, self._user, self._password,
+                                     self._lmhash, self._nthash, self._do_kerberos, self._do_tls)
+        
+        self._logger.log(self._logger.ULTRA, 'Calling get_netprocess on {}'.format(target_computer))
+        distant_processes = net_requester.get_netprocess()
 
-        for process in distant_processes:
-            if self._process_name:
-                for process_name in self._process_name:
-                    if process_name.lower() in process.processname.lower():
+        try:
+            for process in distant_processes:
+                if self._process_name:
+                    for process_name in self._process_name:
+                        if process_name.lower() in process.processname.lower():
+                            self._logger.log(self._logger.ULTRA,'Found processname {0} on {1}'.format(process_name, target_computer))
+                            results.append(process)
+                elif self._target_users:
+                    for target_user in self._target_users:
+                        if target_user.membername.lower() in process.user.lower():
+                            self._logger.log(self._logger.ULTRA,'Found {0} process on {1}'.format(target_user.membername, target_computer))
                         results.append(process)
-            elif self._target_users:
-                for target_user in self._target_users:
-                    if target_user.membername.lower() in process.user.lower():
-                        results.append(process)
+        except TypeError:
+            self._logger.warning('Error when retrieving process, skipping {}...'.format(target_computer))
+            return results
 
+        self._logger.debug('Processname found on {0}: {1}'.format(target_computer, len(results)))
         return results
 
 class EventHunterWorker(HunterWorker):
@@ -169,16 +180,22 @@ class EventHunterWorker(HunterWorker):
     def _hunt(self, target_computer):
         results = list()
 
+        self._logger.debug('Start hunting event on {}'.format(target_computer))
+
         distant_processes = list()
-        with NetRequester(target_computer, self._domain, self._user, self._password,
-                          self._lmhash, self._nthash, self._do_kerberos, self._do_tls) as net_requester:
-            distant_events = net_requester.get_userevent(date_start=self._search_days)
+        net_requester = NetRequester(target_computer, self._domain, self._user, self._password,
+                                     self._lmhash, self._nthash, self._do_kerberos, self._do_tls)
+        
+        self._logger.log(self._logger.ULTRA, 'Calling get_userevent on {}'.format(target_computer))
+        distant_events = net_requester.get_userevent(date_start=self._search_days)
 
-        for event in distant_events:
-            if self._target_users:
-                for target_user in self._target_users:
-                    if target_user.membername.lower() in event.username.lower():
-                        results.append(event)
-
+        try:
+            for event in distant_events:
+                if self._target_users:
+                    for target_user in self._target_users:
+                        if target_user.membername.lower() in event.username.lower():
+                            results.append(event)
+        except TypeError:
+            self._logger.warning('Error when retrieving event, skipping {}...'.format(target_computer))
         return results
 
