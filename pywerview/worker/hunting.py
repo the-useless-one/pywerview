@@ -15,6 +15,7 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2023
 
+import logging
 from multiprocessing import Process, Pipe
 
 from pywerview.functions.net import NetRequester
@@ -32,6 +33,10 @@ class HunterWorker(Process):
         self._nthash = nthash
         self._do_kerberos = do_kerberos
         self._do_tls = do_tls
+
+        logger = logging.getLogger('pywerview_main_logger.HunterWorker')
+        logger.ULTRA = 5
+        self._logger = logger
 
     def terminate(self):
         self._pipe.close()
@@ -60,12 +65,18 @@ class UserHunterWorker(HunterWorker):
         results = list()
         # First, we get every distant session on the target computer
         distant_sessions = list()
+        self._logger.debug('Start hunting on {}'.format(target_computer))
         with NetRequester(target_computer, self._domain, self._user, self._password,
                           self._lmhash, self._nthash, self._do_kerberos, self._do_tls) as net_requester:
             if not self._foreign_users:
+                self._logger.log(self._logger.ULTRA, 'Calling get_netsession on {}'.format(target_computer))
                 distant_sessions += net_requester.get_netsession()
             if not self._stealth:
+                self._logger.log(self._logger.ULTRA, 'Calling get_netloggedon on {}'.format(target_computer))
                 distant_sessions += net_requester.get_netloggedon()
+
+        self._logger.debug('{} distant sessions found'.format(len(distant_sessions)))
+        self._logger.log(self._logger.ULTRA,'Distant sessions: {}'.format(distant_sessions))
 
         # For every session, we get information on the remote user
         for session in distant_sessions:
@@ -76,15 +87,19 @@ class UserHunterWorker(HunterWorker):
                 if session_from.startswith('\\'):
                     session_from = session_from.lstrip('\\')
             except AttributeError:
+                self._logger.warning('Error extracting username/session from the session')
                 username = session.wkui1_username
                 userdomain = session.wkui1_logon_domain
                 session_from = str()
 
             # If we found a user
             if username:
+                self._logger.debug('User found in session')
                 # We see if it's in our target user group
                 for target_user in self._target_users:
                     if target_user.membername.lower() in username.lower():
+
+                        self._logger.debug('We found our target! ({})'.format(username))
 
                         # If we fall in this branch, we're looking for foreign users
                         # and found a user in the same domain
@@ -101,6 +116,7 @@ class UserHunterWorker(HunterWorker):
                         attributes['sessionfrom'] = session_from
 
                         if self._check_access:
+                            self._logger.debug('"Check access" requested, calling invoke-checklocaladminaccess')
                             with Misc(target_computer, self._domain, self._user, self._password,
                                               self._lmhash, self._nthash, self._do_kerberos) as misc_requester:
                                 attributes['localadmin'] = misc_requester.invoke_checklocaladminaccess()

@@ -117,13 +117,14 @@ class Hunter(NetRequester):
 
                     self._target_users.append(rpcobj.TargetUser(attributes))
         elif queried_username:
-            self._logger.debug('Queried user: '.format(queried_username))
+            self._logger.debug('Queried user: {}'.format(queried_username))
             attributes = dict()
             attributes['membername'] = queried_username.lower()
             attributes['memberdomain'] = self._target_domains[0]
 
             self._target_users.append(rpcobj.TargetUser(attributes))
         elif queried_useradspath or queried_userfilter or admin_count or allow_delegation:
+            self._logger.debug('Custom query used, launching get-netuser')
             for target_domain in self._target_domains:
                 for x in self.get_netuser(ads_path=queried_useradspath,
                                           custom_filter=queried_userfilter,
@@ -198,7 +199,11 @@ class UserHunter(Hunter):
             stop_on_success=False, check_access=False, queried_domain=str(), stealth=False,
             stealth_source=['dfs', 'dc', 'file'], show_all=False, foreign_users=False):
 
+        self._logger.debug('Building target domain')
+
         self._build_target_domains(queried_domain)
+
+        self._logger.debug('Building target computers')
 
         self._build_target_computers(queried_computername=queried_computername,
                                      queried_computerfile=queried_computerfile,
@@ -206,6 +211,8 @@ class UserHunter(Hunter):
                                      queried_computeradspath=queried_computeradspath,
                                      unconstrained=unconstrained, stealth=stealth,
                                      stealth_source=stealth_source)
+
+        self._logger.debug('Building target users')
 
         self._build_target_users(queried_groupname=queried_groupname,
                                  target_server=target_server,
@@ -223,6 +230,8 @@ class UserHunter(Hunter):
                 domain_short_name = misc_requester.convert_sidtont4(domain_sid).split('\\')[0]
         else:
             domain_short_name = None
+
+        self._logger.debug('Launching workers ({} threads)...'.format(threads))
 
         self._build_workers(threads, UserHunterWorker, (foreign_users, stealth,
                                                         self._target_users,
