@@ -51,11 +51,13 @@ class Hunter(NetRequester):
             self._target_computers = queried_computername
 
         if not self._target_computers:
+            self._logger.debug('Computer file provided: {}'.format(queried_computerfile.name))
             if queried_computerfile:
                 with queried_computerfile as _:
                     self._target_computers = [x.rstrip('\n') for x in queried_computerfile.readlines()]
 
             elif stealth:
+                self._logger.debug('Stealth mode enabled')
                 for target_domain in self._target_domains:
                     for source in stealth_source:
                         if source == 'dfs':
@@ -68,6 +70,7 @@ class Hunter(NetRequester):
                             self._target_computers += [x.dnshostname \
                                     for x in self.get_netfileserver(queried_domain=target_domain)]
             else:
+                self._logger.debug('Computer list not provided by the user, we retrieve it with get-netcomputer')
                 for target_domain in self._target_domains:
                     self._target_computers = [x.dnshostname for x in self.get_netcomputer(
                         queried_domain=target_domain, unconstrained=unconstrained,
@@ -79,6 +82,9 @@ class Hunter(NetRequester):
         # TODO: automatically convert server names to IP address (DNS, LLMNR, NBT-NS, etc.)
         self._target_computers = list(set(self._target_computers))
         random.shuffle(self._target_computers)
+
+        self._logger.debug('{} computers in the target list'.format(len(self._target_computers)))
+        self._logger.log(self._logger.ULTRA,'Target computers: {}'.format(self._target_computers))
 
         if not self._target_computer:
             raise ValueError('No computers to search against')
@@ -92,6 +98,7 @@ class Hunter(NetRequester):
             attributes = {'memberdomain': str(), 'membername': str()}
             self._target_users.append(rpcobj.TargetUser(attributes))
         elif target_server:
+            self._logger.debug('Target server: {}, we hunt for its localadmins'.format(target_server))
             with NetRequester(target_server, domain, user, password, lmhash,
                               nthash, do_kerberos, do_tls, domain_controller) as target_server_requester:
                 for x in target_server_requester.get_netlocalgroup(recurse=True):
@@ -101,6 +108,7 @@ class Hunter(NetRequester):
 
                         self._target_users.append(rpcobj.TargetUser(attributes))
         elif queried_userfile:
+            self._logger.debug('User file provided: {}'.format(queried_userfile.name))
             with queried_userfile as _:
                 for x in queried_userfile.readlines():
                     attributes = dict()
@@ -109,6 +117,7 @@ class Hunter(NetRequester):
 
                     self._target_users.append(rpcobj.TargetUser(attributes))
         elif queried_username:
+            self._logger.debug('Queried user: '.format(queried_username))
             attributes = dict()
             attributes['membername'] = queried_username.lower()
             attributes['memberdomain'] = self._target_domains[0]
@@ -135,6 +144,9 @@ class Hunter(NetRequester):
         # Hack to remove empty arrays from the list
         self._target_users = [x for x in self._target_users if x]
         self._target_users = list(set(self._target_users))
+
+        self._logger.debug('{} users in the target list'.format(len(self._target_users)))
+        self._logger.log(self._logger.ULTRA,'Target users: {}'.format(self._target_users))
 
         if (not show_all) and (not foreign_users) and (not self._target_users):
             raise ValueError('No users to search for')
