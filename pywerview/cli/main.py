@@ -554,7 +554,7 @@ def main():
 
     # Parser for the invoke-userhunter command
     invoke_userhunter_parser = subparsers.add_parser('invoke-userhunter', help='Finds '\
-            'which machines domain users are logged into', parents=[ad_parser, hunter_parser, logging_parser])
+            'which machines domain users are logged into', parents=[ad_parser, hunter_parser, logging_parser, json_output_parser])
     invoke_userhunter_parser.add_argument('--unconstrained', action='store_true',
             help='Query only computers with unconstrained delegation')
     invoke_userhunter_parser.add_argument('--admin-count', action='store_true',
@@ -581,7 +581,7 @@ def main():
     # Parser for the invoke-processhunter command
     invoke_processhunter_parser = subparsers.add_parser('invoke-processhunter', help='Searches machines '\
             'for processes with specific name, or ran by specific users',
-            parents=[ad_parser, hunter_parser, logging_parser])
+            parents=[ad_parser, hunter_parser, json_output_parser, logging_parser])
     invoke_processhunter_parser.add_argument('--processname', dest='queried_processname',
             nargs='+', default=list(), help='Names of the process to hunt')
     invoke_processhunter_parser.add_argument('--stop-on-success', action='store_true',
@@ -593,7 +593,7 @@ def main():
     # Parser for the invoke-eventhunter command
     invoke_eventhunter_parser = subparsers.add_parser('invoke-eventhunter', help='Searches machines '\
             'for events with specific name, or ran by specific users',
-            parents=[ad_parser, hunter_parser, logging_parser])
+            parents=[ad_parser, hunter_parser, json_output_parser, logging_parser])
     invoke_eventhunter_parser.add_argument('--search-days', dest='search_days',
             type=int, default=3, help='Number of days back to search logs for (default: %(default)s)')
     invoke_eventhunter_parser.set_defaults(func=invoke_eventhunter)

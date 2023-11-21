@@ -15,14 +15,16 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2023
 
+import logging
 from multiprocessing import Process, Pipe
 
 from pywerview.functions.net import NetRequester
 from pywerview.functions.misc import Misc
 import pywerview.objects.rpcobjects as rpcobj
+from impacket.dcerpc.v5.rpcrt import DCERPCException
 
 class HunterWorker(Process):
-    def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos):
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos, do_tls):
         Process.__init__(self)
         self._pipe = pipe
         self._domain = domain
@@ -31,6 +33,11 @@ class HunterWorker(Process):
         self._lmhash = lmhash
         self._nthash = nthash
         self._do_kerberos = do_kerberos
+        self._do_tls = do_tls
+
+        logger = logging.getLogger('pywerview_main_logger.HunterWorker')
+        logger.ULTRA = 5
+        self._logger = logger
 
     def terminate(self):
         self._pipe.close()
@@ -43,10 +50,10 @@ class HunterWorker(Process):
             self._pipe.send(result)
 
 class UserHunterWorker(HunterWorker):
-    def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos,
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos, do_tls,
             foreign_users, stealth, target_users, domain_short_name, check_access):
         HunterWorker.__init__(self, pipe, domain, user, password, lmhash,
-                nthash, do_kerberos)
+                nthash, do_kerberos, do_tls)
         self._foreign_users = foreign_users
         self._stealth = stealth
         self._target_users = target_users
@@ -59,12 +66,23 @@ class UserHunterWorker(HunterWorker):
         results = list()
         # First, we get every distant session on the target computer
         distant_sessions = list()
-        with NetRequester(target_computer, self._domain, self._user, self._password,
-                          self._lmhash, self._nthash, self._do_kerberos) as net_requester:
+        self._logger.debug('Start hunting user on {}'.format(target_computer))
+        net_requester =  NetRequester(target_computer, self._domain, self._user, self._password,
+                          self._lmhash, self._nthash, self._do_kerberos, self._do_tls)
+        try:
             if not self._foreign_users:
+                self._logger.log(self._logger.ULTRA, 'Calling get_netsession on {}'.format(target_computer))
                 distant_sessions += net_requester.get_netsession()
             if not self._stealth:
+                self._logger.log(self._logger.ULTRA, 'Calling get_netloggedon on {}'.format(target_computer))
                 distant_sessions += net_requester.get_netloggedon()
+        except TypeError:
+            self._logger.warning('Error when retrieving sessions, skipping {}...'.format(target_computer))
+            return results
+
+
+        self._logger.debug('{} distant sessions found'.format(len(distant_sessions)))
+        self._logger.log(self._logger.ULTRA,'Distant sessions: {}'.format(distant_sessions))
 
         # For every session, we get information on the remote user
         for session in distant_sessions:
@@ -81,9 +99,12 @@ class UserHunterWorker(HunterWorker):
 
             # If we found a user
             if username:
+                self._logger.log(self._logger.ULTRA, 'User found in session ({})'.format(username))
                 # We see if it's in our target user group
                 for target_user in self._target_users:
                     if target_user.membername.lower() in username.lower():
+
+                        self._logger.log(self._logger.ULTRA, 'We found our target! ({})'.format(username))
 
                         # If we fall in this branch, we're looking for foreign users
                         # and found a user in the same domain
@@ -100,6 +121,7 @@ class UserHunterWorker(HunterWorker):
                         attributes['sessionfrom'] = session_from
 
                         if self._check_access:
+                            self._logger.debug('"Check access" requested, calling invoke-checklocaladminaccess')
                             with Misc(target_computer, self._domain, self._user, self._password,
                                               self._lmhash, self._nthash, self._do_kerberos) as misc_requester:
                                 attributes['localadmin'] = misc_requester.invoke_checklocaladminaccess()
@@ -108,55 +130,78 @@ class UserHunterWorker(HunterWorker):
 
                         results.append(rpcobj.RPCObject(attributes))
 
+        self._logger.debug('Target\' sessions found on {0}: {1}'.format(target_computer, len(results)))
         return results
 
 class ProcessHunterWorker(HunterWorker):
-    def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos,
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos, do_tls,
             process_name, target_users):
-        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos)
+        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos, do_tls)
         self._process_name = process_name
         self._target_users = target_users
 
     def _hunt(self, target_computer):
         results = list()
 
+        self._logger.debug('Start hunting process on {}'.format(target_computer))
+
         distant_processes = list()
-        with NetRequester(target_computer, self._domain, self._user, self._password,
-                          self._lmhash, self._nthash, self._do_kerberos) as net_requester:
+        net_requester = NetRequester(target_computer, self._domain, self._user, self._password,
+                                     self._lmhash, self._nthash, self._do_kerberos, self._do_tls)
+        
+        self._logger.log(self._logger.ULTRA, 'Calling get_netprocess on {}'.format(target_computer))
+
+        try:
             distant_processes = net_requester.get_netprocess()
+        except DCERPCException:
+            self._logger.critical('Error when retrieving process, skipping {}...'.format(target_computer))
+            return results
 
-        for process in distant_processes:
-            if self._process_name:
-                for process_name in self._process_name:
-                    if process_name.lower() in process.processname.lower():
+        try:
+            for process in distant_processes:
+                if self._process_name:
+                    for process_name in self._process_name:
+                        if process_name.lower() in process.processname.lower():
+                            self._logger.log(self._logger.ULTRA,'Found processname {0} on {1}'.format(process_name, target_computer))
+                            results.append(process)
+                elif self._target_users:
+                    for target_user in self._target_users:
+                        if target_user.membername.lower() in process.user.lower():
+                            self._logger.log(self._logger.ULTRA,'Found {0} process on {1}'.format(target_user.membername, target_computer))
                         results.append(process)
-            elif self._target_users:
-                for target_user in self._target_users:
-                    if target_user.membername.lower() in process.user.lower():
-                        results.append(process)
+        except TypeError:
+            self._logger.warning('Error when handling process, skipping {}...'.format(target_computer))
+            return results
 
+        self._logger.debug('Processname found on {0}: {1}'.format(target_computer, len(results)))
         return results
 
 class EventHunterWorker(HunterWorker):
-    def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos,
+    def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos, do_tls,
             search_days, target_users):
-        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos)
+        HunterWorker.__init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos, do_tls)
         self._target_users = target_users
         self._search_days = search_days
 
     def _hunt(self, target_computer):
         results = list()
 
+        self._logger.debug('Start hunting event on {}'.format(target_computer))
+
         distant_processes = list()
-        with NetRequester(target_computer, self._domain, self._user, self._password,
-                          self._lmhash, self._nthash, self._do_kerberos) as net_requester:
-            distant_events = net_requester.get_userevent(date_start=self._search_days)
+        net_requester = NetRequester(target_computer, self._domain, self._user, self._password,
+                                     self._lmhash, self._nthash, self._do_kerberos, self._do_tls)
+        
+        self._logger.log(self._logger.ULTRA, 'Calling get_userevent on {}'.format(target_computer))
+        distant_events = net_requester.get_userevent(date_start=self._search_days)
 
-        for event in distant_events:
-            if self._target_users:
-                for target_user in self._target_users:
-                    if target_user.membername.lower() in event.username.lower():
-                        results.append(event)
-
+        try:
+            for event in distant_events:
+                if self._target_users:
+                    for target_user in self._target_users:
+                        if target_user.membername.lower() in event.username.lower():
+                            results.append(event)
+        except TypeError:
+            self._logger.warning('Error when retrieving event, skipping {}...'.format(target_computer))
         return results
 

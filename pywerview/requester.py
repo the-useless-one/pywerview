@@ -62,6 +62,7 @@ class LDAPRequester():
         self._base_dn = None
 
         logger = logging.getLogger('pywerview_main_logger.LDAPRequester')
+        logger.ULTRA = 5
         self._logger = logger
 
         # We check here if the ldap3 install supports NTLM and Kerberos encryption
@@ -520,6 +521,7 @@ class RPCRequester():
         self._wmi_connection = None
 
         logger = logging.getLogger('pywerview_main_logger.RPCRequester')
+        logger.ULTRA = 5
         self._logger = logger
 
     def _create_rpc_connection(self, pipe):
@@ -644,6 +646,7 @@ class LDAPRPCRequester(LDAPRequester, RPCRequester):
                                   lmhash, nthash, do_kerberos)
 
         logger = logging.getLogger('pywerview_main_logger.LDAPRPCRequester')
+        logger.ULTRA = 5
         self._logger = logger
 
     def __enter__(self):

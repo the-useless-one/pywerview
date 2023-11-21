@@ -946,14 +946,17 @@ class NetRequester(LDAPRPCRequester):
                 # TODO: do we have to get them one by one?
                 wmi_process = wmi_enum_process.Next(0xffffffff, 1)[0]
                 wmi_process_owner = wmi_process.GetOwner()
-                attributes = {'computername': self._target_computer,
-                              'processname': wmi_process.Name,
-                              'processid': wmi_process.ProcessId,
-                              'user': wmi_process_owner.User,
-                              'domain': wmi_process_owner.Domain}
 
-                result_process = rpcobj.Process(attributes)
-                yield result_process
+                # Sometimes GetOwner() returns None but the list is not over
+                if wmi_process_owner != None:
+                    attributes = {'computername': self._target_computer,
+                                  'processname': wmi_process.Name,
+                                  'processid': wmi_process.ProcessId,
+                                  'user': wmi_process_owner.User,
+                                  'domain': wmi_process_owner.Domain}
+
+                    result_process = rpcobj.Process(attributes)
+                    yield result_process
             except Exception as e:
                 if str(e).find('S_FALSE') < 0:
                     raise e

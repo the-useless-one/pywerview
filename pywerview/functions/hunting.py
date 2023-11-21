@@ -52,10 +52,12 @@ class Hunter(NetRequester):
 
         if not self._target_computers:
             if queried_computerfile:
+                self._logger.debug('Computer file provided: {}'.format(queried_computerfile.name))
                 with queried_computerfile as _:
                     self._target_computers = [x.rstrip('\n') for x in queried_computerfile.readlines()]
 
             elif stealth:
+                self._logger.debug('Stealth mode enabled')
                 for target_domain in self._target_domains:
                     for source in stealth_source:
                         if source == 'dfs':
@@ -68,14 +70,21 @@ class Hunter(NetRequester):
                             self._target_computers += [x.dnshostname \
                                     for x in self.get_netfileserver(queried_domain=target_domain)]
             else:
+                self._logger.debug('Computer list not provided by the user, we retrieve it with get-netcomputer')
                 for target_domain in self._target_domains:
                     self._target_computers = [x.dnshostname for x in self.get_netcomputer(
                         queried_domain=target_domain, unconstrained=unconstrained,
                         ads_path=queried_computeradspath, custom_filter=queried_computerfilter)]
 
+        # Hack to remove empty arrays from the list
+        self._target_computers = [x for x in self._target_computers if x]
+
         # TODO: automatically convert server names to IP address (DNS, LLMNR, NBT-NS, etc.)
         self._target_computers = list(set(self._target_computers))
         random.shuffle(self._target_computers)
+
+        self._logger.debug('{} computers in the target list'.format(len(self._target_computers)))
+        self._logger.log(self._logger.ULTRA,'Target computers: {}'.format(self._target_computers))
 
         if not self._target_computer:
             raise ValueError('No computers to search against')
@@ -89,6 +98,7 @@ class Hunter(NetRequester):
             attributes = {'memberdomain': str(), 'membername': str()}
             self._target_users.append(rpcobj.TargetUser(attributes))
         elif target_server:
+            self._logger.debug('Target server: {}, we hunt for its localadmins'.format(target_server))
             with NetRequester(target_server, domain, user, password, lmhash,
                               nthash, do_kerberos, do_tls, domain_controller) as target_server_requester:
                 for x in target_server_requester.get_netlocalgroup(recurse=True):
@@ -98,6 +108,7 @@ class Hunter(NetRequester):
 
                         self._target_users.append(rpcobj.TargetUser(attributes))
         elif queried_userfile:
+            self._logger.debug('User file provided: {}'.format(queried_userfile.name))
             with queried_userfile as _:
                 for x in queried_userfile.readlines():
                     attributes = dict()
@@ -106,12 +117,14 @@ class Hunter(NetRequester):
 
                     self._target_users.append(rpcobj.TargetUser(attributes))
         elif queried_username:
+            self._logger.debug('Queried user: {}'.format(queried_username))
             attributes = dict()
             attributes['membername'] = queried_username.lower()
             attributes['memberdomain'] = self._target_domains[0]
 
             self._target_users.append(rpcobj.TargetUser(attributes))
         elif queried_useradspath or queried_userfilter or admin_count or allow_delegation:
+            self._logger.debug('Custom query used, launching get-netuser')
             for target_domain in self._target_domains:
                 for x in self.get_netuser(ads_path=queried_useradspath,
                                           custom_filter=queried_userfilter,
@@ -129,7 +142,12 @@ class Hunter(NetRequester):
                                                               queried_groupname=queried_groupname,
                                                               recurse=True)
 
+        # Hack to remove empty arrays from the list
+        self._target_users = [x for x in self._target_users if x]
         self._target_users = list(set(self._target_users))
+
+        self._logger.debug('{} users in the target list'.format(len(self._target_users)))
+        self._logger.log(self._logger.ULTRA,'Target users: {}'.format(self._target_users))
 
         if (not show_all) and (not foreign_users) and (not self._target_users):
             raise ValueError('No users to search for')
@@ -181,7 +199,11 @@ class UserHunter(Hunter):
             stop_on_success=False, check_access=False, queried_domain=str(), stealth=False,
             stealth_source=['dfs', 'dc', 'file'], show_all=False, foreign_users=False):
 
+        self._logger.debug('Building target domain')
+
         self._build_target_domains(queried_domain)
+
+        self._logger.debug('Building target computers')
 
         self._build_target_computers(queried_computername=queried_computername,
                                      queried_computerfile=queried_computerfile,
@@ -189,6 +211,8 @@ class UserHunter(Hunter):
                                      queried_computeradspath=queried_computeradspath,
                                      unconstrained=unconstrained, stealth=stealth,
                                      stealth_source=stealth_source)
+
+        self._logger.debug('Building target users')
 
         self._build_target_users(queried_groupname=queried_groupname,
                                  target_server=target_server,
@@ -207,6 +231,8 @@ class UserHunter(Hunter):
         else:
             domain_short_name = None
 
+        self._logger.debug('Launching workers ({} threads)...'.format(threads))
+
         self._build_workers(threads, UserHunterWorker, (foreign_users, stealth,
                                                         self._target_users,
                                                         domain_short_name, check_access))
@@ -220,12 +246,18 @@ class ProcessHunter(Hunter):
             queried_userfile=None, threads=1, stop_on_success=False, queried_domain=str(),
             show_all=False):
 
+        self._logger.debug('Building target domain')
+
         self._build_target_domains(queried_domain)
+
+        self._logger.debug('Building target computers')
 
         self._build_target_computers(queried_computername=queried_computername,
                                      queried_computerfile=queried_computerfile,
                                      queried_computerfilter=queried_computerfilter,
                                      queried_computeradspath=queried_computeradspath)
+
+        self._logger.debug('Building target users')
 
         self._build_target_users(queried_groupname=queried_groupname,
                                  target_server=target_server,
@@ -234,6 +266,8 @@ class ProcessHunter(Hunter):
                                  queried_useradspath=queried_useradspath,
                                  queried_userfile=queried_userfile,
                                  show_all=show_all)
+
+        self._logger.debug('Launching workers ({} threads)...'.format(threads))
 
         self._build_workers(threads, ProcessHunterWorker, (queried_processname,
                                                            self._target_users))
@@ -248,12 +282,18 @@ class EventHunter(Hunter):
                            queried_userfile=None, threads=1, queried_domain=str(),
                            search_days=3):
 
+        self._logger.debug('Building target domain')
+
         self._build_target_domains(queried_domain)
+
+        self._logger.debug('Building target computers')
 
         self._build_target_computers(queried_computername=queried_computername,
                                      queried_computerfile=queried_computerfile,
                                      queried_computerfilter=queried_computerfilter,
                                      queried_computeradspath=queried_computeradspath)
+
+        self._logger.debug('Building target users')
 
         self._build_target_users(queried_groupname=queried_groupname,
                                  target_server=target_server,
@@ -261,6 +301,8 @@ class EventHunter(Hunter):
                                  queried_userfilter=queried_userfilter,
                                  queried_useradspath=queried_useradspath,
                                  queried_userfile=queried_userfile)
+
+        self._logger.debug('Launching workers ({} threads)...'.format(threads))
 
         self._build_workers(threads, EventHunterWorker, (search_days,
                                                          self._target_users))

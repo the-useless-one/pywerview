@@ -47,6 +47,8 @@ class RPCObject:
         s = str()
         members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
         max_length = 0
+        #TODO: we redefine here because of a bug when used with invoke-processhunter
+        self._logger.ULTRA = 5
         for member in members:
             if not member[0].startswith('_'):
                 if len(member[0]) > max_length:
