@@ -21,6 +21,7 @@ from multiprocessing import Process, Pipe
 from pywerview.functions.net import NetRequester
 from pywerview.functions.misc import Misc
 import pywerview.objects.rpcobjects as rpcobj
+from impacket.dcerpc.v5.rpcrt import DCERPCException
 
 class HunterWorker(Process):
     def __init__(self, pipe, domain, user, password, lmhash, nthash, do_kerberos, do_tls):
@@ -149,7 +150,12 @@ class ProcessHunterWorker(HunterWorker):
                                      self._lmhash, self._nthash, self._do_kerberos, self._do_tls)
         
         self._logger.log(self._logger.ULTRA, 'Calling get_netprocess on {}'.format(target_computer))
-        distant_processes = net_requester.get_netprocess()
+
+        try:
+            distant_processes = net_requester.get_netprocess()
+        except DCERPCException:
+            self._logger.critical('Error when retrieving process, skipping {}...'.format(target_computer))
+            return results
 
         try:
             for process in distant_processes:
@@ -164,7 +170,7 @@ class ProcessHunterWorker(HunterWorker):
                             self._logger.log(self._logger.ULTRA,'Found {0} process on {1}'.format(target_user.membername, target_computer))
                         results.append(process)
         except TypeError:
-            self._logger.warning('Error when retrieving process, skipping {}...'.format(target_computer))
+            self._logger.warning('Error when handling process, skipping {}...'.format(target_computer))
             return results
 
         self._logger.debug('Processname found on {0}: {1}'.format(target_computer, len(results)))
