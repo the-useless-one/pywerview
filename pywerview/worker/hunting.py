@@ -154,7 +154,7 @@ class ProcessHunterWorker(HunterWorker):
         try:
             distant_processes = net_requester.get_netprocess()
         except DCERPCException:
-            self._logger.critical('Error when retrieving process, skipping {}...'.format(target_computer))
+            self._logger.warning('Error when retrieving process, skipping {}...'.format(target_computer))
             return results
 
         try:

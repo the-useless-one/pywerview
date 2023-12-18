@@ -558,8 +558,8 @@ class RPCRequester():
         try:
             dce.connect()
         except Exception as e:
-            self._logger.critical('Error when creating RPC connection')
-            self._logger.critical(e)
+            self._logger.warning('Error when creating RPC connection')
+            self._logger.warning(e)
             self._rpc_connection = None
         else:
             dce.bind(binding_strings[self._pipe[1:]])
@@ -573,8 +573,8 @@ class RPCRequester():
             self._dcom = DCOMConnection(self._target_computer, self._user, self._password,
                                         self._domain, self._lmhash, self._nthash, doKerberos=self._do_kerberos)
         except Exception as e:
-            self._logger.critical('Error when creating WMI connection')
-            self._logger.critical(e)
+            self._logger.warning('Error when creating WMI connection')
+            self._logger.warning(e)
             self._dcom = None
         else:
             i_interface = self._dcom.CoCreateInstanceEx(wmi.CLSID_WbemLevel1Login,
