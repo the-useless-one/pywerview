@@ -65,7 +65,7 @@ class NetRequester(LDAPRPCRequester):
         # The control is used to get access to ntSecurityDescriptor with an
         # unprivileged user, see https://stackoverflow.com/questions/40771503/selecting-the-ad-ntsecuritydescriptor-attribute-as-a-non-admin/40773088
         # /!\ May break pagination from what I've read (see Stack Overflow answer)
-        controls = security_descriptor_control(criticality=True, sdflags=0x07)
+        controls = security_descriptor_control(criticality=True, sdflags=0x01)
 
         objectowners_raw = self._ldap_search(object_filter, adobj.ADObject, attributes=attributes, controls=controls)
         objectowners = list()

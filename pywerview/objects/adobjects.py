@@ -60,6 +60,12 @@ class ADObject:
                         'S-1-5-80': 'NT Service', 'S-1-5-8': 'Proxy', 'S-1-5-9': 'Enterprise Domain Controllers',
                         'S-1-5': 'NT Authority'}
 
+    _well_known_rids = { '498' : 'Enterprise Read-only Domain Controllers',
+                         '512' : 'Domain Admins', '513' : 'Domain Users', '514' : 'Domain Guests', '515' : 'Domain Computers',
+                         '516' : 'Domain Controllers', '517' : 'Cert Publishers', '519' : 'Enterprise Admins',
+                         '520' : 'Group Policy Creator Owners', '522' : 'Cloneable Domain COntrollers', '526' : 'Key Admins',
+                         '527' : 'Enterptise Key Admins', '553' : 'RAS and IAS Servers'}
+
     def __init__(self, attributes):
         logger = logging.getLogger('pywerview_main_logger.ADObject')
         logger.ULTRA = 5
