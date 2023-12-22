@@ -83,13 +83,15 @@ class NetRequester(LDAPRPCRequester):
                 try:
                     resolved_sid = sid_mapping[sid]
                 except KeyError:
-                    self._logger.warning('SID ({}) is not a well known SID'.format(sid))
+                    self._logger.warning('SID ({}) is not a well known or already resolved SID'.format(sid))
                     try:
                         resolved_sid = self.get_adobject(queried_sid=sid, queried_domain=self._queried_domain,
                                                         attributes=['distinguishedname'])[0].distinguishedname
                     except IndexError:
                         self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
                         resolved_sid = sid
+                finally:
+                    sid_mapping[sid] = resolved_sid
             else:
                 resolved_sid = sid
             result.add_attributes({'distinguishedname': objectowner.distinguishedname})
