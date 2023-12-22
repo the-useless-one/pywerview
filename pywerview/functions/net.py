@@ -69,6 +69,9 @@ class NetRequester(LDAPRPCRequester):
 
         objectowners_raw = self._ldap_search(object_filter, adobj.ADObject, attributes=attributes, controls=controls)
         objectowners = list()
+        if resolve_sids:
+            sid_mapping = adobj.ADObject._well_known_sids.copy()
+
         for objectowner in objectowners_raw:
             # Sometimes, admins mess with objects, we skip if the object does not have ntsecuritydescriptor
             if not objectowner.ntsecuritydescriptor:
@@ -79,7 +82,6 @@ class NetRequester(LDAPRPCRequester):
             sd.fromString(objectowner.ntsecuritydescriptor)
             sid = format_sid(sd['OwnerSid'].getData())
             if resolve_sids:
-                sid_mapping = adobj.ADObject._well_known_sids.copy()
                 try:
                     resolved_sid = sid_mapping[sid]
                 except KeyError:
