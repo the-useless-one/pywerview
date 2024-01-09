@@ -184,7 +184,8 @@ class NetRequester(LDAPRPCRequester):
         # This works on a mono-domain forest, must be tested on a more complex one
         if resolve_guids:
             # Dirty fix to get base DN even if custom ADS path was given
-            base_dn = ','.join(self._base_dn.split(',')[-2:])
+            len_base_dn = len(self._base_dn.split(','))
+            base_dn = ','.join(self._base_dn.split(',')[-len_base_dn:])
             guid_map = {'{00000000-0000-0000-0000-000000000000}': 'All'}
             for o in self.get_adobject(ads_path='CN=Schema,CN=Configuration,{}'.format(base_dn),
                     attributes=['name', 'schemaIDGUID'], custom_filter='(schemaIDGUID=*)'):
