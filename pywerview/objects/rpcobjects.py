@@ -18,10 +18,9 @@
 import logging
 import inspect
 
-
 class RPCObject:
     def __init__(self, obj):
-        logger = logging.getLogger("pywerview_main_logger.RPCObject")
+        logger = logging.getLogger('pywerview_main_logger.RPCObject')
         logger.ULTRA = 5
         self._logger = logger
 
@@ -34,39 +33,30 @@ class RPCObject:
         self.add_attributes(attributes)
 
     def add_attributes(self, attributes):
-        self._logger.log(
-            self._logger.ULTRA, "RPCObject instancied with the following attributes : {}".format(attributes)
-        )
+        self._logger.log(self._logger.ULTRA,'RPCObject instancied with the following attributes : {}'.format(attributes))
         for key, value in attributes.items():
             key = key.lower()
-            if key in (
-                "wkui1_logon_domain",
-                "wkui1_logon_server",
-                "wkui1_oth_domains",
-                "wkui1_username",
-                "sesi10_cname",
-                "sesi10_username",
-            ):
-                value = value.rstrip("\x00")
+            if key in ('wkui1_logon_domain', 'wkui1_logon_server',
+                       'wkui1_oth_domains', 'wkui1_username',
+                       'sesi10_cname', 'sesi10_username'):
+                value = value.rstrip('\x00')
 
             setattr(self, key.lower(), value)
 
     def __str__(self):
         s = str()
-        members = inspect.getmembers(self, lambda x: not (inspect.isroutine(x)))
+        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
         max_length = 0
-        # TODO: we redefine here because of a bug when used with invoke-processhunter
+        #TODO: we redefine here because of a bug when used with invoke-processhunter
         self._logger.ULTRA = 5
         for member in members:
-            if not member[0].startswith("_"):
+            if not member[0].startswith('_'):
                 if len(member[0]) > max_length:
                     max_length = len(member[0])
         for member in members:
-            self._logger.log(
-                self._logger.ULTRA, "Trying to print : attribute name = {0} / value = {1}".format(member[0], member[1])
-            )
-            if not member[0].startswith("_"):
-                s += "{}: {}{}\n".format(member[0], " " * (max_length - len(member[0])), member[1])
+            self._logger.log(self._logger.ULTRA,'Trying to print : attribute name = {0} / value = {1}'.format(member[0], member[1]))
+            if not member[0].startswith('_'):
+                s += '{}: {}{}\n'.format(member[0], ' ' * (max_length - len(member[0])), member[1])
 
         s = s[:-1]
         return s
@@ -75,39 +65,32 @@ class RPCObject:
         return str(self)
 
     def to_json(self):
-        members = inspect.getmembers(self, lambda x: not (inspect.isroutine(x)))
+        members = inspect.getmembers(self, lambda x: not(inspect.isroutine(x)))
         results = dict()
         for member in members:
-            if not member[0].startswith("_"):
-                results[member[0]] = member[1]
-        return results
-
+            if not member[0].startswith('_'):
+                results[member[0]]=member[1]
+        return(results)
 
 class TargetUser(RPCObject):
     pass
 
-
 class Session(RPCObject):
     pass
-
 
 class Share(RPCObject):
     pass
 
-
 class WkstaUser(RPCObject):
     pass
 
-
 class Group(RPCObject):
     pass
-
 
 class Disk(RPCObject):
     def __init__(self, obj):
         RPCObject.__init__(self, obj)
         self.disk = self.disk.rstrip("\x00")
-
 
 class Process(RPCObject):
     def __init__(self, obj):
@@ -115,6 +98,6 @@ class Process(RPCObject):
         self.user = str(self.user)
         self.domain = str(self.domain)
 
-
 class Event(RPCObject):
     pass
+
