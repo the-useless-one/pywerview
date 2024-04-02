@@ -743,7 +743,7 @@ class NetRequester(LDAPRPCRequester):
         results = list()
         for disk in resp['DiskInfoStruct']['Buffer']:
             if disk['Disk'] != '\x00':
-                results.append(rpcobj.Disk(disk))
+                results.append(rpcobj.Disk(disk.rstrip("\x00")))
 
         return results
 
