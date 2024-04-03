@@ -88,7 +88,9 @@ class Group(RPCObject):
     pass
 
 class Disk(RPCObject):
-    pass
+    def __init__(self, obj):
+        RPCObject.__init__(self, obj)
+        self.disk = self.disk.rstrip("\x00")
 
 class Process(RPCObject):
     def __init__(self, obj):
