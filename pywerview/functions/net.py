@@ -657,7 +657,9 @@ class NetRequester(LDAPRPCRequester):
                     except IndexError:
                         self._logger.warning('Exception was raised while handling member_dn, falling back to empty string')
                         member_domain = str()
-                    is_group = (member.samaccounttype == 'GROUP_OBJECT')
+
+                    # https://serverfault.com/questions/788888/what-does-an-alias-group-means-in-sid-context
+                    is_group = (member.samaccounttype == 'GROUP_OBJECT') or (member.samaccounttype == 'ALIAS_OBJECT')
 
                     attributes = dict()
                     if queried_domain:
@@ -669,7 +671,7 @@ class NetRequester(LDAPRPCRequester):
                     attributes['memberdomain'] = member_domain
                     if is_group:
                         attributes['useraccountcontrol'] = str()
-                        self._logger.debug('{} is a group, ignoring the useraccountcontrol'.format(member.samaccountname)) 
+                        self._logger.debug('{0} is a {1}, ignoring the useraccountcontrol'.format(member.samaccountname, member.samaccounttype))
                     else:
                         attributes['useraccountcontrol'] = member.useraccountcontrol
                     attributes['isgroup'] = is_group
