@@ -349,6 +349,10 @@ class GPORequester(LDAPRequester):
         else:
             target_ous = [queried_ouname]
 
+        # Hack to save the base DN for later
+        if not queried_domain:
+            saved_queried_domain = ','.join('dc={}'.format(x) for x in net_requester._domain.split('.'))[3:]
+
         gpo_groups = list()
         for target_ou in target_ous:
             ous = net_requester.get_netou(ads_path=target_ou, queried_domain=queried_domain,
@@ -365,7 +369,7 @@ class GPORequester(LDAPRequester):
                     for gpo_group in gpo_groups:
                         for member in gpo_group.members:
                             obj = net_requester.get_adobject(queried_sid=member,
-                                                             queried_domain=self._queried_domain)[0]
+                                                             queried_domain=saved_queried_domain)[0]
                             gpo_computer_admin = GPOComputerAdmin(list())
                             gpo_computer_admin.add_attributes({'computername' : queried_computername})
                             gpo_computer_admin.add_attributes({'ou' : target_ou})
@@ -384,7 +388,7 @@ class GPORequester(LDAPRequester):
                                     group_to_resolve = groups_to_resolve.pop(0)
 
                                     group_members = net_requester.get_netgroupmember(queried_sid=group_to_resolve,
-                                                                                     queried_domain=self._queried_domain,
+                                                                                     queried_domain=saved_queried_domain,
                                                                                      full_data=True)
                                     for group_member in group_members:
                                         gpo_computer_admin = GPOComputerAdmin(list())
