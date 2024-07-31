@@ -87,6 +87,31 @@ class LDAPRequester():
             self._tls_channel_binding_supported = False
             self._logger.debug('TLS channel binding is not supported')
 
+    def _parse_ldap_invalid_credentials_result_message(self, message):
+        # https://ldapwiki.com/wiki/Wiki.jsp?page=Common%20Active%20Directory%20Bind%20Errors
+        error_codes = {
+                        0x52e      : "ERROR_LOGON_FAILURE",
+                        0x52f      : "ERROR_ACCOUNT_RESTRICTION",
+                        0x530      : "ERROR_INVALID_LOGON_HOURS",
+                        0x531      : "ERROR_INVALID_WORKSTATION",
+                        0x532      : "ERROR_PASSWORD_EXPIRED",
+                        0x533      : "ERROR_ACCOUNT_DISABLED",
+                        0x701      : "ERROR_ACCOUNT_EXPIRED",
+                        0x703      : "ERROR_PASSWORD_MUST_CHANGE",
+                        0x775      : "ERROR_ACCOUNT_LOCKED_OUT",
+                        0x80090346 : "SEC_E_BAD_BINDINGS"
+                      }
+        try:
+            # Message is something like:
+            # 80090308: LdapErr: DSID-0C090569, comment: AcceptSecurityContext error, data 775, v4563
+            # we need to extract the "data" code
+            data_code = message.split(": ")[3].split(', ')[1].strip(" data")
+            data_code = int(data_code,16)
+        except(IndexError, KeyError):
+            self._logger.warning('Unable to parse error code')
+            return message
+        return error_codes[data_code]
+
     def _do_ntlm_auth(self, ldap_scheme, formatter, seal_and_sign=False, tls_channel_binding=False):
         self._logger.debug('LDAP authentication with NTLM: ldap_scheme = {0} / seal_and_sign = {1} / tls_channel_binding = {2}'.format(
                             ldap_scheme, seal_and_sign, tls_channel_binding))
@@ -118,9 +143,10 @@ class LDAPRequester():
                                           'not supporting SHA1 as signing algorithm for certificates')
                 sys.exit(-1)
         except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
+                parsed_error_message = self._parse_ldap_invalid_credentials_result_message(ldap_connection.result['message'])
                 self._logger.warning('Server returns LDAPInvalidCredentialsResult')
                 # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
-                if 'AcceptSecurityContext error, data 80090346' in ldap_connection.result['message'] and not self._tls_channel_binding_supported:
+                if parsed_error_message == "SEC_E_BAD_BINDINGS" and not self._tls_channel_binding_supported:
                         if self._lmhash and self._nthash:
                             self._logger.critical('Server requires Channel Binding Token and your ldap3 install does not support it. '
                                                   'Please install https://github.com/cannatag/ldap3/pull/1087, try another authentication method, '
@@ -136,7 +162,7 @@ class LDAPRequester():
                     self._do_ntlm_auth(ldap_scheme, formatter, tls_channel_binding=True)
                     return
                 else:
-                    self._logger.critical('Invalid Credentials')
+                    self._logger.critical('Invalid Credentials : {}'.format(parsed_error_message))
                     sys.exit(-1)
 
         except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
@@ -302,7 +328,8 @@ class LDAPRequester():
                                           'not supporting SHA1 as signing algorithm for certificates')
                 sys.exit(-1)
         except ldap3.core.exceptions.LDAPInvalidCredentialsResult as e:
-            self._logger.critical('Invalid Credentials')
+            parsed_error_message = self._parse_ldap_invalid_credentials_result_message(ldap_connection.result['message'])
+            self._logger.critical('Invalid Credentials : {}'.format(parsed_error_message))
             sys.exit(-1)
 
         who_am_i = ldap_connection.extend.standard.who_am_i()
