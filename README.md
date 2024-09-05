@@ -60,7 +60,7 @@ Also, blah blah blah, don't use it for evil purposes.
 
 * Python 3.6
 * impacket >= 0.9.22
-* ldap3 >= 2.8.1
+* ldap3-bleeding-edge
 * gssapi (Which requires `libkrb5-dev`)
 * pycryptodomex (or pycryptodome)
 
