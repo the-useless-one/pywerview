@@ -294,14 +294,12 @@ Pywerview can print results in json format by using the `--json` switch.
 
 ### The case of LDAP Signing and LDAP Channel Binding
 
-If you want to use pywerview against DCs that implment LDAP Signing and/or LDAP Channel Binding,
-you need to install a forked version of the `ldap3` library. You can find this special version 
-[here](https://github.com/ThePirateWhoSmellsOfSunflowers/ldap3/tree/tls_cb_and_seal_for_ntlm). 
-This version adds [this PR](https://github.com/cannatag/ldap3/pull/1087) by 
-[@ThePirateWhoSmellsOfSunflowers](https://github.com/ThePirateWhoSmellsOfSunflowers) 
-and [this one](https://github.com/cannatag/ldap3/pull/1042) by [@CravateRouge](https://github.com/CravateRouge).
+To work against against DCs that implment LDAP Signing and/or LDAP Channel Binding, you need to install a forked version 
+of the `ldap3` library. You can find this special version [here](https://pypi.org/project/ldap3-bleeding-edge/). 
+This version is `ldap3` version 2.10.1 (which is not on pipy) + 6 pending PRs. Sources for this package can be found
+[here](https://github.com/ThePirateWhoSmellsOfSunflowers/ldap3) 
 
-`pip install` this branch within your pywerview virtual env. You can check if your pywerview 
+`pip install ldap3-bleeding-edge` this branch within your pywerview virtual env. You can check if your pywerview 
 installation uses the fork by enabling debug logging (`-l DEBUG`).
 
 pywerview falls back to [simple authentication](https://datatracker.ietf.org/doc/html/rfc2251#autoid-26) if the custom branch is 
@@ -332,11 +330,16 @@ not installed.
   for his debugging, love you baby :heart:
 * Thanks to [@mpgn](https://github.com/mpgn) for his python 3 contributions.
 
+## MISC
+
+Slides: 
+* 2024: ["pywerview: a (partial) Python rewriting of PowerSploit's PowerView"](https://github.com/ThePirateWhoSmellsOfSunflowers/keuvra/blob/main/slides/pywerview_defcon_paris.pdf) for [DefconParis](https://x.com/DefconParis)
+
 ## COPYRIGHT
 
 PywerView - A Python rewriting of PowerSploit's PowerView
 
-Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2023
+Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2024
 
 This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the

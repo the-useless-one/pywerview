@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 long_description = open('README.md').read()
 
 setup(name='pywerview',
-    version='0.6.1',
+    version='0.7.0',
     description='A Python port of PowerSploit\'s PowerView',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -29,7 +29,7 @@ setup(name='pywerview',
         'beautifulsoup4',
         'lxml',
         'pyasn1',
-        'ldap3>=2.8.1',
+        'ldap3-bleeding-edge',
         'gssapi',
         'pycryptodome',
     ],
