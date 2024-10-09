@@ -704,9 +704,8 @@ class NetRequester(LDAPRPCRequester):
         if full_data:
             attributes=list()
         else:
-            attributes=['trustpartner', 'trustdirection',
-                        'whencreated', 'whenchanged',
-                        'trusttype', 'trustattributes']
+            attributes=['trustpartner', 'trustdirection', 'whencreated', 'whenchanged',
+                        'trusttype', 'trustattributes', 'securityidentifier']
 
         trust_search_filter = '(&(objectClass=trustedDomain))'
 
