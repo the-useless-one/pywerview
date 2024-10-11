@@ -107,10 +107,11 @@ class LDAPRequester():
             # we need to extract the "data" code
             data_code = message.split(": ")[3].split(', ')[1].strip(" data")
             data_code = int(data_code,16)
+            parsed_code = error_codes[data_code]
         except(IndexError, KeyError):
             self._logger.warning('Unable to parse error code')
             return message
-        return error_codes[data_code]
+        return parsed_code
 
     def _do_ntlm_auth(self, ldap_scheme, formatter, seal_and_sign=False, tls_channel_binding=False):
         self._logger.debug('LDAP authentication with NTLM: ldap_scheme = {0} / seal_and_sign = {1} / tls_channel_binding = {2}'.format(
@@ -137,33 +138,33 @@ class LDAPRequester():
             ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
             ldap_connection.bind()
         except ldap3.core.exceptions.LDAPSocketOpenError as e:
-                self._logger.critical(e)
-                if self._do_tls:
-                    self._logger.critical('TLS negociation failed, this error is mostly due to your host '
-                                          'not supporting SHA1 as signing algorithm for certificates')
-                sys.exit(-1)
+            self._logger.critical(e)
+            if self._do_tls:
+                self._logger.critical('TLS negociation failed, this error is mostly due to your host '
+                                      'not supporting SHA1 as signing algorithm for certificates')
+            sys.exit(-1)
         except ldap3.core.exceptions.LDAPInvalidCredentialsResult:
-                parsed_error_message = self._parse_ldap_invalid_credentials_result_message(ldap_connection.result['message'])
-                self._logger.warning('Server returns LDAPInvalidCredentialsResult')
-                # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
-                if parsed_error_message == "SEC_E_BAD_BINDINGS" and not self._tls_channel_binding_supported:
-                        if self._lmhash and self._nthash:
-                            self._logger.critical('Server requires Channel Binding Token and your ldap3 install does not support it. '
-                                                  'Please install https://github.com/cannatag/ldap3/pull/1087, try another authentication method, '
-                                                  'or use a password, not a hash, to authenticate.')
-                            sys.exit(-1)
-                        else:
-                            self._logger.debug('Server requires Channel Binding Token but you are using password authentication,'
-                                               ' falling back to SIMPLE authentication, hoping LDAPS port is open')
-                            self._do_simple_auth('ldaps', formatter)
-                            return
-                elif self._tls_channel_binding_supported == True and tls_channel_binding == False:
-                    self._logger.warning('Falling back to TLS with channel binding')
-                    self._do_ntlm_auth(ldap_scheme, formatter, tls_channel_binding=True)
-                    return
-                else:
-                    self._logger.critical('Invalid Credentials : {}'.format(parsed_error_message))
+            self._logger.warning('Server returns LDAPInvalidCredentialsResult')
+            parsed_error_message = self._parse_ldap_invalid_credentials_result_message(ldap_connection.result['message'])
+            if parsed_error_message != "SEC_E_BAD_BINDINGS":
+                self._logger.critical('Invalid Credentials : {}'.format(parsed_error_message))
+                sys.exit(-1)
+            # https://github.com/zyn3rgy/LdapRelayScan#ldaps-channel-binding-token-requirements
+            elif parsed_error_message == "SEC_E_BAD_BINDINGS" and not self._tls_channel_binding_supported:
+                if self._lmhash and self._nthash:
+                    self._logger.critical('Server requires Channel Binding Token and your ldap3 install does not support it. '
+                                          'Please run "pip install ldap3-bleeding-edge", try another authentication method, '
+                                          'or use a password, not a hash, to authenticate.')
                     sys.exit(-1)
+                else:
+                    self._logger.debug('Server requires Channel Binding Token but you are using password authentication,'
+                                       ' falling back to SIMPLE authentication, hoping LDAPS port is open')
+                    self._do_simple_auth('ldaps', formatter)
+                    return
+            else self._tls_channel_binding_supported == True and tls_channel_binding == False:
+                self._logger.warning('Falling back to TLS with channel binding')
+                self._do_ntlm_auth(ldap_scheme, formatter, tls_channel_binding=True)
+                    return
 
         except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
             self._logger.warning('Server returns LDAPStrongerAuthRequiredResult')
