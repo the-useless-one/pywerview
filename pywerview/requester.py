@@ -161,7 +161,7 @@ class LDAPRequester():
                                        ' falling back to SIMPLE authentication, hoping LDAPS port is open')
                     self._do_simple_auth('ldaps', formatter)
                     return
-            else self._tls_channel_binding_supported == True and tls_channel_binding == False:
+            elif self._tls_channel_binding_supported == True and tls_channel_binding == False:
                 self._logger.warning('Falling back to TLS with channel binding')
                 self._do_ntlm_auth(ldap_scheme, formatter, tls_channel_binding=True)
                     return
