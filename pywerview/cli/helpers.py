@@ -67,7 +67,7 @@ def get_netcerttmpl(domain_controller, domain, user, password=str(),
     requester = NetRequester(domain_controller, domain, user, password,
                                  lmhash, nthash, do_kerberos, do_tls,
                                  user_cert, user_key)
-    return requester.get_netpki(queried_domain=queried_domain,
+    return requester.get_netcerttmpl(queried_domain=queried_domain,
                     resolve_sids=resolve_sids, full_data=full_data)
 
 def get_netgmsa(domain_controller, domain, user, password=str(),

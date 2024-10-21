@@ -161,7 +161,7 @@ def main():
             help='If set, returns full information on the pki')
     get_netpki_parser.add_argument('--caname', dest='queried_ca_name',
         help='CA name to query (wildcards accepted)')
-    get_netpki_parser.set_defaults(func=get_objectowner)
+    get_netpki_parser.set_defaults(func=get_netpki)
 
     # Parser for the get-netcerttmpl command
     get_netcerttmpl_parser = subparsers.add_parser('get-netcerttmpl', help='Returns a list of all the '\
@@ -171,7 +171,7 @@ def main():
             help='Domain to query')
     get_netcerttmpl_parser.add_argument('--resolve-sids', dest='resolve_sids',
             action='store_true', help='Resolve SIDs')
-    get_netcerttmpl_parser.set_defaults(func=get_objectowner)
+    get_netcerttmpl_parser.set_defaults(func=get_netcerttmpl)
 
     # Parser for the get-netgmsa command
     get_netgmsa_parser = subparsers.add_parser('get-netgmsa', help='Returns a list of all the '\

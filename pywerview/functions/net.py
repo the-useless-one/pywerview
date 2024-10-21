@@ -112,16 +112,12 @@ class NetRequester(LDAPRPCRequester):
         else:
             attributes = ["msPKI-Enrollment-Flag", "name", "nTSecurityDescriptor", "pKIExtendedKeyUsage"]
 
-        if queried_ca_name:
-            ldap_filter = '(&(objectClass=pKIEnrollmentService)(displayname={}))'.format(queried_ca_name)
-        else:
-            ldap_filter = '(objectClass=pKICertificateTemplate)'
-
         # DACL_SECURITY_INFORMATION = 0x04
         controls = security_descriptor_control(criticality=True, sdflags=0x04)
         base_dn = self._base_dn
         config_naming_context = 'CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,{}'.format(base_dn)
         self._base_dn = config_naming_context
+        ldap_filter = '(objectClass=pKICertificateTemplate)'
         object_cert_template_raw = self._ldap_search(ldap_filter, adobj.PKICertificateTemplate, attributes=attributes, controls=controls)
         self._base_dn = base_dn
 
