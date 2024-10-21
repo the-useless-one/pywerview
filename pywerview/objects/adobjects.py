@@ -200,3 +200,12 @@ class SMSAAccount(ADObject):
 
 class ObjectOwner(ADObject):
     pass
+
+class PKIEnrollmentService(ADObject):
+    _enrollment_uuids = { "All-Extended-Rights" : "00000000-0000-0000-0000-000000000000",
+                          "Certificate-Enrollment" : "0e10c968-78fb-11d2-90d4-00c04f79dc55",
+                          "Certificate-AutoEnrollment" : "a05b8cc2-17bc-4802-a710-e7c15ab866a2"}
+    pass
+
+class PKICertificateTemplate(PKIEnrollmentService):
+    pass

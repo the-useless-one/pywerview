@@ -35,6 +35,142 @@ import pywerview.formatters as fmt
 
 class NetRequester(LDAPRPCRequester):
     @LDAPRPCRequester._ldap_connection_init
+    def get_netpki(self, queried_domain=str(), queried_ca_name=str(), resolve_sids=False, full_data=False):
+
+        # This function is mostly based on the dumpADCS() one within impacket's ntlmrelayx
+        # credit goes to the multiple contributors!
+        if full_data:
+            attributes=list()
+        else:
+            attributes = ["certificateTemplates", "displayName", "dNSHostName", "name",
+                          "msPKI-Enrollment-Servers", "nTSecurityDescriptor"]
+
+        if queried_ca_name:
+            ldap_filter = '(&(objectClass=pKIEnrollmentService)(displayname={}))'.format(queried_ca_name)
+        else:
+            ldap_filter = '(objectClass=pKIEnrollmentService)'
+
+        # DACL_SECURITY_INFORMATION = 0x04
+        # TODO: create a sdflags enum
+        controls = security_descriptor_control(criticality=True, sdflags=0x04)
+        self._base_dn = 'CN=Configuration,{}'.format(self._base_dn)
+        objectpki_raw = self._ldap_search(ldap_filter, adobj.PKIEnrollmentService, attributes=attributes, controls=controls)
+
+        sid_mapping = adobj.ADObject._well_known_sids.copy()
+        objectpki = list()
+        for pki in objectpki_raw:
+            sd = SR_SECURITY_DESCRIPTOR()
+            sd.fromString(pki.ntsecuritydescriptor)
+
+            enrollment_principals = list()
+            # AccessAllowedObject = 0x05
+            for ace in (a for a in sd["Dacl"]["Data"] if a["AceType"] == 0x05):
+                sid = format_sid(ace["Ace"]["Sid"].getData())
+                if ace["Ace"]["Flags"] == 2:
+                    uuid = format_uuid_le(ace["Ace"]["InheritedObjectType"])[1:-1].lower()
+                    self._logger.log(self._logger.ULTRA, "UUID found in InheritedObjectType: {}".format(uuid))
+                elif ace["Ace"]["Flags"] == 1:
+                    uuid = format_uuid_le(ace["Ace"]["ObjectType"])[1:-1].lower()
+                    self._logger.log(self._logger.ULTRA, "UUID found in ObjectType: {}".format(uuid))
+                else:
+                    continue
+
+                if uuid in adobj.PKIEnrollmentService._enrollment_uuids.values():
+                    # TODO: create a global function resolve_sid
+                    if resolve_sids:
+                        try:
+                            resolved_sid = sid_mapping[sid]
+                        except KeyError:
+                            self._logger.warning('SID ({}) is not a well known or already resolved SID'.format(sid))
+                            try:
+                                resolved_sid = self.get_adobject(queried_sid=sid, queried_domain=self._queried_domain,
+                                         attributes=['distinguishedname'])[0].distinguishedname
+                            except IndexError:
+                                self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
+                                resolved_sid = sid
+                        finally:
+                            sid_mapping[sid] = resolved_sid
+                    else:
+                        resolved_sid = sid
+                    enrollment_principals.append(resolved_sid)
+                    pki.add_attributes({'allowedprincipals': enrollment_principals})
+                else:
+                    self._logger.log(self._logger.ULTRA, "UUID is not a known enrollment UUID: {}".format(uuid))
+                    continue
+            if not full_data:
+                pki._attributes_dict.pop("ntsecuritydescriptor")
+            objectpki.append(pki)
+        return objectpki
+
+    @LDAPRPCRequester._ldap_connection_init
+    def get_netcerttmpl(self, queried_domain=str(), resolve_sids=False, full_data=False):
+
+        # This function is mostly based on the dumpADCS() one within impacket's ntlmrelayx
+        # credit goes to the multiple contributors!
+        if full_data:
+            attributes=list()
+        else:
+            attributes = ["msPKI-Enrollment-Flag", "name", "nTSecurityDescriptor", "pKIExtendedKeyUsage"]
+
+        if queried_ca_name:
+            ldap_filter = '(&(objectClass=pKIEnrollmentService)(displayname={}))'.format(queried_ca_name)
+        else:
+            ldap_filter = '(objectClass=pKICertificateTemplate)'
+
+        # DACL_SECURITY_INFORMATION = 0x04
+        controls = security_descriptor_control(criticality=True, sdflags=0x04)
+        base_dn = self._base_dn
+        config_naming_context = 'CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,{}'.format(base_dn)
+        self._base_dn = config_naming_context
+        object_cert_template_raw = self._ldap_search(ldap_filter, adobj.PKICertificateTemplate, attributes=attributes, controls=controls)
+        self._base_dn = base_dn
+
+        sid_mapping = adobj.ADObject._well_known_sids.copy()
+        object_cert_template = list()
+        for cert_template in object_cert_template_raw:
+            sd = SR_SECURITY_DESCRIPTOR()
+            sd.fromString(cert_template.ntsecuritydescriptor)
+
+            enrollment_principals = list()
+            # AccessAllowedObject = 0x05
+            for ace in (a for a in sd["Dacl"]["Data"] if a["AceType"] == 0x05):
+                sid = format_sid(ace["Ace"]["Sid"].getData())
+                if ace["Ace"]["Flags"] == 2:
+                    uuid = format_uuid_le(ace["Ace"]["InheritedObjectType"])[1:-1].lower()
+                    self._logger.log(self._logger.ULTRA, "UUID found in InheritedObjectType: {}".format(uuid))
+                elif ace["Ace"]["Flags"] == 1:
+                    uuid = format_uuid_le(ace["Ace"]["ObjectType"])[1:-1].lower()
+                    self._logger.log(self._logger.ULTRA, "UUID found in ObjectType: {}".format(uuid))
+                else:
+                    continue
+
+                if uuid in adobj.PKICertificateTemplate._enrollment_uuids.values():
+                    if resolve_sids:
+                        try:
+                            resolved_sid = sid_mapping[sid]
+                        except KeyError:
+                            self._logger.warning('SID ({}) is not a well known or already resolved SID'.format(sid))
+                            try:
+                                resolved_sid = self.get_adobject(queried_sid=sid, queried_domain=self._queried_domain,
+                                         attributes=['distinguishedname'])[0].distinguishedname
+                            except IndexError:
+                                self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
+                                resolved_sid = sid
+                        finally:
+                            sid_mapping[sid] = resolved_sid
+                    else:
+                        resolved_sid = sid
+                    enrollment_principals.append(resolved_sid)
+                    cert_template.add_attributes({'allowedprincipals': enrollment_principals})
+                else:
+                    self._logger.log(self._logger.ULTRA, "UUID is not a known enrollment UUID: {}".format(uuid))
+                    continue
+            if not full_data:
+                cert_template._attributes_dict.pop("ntsecuritydescriptor")
+            object_cert_template.append(cert_template)
+        return object_cert_template
+
+    @LDAPRPCRequester._ldap_connection_init
     def get_adobject(self, queried_domain=str(), queried_sid=str(),
                      queried_name=str(), queried_sam_account_name=str(),
                      ads_path=str(), attributes=list(), custom_filter=str()):

@@ -149,6 +149,30 @@ def main():
             action='store_true', help='Resolve SIDs')
     get_objectowner_parser.set_defaults(func=get_objectowner)
 
+    # Parser for the get-netpki command
+    get_netpki_parser = subparsers.add_parser('get-netpki', help='Returns a list of all the '\
+         'pKIEnrollmentService objects',
+        parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
+    get_netpki_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_netpki_parser.add_argument('--resolve-sids', dest='resolve_sids',
+            action='store_true', help='Resolve SIDs')
+    get_netpki_parser.add_argument('--full-data', action='store_true',
+            help='If set, returns full information on the pki')
+    get_netpki_parser.add_argument('--caname', dest='queried_ca_name',
+        help='CA name to query (wildcards accepted)')
+    get_netpki_parser.set_defaults(func=get_objectowner)
+
+    # Parser for the get-netcerttmpl command
+    get_netcerttmpl_parser = subparsers.add_parser('get-netcerttmpl', help='Returns a list of all the '\
+         'pKICertificateTemplate objects',
+        parents=[ad_parser, logging_parser, json_output_parser, certificate_parser])
+    get_netcerttmpl_parser.add_argument('-d', '--domain', dest='queried_domain',
+            help='Domain to query')
+    get_netcerttmpl_parser.add_argument('--resolve-sids', dest='resolve_sids',
+            action='store_true', help='Resolve SIDs')
+    get_netcerttmpl_parser.set_defaults(func=get_objectowner)
+
     # Parser for the get-netgmsa command
     get_netgmsa_parser = subparsers.add_parser('get-netgmsa', help='Returns a list of all the '\
         'gMSA of the specified domain. To retrieve passwords, you need a privileged account and '\

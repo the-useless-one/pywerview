@@ -50,6 +50,26 @@ def get_objectowner(domain_controller, domain, user, password=str(),
                     queried_sam_account_name=queried_sam_account_name,
                     ads_path=ads_path, resolve_sids=resolve_sids, custom_filter=custom_filter)
 
+def get_netpki(domain_controller, domain, user, password=str(),
+               lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
+               user_cert=str(), user_key=str(), queried_domain=str(),
+               queried_ca_name=str() , resolve_sids=False, full_data=False):
+    requester = NetRequester(domain_controller, domain, user, password,
+                                 lmhash, nthash, do_kerberos, do_tls,
+                                 user_cert, user_key)
+    return requester.get_netpki(queried_domain=queried_domain,
+                    queried_ca_name=queried_ca_name, resolve_sids=resolve_sids, full_data=full_data)
+
+def get_netcerttmpl(domain_controller, domain, user, password=str(),
+                    lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
+                    user_cert=str(), user_key=str(), queried_domain=str(),
+                    resolve_sids=False, full_data=False):
+    requester = NetRequester(domain_controller, domain, user, password,
+                                 lmhash, nthash, do_kerberos, do_tls,
+                                 user_cert, user_key)
+    return requester.get_netpki(queried_domain=queried_domain,
+                    resolve_sids=resolve_sids, full_data=full_data)
+
 def get_netgmsa(domain_controller, domain, user, password=str(),
                 lmhash=str(), nthash=str(), do_kerberos=False, do_tls=False,
                 user_cert=str(), user_key=str(),
