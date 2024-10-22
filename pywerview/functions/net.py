@@ -34,6 +34,23 @@ import pywerview.functions.misc
 import pywerview.formatters as fmt
 
 class NetRequester(LDAPRPCRequester):
+    def _resolve_sid(self, sid, sid_mapping, attribute=['distinguishedname']):
+        try:
+            resolved_sid = sid_mapping[sid]
+        except KeyError:
+            self._logger.warning('SID ({}) is not a well known or already resolved SID'.format(sid))
+            try:
+                resolved_sid = self.get_adobject(queried_sid=sid, queried_domain=self._queried_domain,
+                                                 attributes=attribute)[0].distinguishedname
+            except IndexError:
+                self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
+                resolved_sid = sid
+        finally:
+            sid_mapping[sid] = resolved_sid
+
+        self._logger.debug('SID ({0}) is ({1})'.format(resolved_sid))
+        return resolved_sid
+
     @LDAPRPCRequester._ldap_connection_init
     def get_netpki(self, queried_domain=str(), queried_ca_name=str(), resolve_sids=False, full_data=False):
 
@@ -79,20 +96,8 @@ class NetRequester(LDAPRPCRequester):
                     continue
 
                 if uuid in adobj.PKIEnrollmentService._enrollment_uuids.values():
-                    # TODO: create a global function resolve_sid
                     if resolve_sids:
-                        try:
-                            resolved_sid = sid_mapping[sid]
-                        except KeyError:
-                            self._logger.warning('SID ({}) is not a well known or already resolved SID'.format(sid))
-                            try:
-                                resolved_sid = self.get_adobject(queried_sid=sid, queried_domain=self._queried_domain,
-                                         attributes=['distinguishedname'])[0].distinguishedname
-                            except IndexError:
-                                self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
-                                resolved_sid = sid
-                        finally:
-                            sid_mapping[sid] = resolved_sid
+                        resolved_sid = self._resolve_sid(sid, sid_mapping)
                     else:
                         resolved_sid = sid
                     enrollment_principals.append(resolved_sid)
@@ -145,18 +150,7 @@ class NetRequester(LDAPRPCRequester):
 
                 if uuid in adobj.PKICertificateTemplate._enrollment_uuids.values():
                     if resolve_sids:
-                        try:
-                            resolved_sid = sid_mapping[sid]
-                        except KeyError:
-                            self._logger.warning('SID ({}) is not a well known or already resolved SID'.format(sid))
-                            try:
-                                resolved_sid = self.get_adobject(queried_sid=sid, queried_domain=self._queried_domain,
-                                         attributes=['distinguishedname'])[0].distinguishedname
-                            except IndexError:
-                                self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
-                                resolved_sid = sid
-                        finally:
-                            sid_mapping[sid] = resolved_sid
+                        resolved_sid = self._resolve_sid(sid, sid_mapping)
                     else:
                         resolved_sid = sid
                     enrollment_principals.append(resolved_sid)
@@ -217,18 +211,7 @@ class NetRequester(LDAPRPCRequester):
             sd.fromString(objectowner.ntsecuritydescriptor)
             sid = format_sid(sd['OwnerSid'].getData())
             if resolve_sids:
-                try:
-                    resolved_sid = sid_mapping[sid]
-                except KeyError:
-                    self._logger.warning('SID ({}) is not a well known or already resolved SID'.format(sid))
-                    try:
-                        resolved_sid = self.get_adobject(queried_sid=sid, queried_domain=self._queried_domain,
-                                                        attributes=['distinguishedname'])[0].distinguishedname
-                    except IndexError:
-                        self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
-                        resolved_sid = sid
-                finally:
-                    sid_mapping[sid] = resolved_sid
+                resolved_sid = self._resolve_sid(sid, sid_mapping)
             else:
                 resolved_sid = sid
             result.add_attributes({'distinguishedname': objectowner.distinguishedname})
@@ -257,6 +240,7 @@ class NetRequester(LDAPRPCRequester):
         else:
             object_filter = '(&(name=*){})'.format(filter_objectclass)
 
+        sid_mapping = adobj.ADObject._well_known_sids.copy()
         gmsa = self._ldap_search(object_filter, adobj.GMSAAccount, attributes=attributes)
 
         # In this loop, we resolve SID (if true) and we populate 'enabled' attribute
@@ -264,12 +248,7 @@ class NetRequester(LDAPRPCRequester):
             if resolve_sids:
                 results = list()
                 for sid in getattr(adserviceaccount, 'msds-groupmsamembership'):
-                    try:
-                        resolved_sid = self.get_adobject(queried_sid=sid, queried_domain=self._queried_domain, 
-                                                                  attributes=['distinguishedname'])[0].distinguishedname
-                    except IndexError:
-                        self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
-                        resolved_sid = sid
+                    resolved_sid = self._resolve_sid(sid, sid_mapping)
                     results.append(resolved_sid)
                 gmsa[i].add_attributes({'msds-groupmsamembership': results})
             gmsa[i].add_attributes({'Enabled': 'ACCOUNTDISABLE' not in adserviceaccount.useraccountcontrol})
@@ -383,19 +362,7 @@ class NetRequester(LDAPRPCRequester):
                 attributes['securityidentifier'] = format_sid(ace['Ace']['Sid'].getData())
                 if resolve_sids:
                     converted_sid = attributes['securityidentifier']
-                    try:
-                        resolved_sid = sid_mapping[converted_sid]
-                    except KeyError:
-                        try:
-                            resolved_sid = self.get_adobject(queried_sid=converted_sid,
-                                    queried_domain=self._queried_domain, ads_path=self._base_dn, attributes=['distinguishedname'])[0]
-                            resolved_sid = resolved_sid.distinguishedname
-                        except IndexError:
-                            self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(converted_sid))
-                            resolved_sid = attributes['securityidentifier']
-                    finally:
-                        sid_mapping[converted_sid] = resolved_sid
-                        attributes['securityidentifier'] = resolved_sid
+                    attributes['securityidentifier'] = self._resolve_sid(converted_sid, sid_mapping)
                 try:
                     attributes['objectaceflags'] = fmt.format_object_ace_flags(ace['Ace']['Flags'])
                 except KeyError:
