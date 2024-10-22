@@ -42,13 +42,13 @@ class NetRequester(LDAPRPCRequester):
             try:
                 resolved_sid = self.get_adobject(queried_sid=sid, queried_domain=self._queried_domain,
                                                  attributes=attribute)[0].distinguishedname
+                self._logger.debug('SID ({0}) is ({1})'.format(sid, resolved_sid))
             except IndexError:
                 self._logger.warning('We did not manage to resolve this SID ({}) against the DC'.format(sid))
                 resolved_sid = sid
         finally:
             sid_mapping[sid] = resolved_sid
 
-        self._logger.debug('SID ({0}) is ({1})'.format(resolved_sid))
         return resolved_sid
 
     @LDAPRPCRequester._ldap_connection_init
