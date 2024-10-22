@@ -263,9 +263,11 @@ def format_trustattributes(raw_value):
     return __format_flag(raw_value, __trust_attrib)
 
 def format_ekus(raw_value):
+    raw_value = raw_value.decode('utf-8')
     try:
-        return __ekus[raw_value.decode('utf-8')]
+        return __ekus[raw_value]
     except KeyError:
+        self._logger.warning('Unknown EKU: {}'.format(raw_value))
         return raw_value
 
 def format_mspkienrollmentflag(raw_value):

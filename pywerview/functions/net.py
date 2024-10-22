@@ -53,8 +53,11 @@ class NetRequester(LDAPRPCRequester):
         # DACL_SECURITY_INFORMATION = 0x04
         # TODO: create a sdflags enum
         controls = security_descriptor_control(criticality=True, sdflags=0x04)
-        self._base_dn = 'CN=Configuration,{}'.format(self._base_dn)
+        base_dn = self._base_dn
+        config_naming_context = 'CN=Configuration,{}'.format(base_dn)
+        self._base_dn = config_naming_context
         objectpki_raw = self._ldap_search(ldap_filter, adobj.PKIEnrollmentService, attributes=attributes, controls=controls)
+        self._base_dn = base_dn
 
         sid_mapping = adobj.ADObject._well_known_sids.copy()
         objectpki = list()
