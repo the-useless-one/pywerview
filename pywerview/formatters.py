@@ -196,7 +196,6 @@ def __format_flag(raw_value, flag_dict):
     try:
         int_value = int(raw_value)
     except ValueError:
-        self._logger.warning('Unable to convert raw flag value to int')
         return raw_value
 
     parsed_flags = list()
@@ -209,7 +208,6 @@ def __format_dict_lookup(raw_value, dictionary):
     try:
         return dictionary[int(raw_value)]
     except (ValueError, KeyError):
-        self._logger.warning('Unable to convert raw value to int')
         return raw_value
 
 def format_useraccountcontrol(raw_value):
@@ -222,7 +220,6 @@ def format_ace_access_mask(raw_value):
     try:
         int_value = int(raw_value)
     except ValueError:
-        self._logger.warning('Unable to convert raw ace acess mask value to int')
         return raw_value
 
     activedirectoryrights = list()
@@ -267,7 +264,6 @@ def format_ekus(raw_value):
     try:
         return __ekus[raw_value]
     except KeyError:
-        self._logger.warning('Unknown EKU: {}'.format(raw_value))
         return raw_value
 
 def format_mspkienrollmentflag(raw_value):
