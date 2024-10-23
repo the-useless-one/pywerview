@@ -171,6 +171,8 @@ def main():
             help='Domain to query')
     get_netcerttmpl_parser.add_argument('--resolve-sids', dest='resolve_sids',
             action='store_true', help='Resolve SIDs')
+    get_netcerttmpl_parser.add_argument('--caname', dest='queried_ca_name',
+        help='CA name to query')
     get_netcerttmpl_parser.set_defaults(func=get_netcerttmpl)
 
     # Parser for the get-netgmsa command

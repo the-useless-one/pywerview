@@ -111,10 +111,26 @@ class NetRequester(LDAPRPCRequester):
         return objectpki
 
     @LDAPRPCRequester._ldap_connection_init
-    def get_netcerttmpl(self, queried_domain=str(), resolve_sids=False, full_data=False):
+    def get_netcerttmpl(self, queried_domain=str(), resolve_sids=False, full_data=False, queried_ca_name=str()):
 
         # This function is mostly based on the dumpADCS() one within impacket's ntlmrelayx
         # credit goes to the multiple contributors!
+        base_dn = self._base_dn
+        if queried_ca_name:
+            self._logger.debug('Queried CA: {}'.format(queried_ca_name))
+            ldap_filter = '(&(objectClass=pKIEnrollmentService)(displayname={}))'.format(queried_ca_name)
+            attributes = ["certificateTemplates"]
+            config_naming_context = 'CN=Configuration,{}'.format(base_dn)
+            self._base_dn = config_naming_context
+            try:
+                queried_templates = self._ldap_search(ldap_filter, adobj.PKIEnrollmentService,
+                                    attributes=attributes)[0].certificatetemplates
+                self._logger.debug('Retrieved certificat templates : {}'.format(queried_templates))
+            except IndexError:
+                self._logger.critical('We did not manage to find this CA, please specify a valid name')
+                raise ValueError('pKIEnrollmentService {} was not found'.format(queried_ca_name))
+            self._base_dn = base_dn
+
         if full_data:
             attributes=list()
         else:
@@ -122,7 +138,6 @@ class NetRequester(LDAPRPCRequester):
 
         # DACL_SECURITY_INFORMATION = 0x04
         controls = security_descriptor_control(criticality=True, sdflags=0x04)
-        base_dn = self._base_dn
         config_naming_context = 'CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,{}'.format(base_dn)
         self._base_dn = config_naming_context
         ldap_filter = '(objectClass=pKICertificateTemplate)'
@@ -132,6 +147,10 @@ class NetRequester(LDAPRPCRequester):
         sid_mapping = adobj.ADObject._well_known_sids.copy()
         object_cert_template = list()
         for cert_template in object_cert_template_raw:
+            if queried_ca_name:
+                if cert_template.name not in queried_templates:
+                    self._logger.debug('{0} is not a template of {1}, skipping'.format(cert_template.name, queried_ca_name))
+                    continue
             sd = SR_SECURITY_DESCRIPTOR()
             sd.fromString(cert_template.ntsecuritydescriptor)
 
