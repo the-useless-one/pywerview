@@ -25,7 +25,8 @@ from bs4 import BeautifulSoup
 from ldap3.utils.conv import escape_filter_chars
 from ldap3.protocol.microsoft import security_descriptor_control
 from ldap3.protocol.formatters.formatters import *
-from impacket.ldap.ldaptypes import ACE, ACCESS_ALLOWED_OBJECT_ACE, ACCESS_MASK, LDAP_SID, SR_SECURITY_DESCRIPTOR
+from impacket.ldap.ldaptypes import ACE, ACCESS_ALLOWED_OBJECT_ACE, ACCESS_MASK
+from impacket.ldap.ldaptypes import LDAP_SERVER_SD_FLAGS, LDAP_SID, SR_SECURITY_DESCRIPTOR
 
 from pywerview.requester import LDAPRPCRequester
 import pywerview.objects.adobjects as adobj
@@ -67,9 +68,7 @@ class NetRequester(LDAPRPCRequester):
         else:
             ldap_filter = '(objectClass=pKIEnrollmentService)'
 
-        # DACL_SECURITY_INFORMATION = 0x04
-        # TODO: create a sdflags enum
-        controls = security_descriptor_control(criticality=True, sdflags=0x04)
+        controls = security_descriptor_control(criticality=True, sdflags=LDAP_SERVER_SD_FLAGS.DACL_SECURITY_INFORMATION.value)
         base_dn = self._base_dn
         config_naming_context = 'CN=Configuration,{}'.format(base_dn)
         self._base_dn = config_naming_context
@@ -136,8 +135,7 @@ class NetRequester(LDAPRPCRequester):
         else:
             attributes = ["msPKI-Enrollment-Flag", "name", "nTSecurityDescriptor", "pKIExtendedKeyUsage"]
 
-        # DACL_SECURITY_INFORMATION = 0x04
-        controls = security_descriptor_control(criticality=True, sdflags=0x04)
+        controls = security_descriptor_control(criticality=True, sdflags=LDAP_SERVER_SD_FLAGS.DACL_SECURITY_INFORMATION.value)
         config_naming_context = 'CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,{}'.format(base_dn)
         self._base_dn = config_naming_context
         ldap_filter = '(objectClass=pKICertificateTemplate)'
@@ -213,7 +211,7 @@ class NetRequester(LDAPRPCRequester):
         # The control is used to get access to ntSecurityDescriptor with an
         # unprivileged user, see https://stackoverflow.com/questions/40771503/selecting-the-ad-ntsecuritydescriptor-attribute-as-a-non-admin/40773088
         # /!\ May break pagination from what I've read (see Stack Overflow answer)
-        controls = security_descriptor_control(criticality=True, sdflags=0x01)
+        controls = security_descriptor_control(criticality=True, sdflags=LDAP_SERVER_SD_FLAGS.OWNER_SECURITY_INFORMATION.value)
 
         objectowners_raw = self._ldap_search(object_filter, adobj.ADObject, attributes=attributes, controls=controls)
         objectowners = list()
@@ -338,7 +336,10 @@ class NetRequester(LDAPRPCRequester):
             # The control is used to get access to ntSecurityDescriptor with an
             # unprivileged user, see https://stackoverflow.com/questions/40771503/selecting-the-ad-ntsecuritydescriptor-attribute-as-a-non-admin/40773088
             # /!\ May break pagination from what I've read (see Stack Overflow answer)
-            controls = security_descriptor_control(criticality=True, sdflags=0x07)
+            sdflags = LDAP_SERVER_SD_FLAGS.OWNER_SECURITY_INFORMATION.value | \
+                      LDAP_SERVER_SD_FLAGS.GROUP_SECURITY_INFORMATION.value | \
+                      LDAP_SERVER_SD_FLAGS.DACL_SECURITY_INFORMATION.value
+            controls = security_descriptor_control(criticality=True, sdflags=sdflags)
             acl_type = 'Dacl'
 
         security_descriptors = self._ldap_search(object_filter, adobj.ADObject,
