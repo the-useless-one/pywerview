@@ -59,7 +59,7 @@ Also, blah blah blah, don't use it for evil purposes.
 ## REQUIREMENTS
 
 * Python 3.6
-* impacket >= 0.9.22
+* impacket >= [db71504](https://github.com/fortra/impacket/commit/db71504529008bdbdd900549f6e4293be2e32c88)
 * ldap3-bleeding-edge
 * gssapi (Which requires `libkrb5-dev`)
 * pycryptodomex (or pycryptodome)
