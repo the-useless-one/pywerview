@@ -60,6 +60,24 @@ class LDAPRequester():
         self._ads_prefix = None
         self._ldap_connection = None
         self._base_dn = None
+        self._server_info = None
+
+        # Call custom formatters for several AD attributes
+        self._formatter = {'userAccountControl': fmt.format_useraccountcontrol,
+                'sAMAccountType': fmt.format_samaccounttype,
+                'trustType': fmt.format_trusttype,
+                'trustDirection': fmt.format_trustdirection,
+                'trustAttributes': fmt.format_trustattributes,
+                'msDS-MaximumPasswordAge': format_ad_timedelta,
+                'msDS-MinimumPasswordAge': format_ad_timedelta,
+                'msDS-LockoutDuration': format_ad_timedelta,
+                'msDS-LockoutObservationWindow': format_ad_timedelta,
+                'msDS-GroupMSAMembership': fmt.format_groupmsamembership,
+                'msDS-ManagedPassword': fmt.format_managedpassword,
+                'ms-Mcs-AdmPwdExpirationTime': format_ad_timestamp,
+                'securityIdentifier': format_sid,
+                'pKIExtendedKeyUsage': fmt.format_ekus,
+                'msPKI-Enrollment-Flag': fmt.format_mspkienrollmentflag}
 
         logger = logging.getLogger('pywerview_main_logger.LDAPRequester')
         logger.ULTRA = 5
@@ -113,21 +131,17 @@ class LDAPRequester():
             return message
         return parsed_code
 
-    def _do_ntlm_auth(self, ldap_scheme, formatter, seal_and_sign=False, tls_channel_binding=False):
+    def _do_ntlm_auth(self, server, seal_and_sign=False, tls_channel_binding=False):
         self._logger.debug('LDAP authentication with NTLM: ldap_scheme = {0} / seal_and_sign = {1} / tls_channel_binding = {2}'.format(
-                            ldap_scheme, seal_and_sign, tls_channel_binding))
-        ldap_server = ldap3.Server('{}://{}'.format(ldap_scheme, self._domain_controller), formatter=formatter)
-        user = '{}\\{}'.format(self._domain, self._user)
-        ldap_connection_kwargs = {'user': user, 'raise_exceptions': True, 'authentication': ldap3.NTLM}
+                            "ldaps" if server.ssl else "ldap", seal_and_sign, tls_channel_binding))
+        ldap_connection_kwargs = {'server': server, 'user': self._user, 'raise_exceptions': True, 'authentication': ldap3.NTLM}
 
         if self._lmhash and self._nthash:
             ldap_connection_kwargs['password'] = '{}:{}'.format(self._lmhash, self._nthash)
-            self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
-               '/ hash = {2}'.format(self._domain_controller, user, ldap_connection_kwargs['password']))
         else:
             ldap_connection_kwargs['password'] = self._password
-            self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
-               '/ password = {2}'.format(self._domain_controller, user, ldap_connection_kwargs['password']))
+        self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
+            '/ password = {2}'.format(self._domain_controller, self._user, ldap_connection_kwargs['password']))
 
         if seal_and_sign:
             ldap_connection_kwargs['session_security'] = ldap3.ENCRYPT
@@ -135,7 +149,7 @@ class LDAPRequester():
             ldap_connection_kwargs['channel_binding'] = ldap3.TLS_CHANNEL_BINDING
 
         try:
-            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
+            ldap_connection = ldap3.Connection(**ldap_connection_kwargs)
             ldap_connection.bind()
         except ldap3.core.exceptions.LDAPSocketOpenError as e:
             self._logger.critical(e)
@@ -159,34 +173,40 @@ class LDAPRequester():
                 else:
                     self._logger.debug('Server requires Channel Binding Token but you are using password authentication,'
                                        ' falling back to SIMPLE authentication, hoping LDAPS port is open')
-                    self._do_simple_auth('ldaps', formatter)
+                    ldap_server_kwargs = {'host': self._domain_controller, 'formatter': self._formatter,
+                                          'get_info': ldap3.ALL, 'use_tls': True}
+                    server = ldap3.Server(**ldap_server_kwargs)
+                    self._do_simple_auth(server)
                     return
             elif self._tls_channel_binding_supported == True and tls_channel_binding == False:
                 self._logger.warning('Falling back to TLS with channel binding')
-                self._do_ntlm_auth(ldap_scheme, formatter, tls_channel_binding=True)
+                self._do_ntlm_auth(server, tls_channel_binding=True)
                 return
 
         except ldap3.core.exceptions.LDAPStrongerAuthRequiredResult:
             self._logger.warning('Server returns LDAPStrongerAuthRequiredResult')
             if not self._sign_and_seal_supported:
                 self._logger.warning('Sealing not available, falling back to LDAPS')
-                self._do_ntlm_auth('ldaps', formatter)
+                # I don't know how to reuse the same Server object, but TLS enabled
+                ldap_server_kwargs = {'host': self._domain_controller, 'formatter': self._formatter,
+                                      'get_info': ldap3.ALL, 'use_tls': True}
+                server = ldap3.Server(**ldap_server_kwargs)
+                self._do_ntlm_auth(server)
                 return
             else:
                 self._logger.warning('Falling back to NTLM sealing')
-                self._do_ntlm_auth(ldap_scheme, formatter, seal_and_sign=True)
+                self._do_ntlm_auth(server, seal_and_sign=True)
                 return
 
         who_am_i = ldap_connection.extend.standard.who_am_i()
         self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
         self._ldap_connection = ldap_connection
+        self._server_info = server.info
 
-    def _do_kerberos_auth(self, ldap_scheme, formatter, seal_and_sign=False):
+    def _do_kerberos_auth(self, server, seal_and_sign=False):
         self._logger.debug('LDAP authentication with Kerberos: ldap_scheme = {0} / seal_and_sign = {1}'.format(
-                            ldap_scheme, seal_and_sign))
-        ldap_server = ldap3.Server('{}://{}'.format(ldap_scheme, self._domain_controller), formatter=formatter)
-        user = '{}@{}'.format(self._user, self._domain.upper())
-        ldap_connection_kwargs = {'user': user, 'raise_exceptions': True, 
+                            "ldaps" if server.ssl else "ldap", seal_and_sign))
+        ldap_connection_kwargs = {"server": server , 'user': self._user, 'raise_exceptions': True,
                                   'authentication': ldap3.SASL,
                                   'sasl_mechanism': ldap3.KERBEROS}
 
@@ -235,10 +255,10 @@ class LDAPRequester():
                 cred_store = dict()
         ldap_connection_kwargs['cred_store'] = cred_store
         self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
-               '/ Kerberos auth'.format(self._domain_controller, user))
+               '/ Kerberos auth'.format(self._domain_controller, self._user))
 
         try:
-            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
+            ldap_connection = ldap3.Connection(**ldap_connection_kwargs)
             ldap_connection.bind()
         except ldap3.core.exceptions.LDAPSocketOpenError as e:
                 self._logger.critical(e)
@@ -251,25 +271,28 @@ class LDAPRequester():
             self._logger.warning('Server returns LDAPStrongerAuthRequiredResult')
             if not self._sign_and_seal_supported:
                 self._logger.warning('Sealing not available, falling back to LDAPS')
-                self._do_kerberos_auth('ldaps', formatter)
+                server.use_ssl = True
+                # I don't know how to reuse the same Server object, but switched to TLS
+                ldap_server_kwargs = {'host': self._domain_controller, 'formatter': self._formatter,
+                                      'get_info': ldap3.ALL, 'use_tls': True}
+                server = ldap3.Server(**ldap_server_kwargs)
+                self._do_kerberos_auth(server)
                 return
             else:
                 self._logger.warning('Falling back to Kerberos sealing')
-                self._do_kerberos_auth(ldap_scheme, formatter, seal_and_sign=True)
+                self._do_kerberos_auth(server, seal_and_sign=True)
                 return
 
         who_am_i = ldap_connection.extend.standard.who_am_i()
         self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
         self._ldap_connection = ldap_connection
+        self._server_info = server.info
 
-    def _do_schannel_auth(self, ldap_scheme, formatter):
-        self._logger.debug('LDAP authentication with SChannel: ldap_scheme = {0}'.format(ldap_scheme))
-        ldap_server = ldap3.Server('{}://{}'.format(ldap_scheme, self._domain_controller), formatter=formatter)
-        user = None
+    def _do_schannel_auth(self, server):
+        self._logger.debug('LDAP authentication with SChannel: ldap_scheme = {0}'.format("ldaps" if server.ssl else "ldap"))
         tls_mode = 'Implicit'
-        tls = ldap3.Tls(local_private_key_file=self._user_key, local_certificate_file=self._user_cert, validate=ssl.CERT_NONE)
-        ldap_server.tls = tls
-        ldap_connection_kwargs = {'user': user, 'raise_exceptions': True}
+        server.tls = ldap3.Tls(local_private_key_file=self._user_key, local_certificate_file=self._user_cert, validate=ssl.CERT_NONE)
+        ldap_connection_kwargs = {'server': server, 'user': self._user, 'raise_exceptions': True}
 
         # Explicit TLS, setting up StartTLS
         if not self._do_tls:
@@ -282,7 +305,7 @@ class LDAPRequester():
             '/ key = {2} / {3} TLS / SChannel auth'.format(self._domain_controller, self._user_cert, self._user_key, tls_mode))
 
         try:
-            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
+            ldap_connection = ldap3.Connection(**ldap_connection_kwargs)
             ldap_connection.open()
             ldap_connection.raise_exceptions = False
             if not self._do_tls:
@@ -308,19 +331,18 @@ class LDAPRequester():
 
         self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
         self._ldap_connection = ldap_connection
+        self._server_info = server.info
 
-    def _do_simple_auth(self, ldap_scheme, formatter):
-        self._logger.debug('LDAP authentication with SIMPLE: ldap_scheme = {0}'.format(ldap_scheme))
-        ldap_server = ldap3.Server('{}://{}'.format(ldap_scheme, self._domain_controller), formatter=formatter)
-        user = '{}@{}'.format(self._user, self._domain)
-        ldap_connection_kwargs = {'user': user, 'raise_exceptions': True, 'authentication': ldap3.SIMPLE}
+    def _do_simple_auth(self, server):
+        self._logger.debug('LDAP authentication with SIMPLE: ldap_scheme = {0}'.format("ldaps" if server.ssl else "ldap"))
+        ldap_connection_kwargs = {'server': server, 'user': self._user, 'password': self._password,
+                                  'raise_exceptions': True, 'authentication': ldap3.SIMPLE}
 
-        ldap_connection_kwargs['password'] = self._password
         self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
-            '/ password = {2}'.format(self._domain_controller, user, ldap_connection_kwargs['password']))
+            '/ password = {2}'.format(self._domain_controller, self._user, self._password))
 
         try:
-            ldap_connection = ldap3.Connection(ldap_server, **ldap_connection_kwargs)
+            ldap_connection = ldap3.Connection(**ldap_connection_kwargs)
             ldap_connection.bind()
         except ldap3.core.exceptions.LDAPSocketOpenError as e:
                 self._logger.critical(e)
@@ -336,6 +358,7 @@ class LDAPRequester():
         who_am_i = ldap_connection.extend.standard.who_am_i()
         self._logger.debug('Successfully connected to the LDAP as {}'.format(who_am_i))
         self._ldap_connection = ldap_connection
+        self._server_info = server.info
 
     def _get_netfqdn(self):
         try:
@@ -435,44 +458,26 @@ class LDAPRequester():
         # the function call. So we store it in an attriute and use it in `_ldap_search()`
         self._base_dn = base_dn
 
-        # Format the username and the domain
-        # ldap3 seems not compatible with USER@DOMAIN format with NTLM auth
-        if self._do_kerberos:
-            user = '{}@{}'.format(self._user, self._domain.upper())
-        elif self._do_certificate:
-            user = None
-        else:
-            user = '{}\\{}'.format(self._domain, self._user)
-
-        # Call custom formatters for several AD attributes
-        formatter = {'userAccountControl': fmt.format_useraccountcontrol,
-                'sAMAccountType': fmt.format_samaccounttype,
-                'trustType': fmt.format_trusttype,
-                'trustDirection': fmt.format_trustdirection,
-                'trustAttributes': fmt.format_trustattributes,
-                'msDS-MaximumPasswordAge': format_ad_timedelta,
-                'msDS-MinimumPasswordAge': format_ad_timedelta,
-                'msDS-LockoutDuration': format_ad_timedelta,
-                'msDS-LockoutObservationWindow': format_ad_timedelta,
-                'msDS-GroupMSAMembership': fmt.format_groupmsamembership,
-                'msDS-ManagedPassword': fmt.format_managedpassword,
-                'ms-Mcs-AdmPwdExpirationTime': format_ad_timestamp,
-                'securityIdentifier': format_sid,
-                'pKIExtendedKeyUsage': fmt.format_ekus,
-                'msPKI-Enrollment-Flag': fmt.format_mspkienrollmentflag}
+        ldap_server_kwargs = {'host': self._domain_controller, 'formatter': self._formatter,
+                              'get_info': ldap3.ALL}
 
         if self._do_tls:
-            ldap_scheme = 'ldaps'
+            ldap_server_kwargs['use_ssl'] = True
             self._logger.debug('LDAPS connection forced')
         else:
-            ldap_scheme = 'ldap'
+            ldap_server_kwargs['use_ssl'] = False
+
+        ldap_server = ldap3.Server(**ldap_server_kwargs)
 
         if self._do_kerberos:
-            self._do_kerberos_auth(ldap_scheme, formatter)
+            self._user = '{}@{}'.format(self._user, self._domain.upper())
+            self._do_kerberos_auth(ldap_server)
         elif self._do_certificate:
-            self._do_schannel_auth(ldap_scheme, formatter)
+            self._user = None
+            self._do_schannel_auth(ldap_server)
         else:
-            self._do_ntlm_auth(ldap_scheme, formatter)
+            self._user = '{}\\{}'.format(self._domain, self._user)
+            self._do_ntlm_auth(ldap_server)
 
     def _ldap_search(self, search_filter, class_result, attributes=list(), controls=list()):
         results = list()
