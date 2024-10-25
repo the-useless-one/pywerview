@@ -70,8 +70,7 @@ class NetRequester(LDAPRPCRequester):
 
         controls = security_descriptor_control(criticality=True, sdflags=LDAP_SERVER_SD_FLAGS.DACL_SECURITY_INFORMATION.value)
         base_dn = self._base_dn
-        config_naming_context = 'CN=Configuration,{}'.format(base_dn)
-        self._base_dn = config_naming_context
+        self._base_dn = self._server_info.other['configurationNamingContext'][0]
         objectpki_raw = self._ldap_search(ldap_filter, adobj.PKIEnrollmentService, attributes=attributes, controls=controls)
         self._base_dn = base_dn
 
@@ -119,8 +118,7 @@ class NetRequester(LDAPRPCRequester):
             self._logger.debug('Queried CA: {}'.format(queried_ca_name))
             ldap_filter = '(&(objectClass=pKIEnrollmentService)(displayname={}))'.format(queried_ca_name)
             attributes = ["certificateTemplates"]
-            config_naming_context = 'CN=Configuration,{}'.format(base_dn)
-            self._base_dn = config_naming_context
+            self._base_dn = self._server_info.other['configurationNamingContext'][0]
             try:
                 queried_templates = self._ldap_search(ldap_filter, adobj.PKIEnrollmentService,
                                     attributes=attributes)[0].certificatetemplates
@@ -136,7 +134,7 @@ class NetRequester(LDAPRPCRequester):
             attributes = ["msPKI-Enrollment-Flag", "name", "nTSecurityDescriptor", "pKIExtendedKeyUsage"]
 
         controls = security_descriptor_control(criticality=True, sdflags=LDAP_SERVER_SD_FLAGS.DACL_SECURITY_INFORMATION.value)
-        config_naming_context = 'CN=Certificate Templates,CN=Public Key Services,CN=Services,CN=Configuration,{}'.format(base_dn)
+        config_naming_context = 'CN=Certificate Templates,CN=Public Key Services,CN=Services,{}'.format(self._server_info.other['configurationNamingContext'][0])
         self._base_dn = config_naming_context
         ldap_filter = '(objectClass=pKICertificateTemplate)'
         object_cert_template_raw = self._ldap_search(ldap_filter, adobj.PKICertificateTemplate, attributes=attributes, controls=controls)
@@ -318,11 +316,11 @@ class NetRequester(LDAPRPCRequester):
             len_base_dn = len(self._base_dn.split(','))
             base_dn = ','.join(self._base_dn.split(',')[-len_base_dn:])
             guid_map = {'{00000000-0000-0000-0000-000000000000}': 'All'}
-            for o in self.get_adobject(ads_path='CN=Schema,CN=Configuration,{}'.format(base_dn),
+            for o in self.get_adobject(ads_path=self._server_info.other['schemaNamingContext'][0],
                     attributes=['name', 'schemaIDGUID'], custom_filter='(schemaIDGUID=*)'):
                         guid_map['{}'.format(format_uuid_le(o.schemaidguid))] = o.name
 
-            for o in self.get_adobject(ads_path='CN=Extended-Rights,CN=Configuration,{}'.format(base_dn),
+            for o in self.get_adobject(ads_path='CN=Extended-Rights,{}'.format(self._server_info.other['configurationNamingContext'][0]),
                     attributes=['name', 'rightsGuid'], custom_filter='(objectClass=controlAccessRight)'):
                         guid_map['{{{}}}'.format(o.rightsguid.lower())] = o.name
             self._base_dn = base_dn
