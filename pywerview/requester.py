@@ -85,10 +85,7 @@ class LDAPRequester():
 
         # We check here if the ldap3 install supports NTLM and Kerberos encryption
         # along with TLS channel binding
-        # https://github.com/cannatag/ldap3/pull/1087
-        # https://github.com/cannatag/ldap3/pull/1042
-        # You can also install this branch:
-        # https://github.com/ThePirateWhoSmellsOfSunflowers/ldap3/tree/tls_cb_and_seal_for_ntlm
+        # Run `pip install ldap3-bleeding-edge` to install it
         try:
             if ldap3.SIGN and ldap3.ENCRYPT:
                 self._sign_and_seal_supported = True
@@ -134,7 +131,8 @@ class LDAPRequester():
     def _do_ntlm_auth(self, server, seal_and_sign=False, tls_channel_binding=False):
         self._logger.debug('LDAP authentication with NTLM: ldap_scheme = {0} / seal_and_sign = {1} / tls_channel_binding = {2}'.format(
                             "ldaps" if server.ssl else "ldap", seal_and_sign, tls_channel_binding))
-        ldap_connection_kwargs = {'server': server, 'user': self._user, 'raise_exceptions': True, 'authentication': ldap3.NTLM}
+        ldap_connection_kwargs = {'server': server, 'user': '{}\\{}'.format(self._domain, self._user),
+                                  'raise_exceptions': True, 'authentication': ldap3.NTLM}
 
         if self._lmhash and self._nthash:
             ldap_connection_kwargs['password'] = '{}:{}'.format(self._lmhash, self._nthash)
@@ -206,8 +204,8 @@ class LDAPRequester():
     def _do_kerberos_auth(self, server, seal_and_sign=False):
         self._logger.debug('LDAP authentication with Kerberos: ldap_scheme = {0} / seal_and_sign = {1}'.format(
                             "ldaps" if server.ssl else "ldap", seal_and_sign))
-        ldap_connection_kwargs = {"server": server , 'user': self._user, 'raise_exceptions': True,
-                                  'authentication': ldap3.SASL,
+        ldap_connection_kwargs = {"server": server , 'user': '{}@{}'.format(self._user, self._domain.upper()),
+                                  'raise_exceptions': True, 'authentication': ldap3.SASL,
                                   'sasl_mechanism': ldap3.KERBEROS}
 
         if seal_and_sign:
@@ -292,7 +290,7 @@ class LDAPRequester():
         self._logger.debug('LDAP authentication with SChannel: ldap_scheme = {0}'.format("ldaps" if server.ssl else "ldap"))
         tls_mode = 'Implicit'
         server.tls = ldap3.Tls(local_private_key_file=self._user_key, local_certificate_file=self._user_cert, validate=ssl.CERT_NONE)
-        ldap_connection_kwargs = {'server': server, 'user': self._user, 'raise_exceptions': True}
+        ldap_connection_kwargs = {'server': server, 'user': None, 'raise_exceptions': True}
 
         # Explicit TLS, setting up StartTLS
         if not self._do_tls:
@@ -335,8 +333,8 @@ class LDAPRequester():
 
     def _do_simple_auth(self, server):
         self._logger.debug('LDAP authentication with SIMPLE: ldap_scheme = {0}'.format("ldaps" if server.ssl else "ldap"))
-        ldap_connection_kwargs = {'server': server, 'user': self._user, 'password': self._password,
-                                  'raise_exceptions': True, 'authentication': ldap3.SIMPLE}
+        ldap_connection_kwargs = {'server': server, 'user': '{}@{}'.format(self._user, self._domain),
+                                  'password': self._password, 'raise_exceptions': True, 'authentication': ldap3.SIMPLE}
 
         self._logger.debug('LDAP binding parameters: server = {0} / user = {1} '
             '/ password = {2}'.format(self._domain_controller, self._user, self._password))
@@ -361,22 +359,16 @@ class LDAPRequester():
         self._server_info = server.info
 
     def _get_netfqdn(self):
+        server = ldap3.Server(self._domain_controller, get_info=ldap3.ALL)
+        connection = ldap3.Connection(server)
         try:
-            smb = SMBConnection(self._domain_controller, self._domain_controller)
-        except socket.error:
-            self._logger.warning('Socket error when opening the SMB connection')
-            return str()
-
-        self._logger.debug('SMB loging parameters: user = {0}  / password = {1} / domain = {2} '
-                           '/ LM hash = {3} / NT hash = {4}'.format(self._user, self._password,
-                                                                    self._domain, self._lmhash,
-                                                                    self._nthash))
-
-        smb.login(self._user, self._password, domain=self._domain,
-                lmhash=self._lmhash, nthash=self._nthash)
-        fqdn = smb.getServerDNSDomainName()
-        smb.logoff()
-
+            connection.bind()
+            self._logger.debug('retrieved defaultnamingcontext: {}'.format(server.info.other["defaultNamingContext"][0]))
+            fqdn = server.info.other["defaultNamingContext"][0][3:].replace(',DC=','.')
+        except:
+            self._logger.warning('Error when binding anonymously to the LDAP. Retry with -d and -w options.')
+            sys.exit(-1)
+        self._logger.debug('returned fqdn: {}'.format(fqdn))
         return fqdn
 
     def _patch_spn(self, creds, principal):
@@ -402,6 +394,12 @@ class LDAPRequester():
 
     def _create_ldap_connection(self, queried_domain=str(), ads_path=str(),
                                 ads_prefix=str()):
+        if not queried_domain:
+            self._logger.warning('Queried domain not specified, assuming it is the same than the target')
+            queried_domain = self._get_netfqdn()
+
+        self._queried_domain = queried_domain
+
         if not self._domain:
             if self._do_certificate:
                 self._logger.critical('-w with the FQDN must be used when authenticating with certificates')
@@ -410,53 +408,8 @@ class LDAPRequester():
                 ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
                 self._domain = ccache.principal.realm['data'].decode('utf-8')
             else:
-                try:
-                    self._domain = self._get_netfqdn()
-                except SessionError as e:
-                    self._logger.critical(e)
-                    sys.exit(-1)
-
-        if not queried_domain:
-            if self._do_certificate:
-                # TODO: CHECK!
-                # Change this message
-                self._logger.warning('Cross domain query with certificate is not yet supported, so domain=queried domain')
-                queried_domain = self._domain
-            elif self._do_kerberos:
-                ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
-                queried_domain = ccache.principal.realm['data'].decode('utf-8')
-            else:
-                try:
-                    queried_domain = self._get_netfqdn()
-                except SessionError as e:
-                    self._logger.critical(e)
-                    sys.exit(-1)
-        else:
-            if self._do_certificate:
-                # TODO: CHECK!
-                # Change this message
-                self._logger.warning('Cross domain query with certificate is not yet supported, so domain=queried domain')
-                queried_domain = self._domain
-
-        self._queried_domain = queried_domain
-
-        base_dn = str()
-
-        if ads_prefix:
-            self._ads_prefix = ads_prefix
-            base_dn = '{},'.format(self._ads_prefix)
-        if ads_path:
-            # TODO: manage ADS path starting with 'GC://'
-            if ads_path.upper().startswith('LDAP://'):
-                ads_path = ads_path[7:]
-            self._ads_path = ads_path
-            base_dn += self._ads_path
-        else:
-            base_dn += ','.join('dc={}'.format(x) for x in self._queried_domain.split('.'))
-
-        # base_dn is no longer used within `_create_ldap_connection()`, but I don't want to break
-        # the function call. So we store it in an attriute and use it in `_ldap_search()`
-        self._base_dn = base_dn
+                self._logger.warning('User domain not specified, assuming it is the same than the queried domain')
+                self._domain = queried_domain
 
         ldap_server_kwargs = {'host': self._domain_controller, 'formatter': self._formatter,
                               'get_info': ldap3.ALL}
@@ -470,14 +423,29 @@ class LDAPRequester():
         ldap_server = ldap3.Server(**ldap_server_kwargs)
 
         if self._do_kerberos:
-            self._user = '{}@{}'.format(self._user, self._domain.upper())
             self._do_kerberos_auth(ldap_server)
         elif self._do_certificate:
-            self._user = None
             self._do_schannel_auth(ldap_server)
         else:
-            self._user = '{}\\{}'.format(self._domain, self._user)
             self._do_ntlm_auth(ldap_server)
+
+        base_dn = str()
+
+        if ads_prefix:
+            self._ads_prefix = ads_prefix
+            base_dn = '{},'.format(self._ads_prefix)
+        if ads_path:
+            # TODO: manage ADS path starting with 'GC://'
+            if ads_path.upper().startswith('LDAP://'):
+                ads_path = ads_path[7:]
+            self._ads_path = ads_path
+            base_dn += self._ads_path
+        else:
+            base_dn += self._server_info.other["defaultNamingContext"][0]
+
+        # base_dn is no longer used within `_create_ldap_connection()`, but I don't want to break
+        # the function call. So we store it in an attriute and use it in `_ldap_search()`
+        self._base_dn = base_dn
 
     def _ldap_search(self, search_filter, class_result, attributes=list(), controls=list()):
         results = list()
