@@ -5,11 +5,10 @@ from setuptools import setup, find_packages
 long_description = open('README.md').read()
 
 setup(name='pywerview',
-    version='0.7.0',
+    version='0.7.1',
     description='A Python port of PowerSploit\'s PowerView',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    dependency_links = ['https://github.com/SecureAuthCorp/impacket/tarball/master#egg=impacket-0.9.22'],
     classifiers=[
         'Environment :: Console',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
@@ -24,15 +23,6 @@ setup(name='pywerview',
     packages=find_packages(include=[
         "pywerview", "pywerview.*"
     ]),
-    install_requires=[
-        'impacket>=0.9.22',
-        'beautifulsoup4',
-        'lxml',
-        'pyasn1',
-        'ldap3-bleeding-edge',
-        'gssapi',
-        'pycryptodome',
-    ],
     entry_points = {
         'console_scripts': ['pywerview=pywerview.cli.main:main'],
     },
