@@ -1,0 +1,36 @@
+[project] 
+name = 'pywerview'
+version = '0.7.2'
+description = "A Python port of PowerSploit's PowerView"
+authors = [
+  { name='Yannick Méheut', email='yannick@meheut.org' },
+]
+readme = 'README.md'
+classifiers = [
+    'Environment :: Console',
+    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+    'Programming Language :: Python :: 3.6',
+    'Topic :: Security',
+]
+keywords = ['python', 'powersploit', 'pentesting', 'recon', 'active', 'directory', ' windows']
+license = {file = "LICENSE"}
+dependencies = [
+    'beautifulsoup4',
+    'lxml',
+    'pyasn1',
+    'ldap3-bleeding-edge',
+    'gssapi',
+    'pycryptodome',
+    'impacket @ git+https://github.com/fortra/impacket@master'
+]
+
+[project.urls]
+homepage = 'https://github.com/the-useless-one/pywerview'
+repository = 'https://github.com/the-useless-one/pywerview'
+
+[project.scripts]
+pywerview = 'pywerview.cli.main:main'
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
