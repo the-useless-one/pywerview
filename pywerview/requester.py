@@ -134,7 +134,9 @@ class LDAPRequester():
         ldap_connection_kwargs = {'server': server, 'user': '{}\\{}'.format(self._domain, self._user),
                                   'raise_exceptions': True, 'authentication': ldap3.NTLM}
 
-        if self._lmhash and self._nthash:
+        if self._lmhash or self._nthash:
+            if not self._lmhash: self._lmhash = 'aad3b435b51404eeaad3b435b51404ee'
+            if not self._nthash: self._nthash = '31d6cfe0d16ae931b73c59d7e0c089c0'
             ldap_connection_kwargs['password'] = '{}:{}'.format(self._lmhash, self._nthash)
         else:
             ldap_connection_kwargs['password'] = self._password
@@ -172,7 +174,7 @@ class LDAPRequester():
                     self._logger.debug('Server requires Channel Binding Token but you are using password authentication,'
                                        ' falling back to SIMPLE authentication, hoping LDAPS port is open')
                     ldap_server_kwargs = {'host': self._domain_controller, 'formatter': self._formatter,
-                                          'get_info': ldap3.ALL, 'use_tls': True}
+                                          'get_info': ldap3.ALL, 'use_ssl': True}
                     server = ldap3.Server(**ldap_server_kwargs)
                     self._do_simple_auth(server)
                     return
@@ -187,7 +189,7 @@ class LDAPRequester():
                 self._logger.warning('Sealing not available, falling back to LDAPS')
                 # I don't know how to reuse the same Server object, but TLS enabled
                 ldap_server_kwargs = {'host': self._domain_controller, 'formatter': self._formatter,
-                                      'get_info': ldap3.ALL, 'use_tls': True}
+                                      'get_info': ldap3.ALL, 'use_ssl': True}
                 server = ldap3.Server(**ldap_server_kwargs)
                 self._do_ntlm_auth(server)
                 return
@@ -272,7 +274,7 @@ class LDAPRequester():
                 server.use_ssl = True
                 # I don't know how to reuse the same Server object, but switched to TLS
                 ldap_server_kwargs = {'host': self._domain_controller, 'formatter': self._formatter,
-                                      'get_info': ldap3.ALL, 'use_tls': True}
+                                      'get_info': ldap3.ALL, 'use_ssl': True}
                 server = ldap3.Server(**ldap_server_kwargs)
                 self._do_kerberos_auth(server)
                 return
