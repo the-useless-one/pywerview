@@ -19,10 +19,12 @@ dependencies = [
     'lxml',
     'pyasn1',
     'ldap3-bleeding-edge',
-    'gssapi',
     'pycryptodome',
     'impacket @ git+https://github.com/fortra/impacket@master'
 ]
+
+[project.optional-dependencies]
+kerberos = ["ldap3-bleeding-edge[kerberos]"]
 
 [project.urls]
 homepage = 'https://github.com/the-useless-one/pywerview'
