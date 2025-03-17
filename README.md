@@ -59,10 +59,10 @@ Also, blah blah blah, don't use it for evil purposes.
 ## REQUIREMENTS
 
 * Python 3.6
-* impacket >= [db71504](https://github.com/fortra/impacket/commit/db71504529008bdbdd900549f6e4293be2e32c88)
-* ldap3-bleeding-edge
-* gssapi (Which requires `libkrb5-dev`)
-* pycryptodomex (or pycryptodome)
+* `impacket`
+* `ldap3-bleeding-edge`
+* `pycryptodomex` (or `pycryptodome`)
+* (if you want the kerberos support) `gssapi` (Which requires `libkrb5-dev`)
 
 ## FUNCTIONALITIES
 
@@ -150,6 +150,8 @@ You can provide a logging level to `pywerview` modules by using `-l` or `--loggi
 (level names are case insensitive)
 
 ### Kerberos authentication
+
+⚠️ If you want the kerberos support, you need to run `pip install pywerview[kerberos]` or `pip install ".[kerberos]"` ⚠️
 
 Kerberos authentication is now (partially) supported, which means you can
 pass the ticket and other stuff. To authenticate via Kerberos:
