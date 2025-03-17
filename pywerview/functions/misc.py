@@ -15,6 +15,7 @@
 
 # Yannick Méheut [yannick (at) meheut (dot) org] - Copyright © 2023
 
+from enum import Enum
 from impacket.dcerpc.v5.rpcrt import DCERPCException
 from impacket.dcerpc.v5 import scmr, drsuapi
 
@@ -79,4 +80,12 @@ class Misc(LDAPRPCRequester):
             return False
 
         return True
+
+# Workaround to release pywerview on pypi until impacket 0.13
+# https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/3888c2b7-35b9-45b7-afeb-b772aa932dd0
+class LDAP_SERVER_SD_FLAGS(Enum):
+    OWNER_SECURITY_INFORMATION = 0x1
+    GROUP_SECURITY_INFORMATION = 0x2
+    DACL_SECURITY_INFORMATION  = 0x4
+    SACL_SECURITY_INFORMATION  = 0x8
 

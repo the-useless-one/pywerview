@@ -26,12 +26,14 @@ from ldap3.utils.conv import escape_filter_chars
 from ldap3.protocol.microsoft import security_descriptor_control
 from ldap3.protocol.formatters.formatters import *
 from impacket.ldap.ldaptypes import ACE, ACCESS_ALLOWED_OBJECT_ACE, ACCESS_MASK
-from impacket.ldap.ldaptypes import LDAP_SERVER_SD_FLAGS, LDAP_SID, SR_SECURITY_DESCRIPTOR
+from impacket.ldap.ldaptypes import LDAP_SID, SR_SECURITY_DESCRIPTOR
+
+# Workaround to release pywerview on pypi until impacket 0.13
+from pywerview.functions.misc import LDAP_SERVER_SD_FLAGS
 
 from pywerview.requester import LDAPRPCRequester
 import pywerview.objects.adobjects as adobj
 import pywerview.objects.rpcobjects as rpcobj
-import pywerview.functions.misc
 import pywerview.formatters as fmt
 
 class NetRequester(LDAPRPCRequester):
