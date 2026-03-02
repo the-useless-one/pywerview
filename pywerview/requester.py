@@ -76,6 +76,7 @@ class LDAPRequester():
                 'msDS-GroupMSAMembership': fmt.format_groupmsamembership,
                 'msDS-ManagedPassword': fmt.format_managedpassword,
                 'ms-Mcs-AdmPwdExpirationTime': format_ad_timestamp,
+                'mS-DS-CreatorSID': format_sid,
                 'securityIdentifier': format_sid,
                 'pKIExtendedKeyUsage': fmt.format_ekus,
                 'msPKI-Enrollment-Flag': fmt.format_mspkienrollmentflag}
