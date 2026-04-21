@@ -26,6 +26,9 @@ except ImportError:
 from impacket.examples.ntlmrelayx.attacks.ldapattack import MSDS_MANAGEDPASSWORD_BLOB
 from impacket.ldap.ldaptypes import SR_SECURITY_DESCRIPTOR
 
+logger = logging.getLogger('pywerview_main_logger.formatters')
+logger.ULTRA = 5
+
 __uac_flags = {0x0000001: 'SCRIPT',
                0x0000002: 'ACCOUNTDISABLE',
                0x0000008: 'HOMEDIR_REQUIRED',
@@ -235,6 +238,7 @@ def format_ace_access_mask(raw_value):
 def format_managedpassword(raw_value):
     blob = MSDS_MANAGEDPASSWORD_BLOB()
     blob.fromString(raw_value)
+    logger.log(logger.ULTRA, 'gMSA hex password: {}'.format(binascii.hexlify(blob['CurrentPassword'][:-2]).decode('utf8')))
     return binascii.hexlify(MD4.new(blob['CurrentPassword'][:-2]).digest()).decode('utf8')
 
 def format_groupmsamembership(raw_value):
