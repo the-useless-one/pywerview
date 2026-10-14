@@ -64,6 +64,17 @@ Also, blah blah blah, don't use it for evil purposes.
 * `pycryptodomex` (or `pycryptodome`)
 * (if you want the kerberos support) `gssapi` (Which requires `libkrb5-dev`)
 
+## INSTALLING WITH OTINSTALLER
+
+On Linux, [OTinstaller](https://github.com/OSINTVerseHQ/OTinstaller) is a third-party tool manager that installs the `pywerview` PyPI release into its own virtualenv. It isn't maintained by the pywerview author, so please report problems with it [on the OTinstaller tracker](https://github.com/OSINTVerseHQ/OTinstaller/issues). You still need network access to the target domain controller (and `libkrb5-dev` for Kerberos support).
+
+```console
+$ pipx install otinstaller
+$ otinstaller init
+$ otinstaller install pywerview
+$ otinstaller run pywerview -- get-netuser -w uselessdomain.local -u user --password password -t <dc-ip>
+```
+
 ## FUNCTIONALITIES
 
 If you like living on the bleeding edge, check out the
